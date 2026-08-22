@@ -59,10 +59,15 @@ services:
     restart: unless-stopped
     networks: [hirara]
 
+  hiraranet:
+    image: ghcr.io/lucasdmarshall/hirara-net:${HIRARA_TAG:-latest}
+    restart: unless-stopped
+    networks: [hirara]
+
   hub:
     image: ghcr.io/lucasdmarshall/hirara-hub:${HIRARA_TAG:-latest}
     restart: unless-stopped
-    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader]
+    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet]
     environment:
       - HUB_TOKEN=${HUB_TOKEN:-}
       - HUB_WEBSEARCH_URL=http://websearch:8000
@@ -70,6 +75,7 @@ services:
       - HUB_HIRARACODE_URL=http://hiraracode:8300
       - HUB_HIRARAOCR_URL=http://hiraraocr:8400
       - HUB_HIRARAREADER_URL=http://hirarareader:8500
+      - HUB_HIRARANET_URL=http://hiraranet:8600
       - HUB_HIRARASTT_URL=http://hirarastt:8100
     ports:
       - "127.0.0.1:${HUB_PORT:-8080}:8080"

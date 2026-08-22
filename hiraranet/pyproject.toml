@@ -1,0 +1,61 @@
+[project]
+name = "hiraranet"
+version = "0.1.0"
+description = "Self-hosted network tools for AI agents — DNS lookup first, over HTTP and MCP"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Lucas D Marshall (Kaung Myat San)" }]
+keywords = [
+    "llm",
+    "agent",
+    "mcp",
+    "dns",
+    "network",
+    "self-hosted",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: Name Service (DNS)",
+    "Topic :: System :: Networking",
+]
+dependencies = [
+    "dnspython>=2.6",
+    # Shared IP classification (private / reserved). Answers are annotated with
+    # hirara-core.check_ip so agents know when a name points off the public net.
+    "hirara-core>=0.1",
+]
+
+[project.optional-dependencies]
+service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
+mcp = ["mcp>=2.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[project.urls]
+Homepage = "https://github.com/lucasdmarshall/Hirara"
+Repository = "https://github.com/lucasdmarshall/Hirara"
+Issues = "https://github.com/lucasdmarshall/Hirara/issues"
+
+[project.scripts]
+hiraranet-mcp = "hiraranet.mcp_server:main"
+
+# In-process backend for the hirara SDK's local mode (pip install hirara[local]).
+[project.entry-points."hirara.backends"]
+hiraranet = "hiraranet.tools"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"

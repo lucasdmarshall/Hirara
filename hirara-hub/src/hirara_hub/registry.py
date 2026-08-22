@@ -18,6 +18,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hiraracode": 8300,
     "hiraraocr": 8400,
     "hirarareader": 8500,
+    "hiraranet": 8600,
 }
 
 
@@ -44,6 +45,7 @@ TOOLS: dict[str, ToolRoute] = {
     "ocr_read": ToolRoute("ocr_read", "hiraraocr", "/ocr_read"),
     "form_extract": ToolRoute("form_extract", "hiraraocr", "/form_extract"),
     "office_read": ToolRoute("office_read", "hirarareader", "/office_read"),
+    "dns_lookup": ToolRoute("dns_lookup", "hiraranet", "/dns_lookup"),
 }
 
 

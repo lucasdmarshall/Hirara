@@ -1,0 +1,41 @@
+# HiraraNet — self-hosted network tools for agents (HTTP + MCP).
+#
+# v1: dns_lookup only. Bound to loopback: put your own auth in front before
+# exposing this.
+
+name: hiraranet
+
+services:
+  hiraranet:
+    build:
+      # Context is the repo root so the build can reach the shared
+      # hirara-core package (a sibling of this tool's directory).
+      context: ..
+      dockerfile: hiraranet/Dockerfile
+    restart: unless-stopped
+    environment:
+      - CNET_TIMEOUT=${CNET_TIMEOUT:-5}
+      - CNET_MAX_TYPES=${CNET_MAX_TYPES:-8}
+      - CNET_MAX_ANSWERS=${CNET_MAX_ANSWERS:-64}
+      - CNET_DEFAULT_RECORD_TYPES=${CNET_DEFAULT_RECORD_TYPES:-A,AAAA}
+      - CNET_NAMESERVER=${CNET_NAMESERVER:-}
+      - CNET_ANNOTATE_IPS=${CNET_ANNOTATE_IPS:-true}
+    ports:
+      - "127.0.0.1:${CNET_PORT:-8600}:8600"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8600/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge

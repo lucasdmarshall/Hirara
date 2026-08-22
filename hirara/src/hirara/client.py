@@ -239,6 +239,21 @@ class Client:
             args["filename"] = os.path.basename(path)
         return self.call("office_read", args)
 
+    def dns_lookup(
+        self,
+        name: str,
+        *,
+        record_types: list[str] | None = None,
+        nameserver: str | None = None,
+        **extra,
+    ) -> dict:
+        args = {"name": name, **extra}
+        if record_types is not None:
+            args["record_types"] = record_types
+        if nameserver is not None:
+            args["nameserver"] = nameserver
+        return self.call("dns_lookup", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -288,6 +303,7 @@ execute_code = _delegate("execute_code")
 ocr_read = _delegate("ocr_read")
 form_extract = _delegate("form_extract")
 office_read = _delegate("office_read")
+dns_lookup = _delegate("dns_lookup")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -310,4 +326,5 @@ __all__ = [
     "ocr_read",
     "form_extract",
     "office_read",
+    "dns_lookup",
 ]

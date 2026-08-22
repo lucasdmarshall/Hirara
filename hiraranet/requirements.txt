@@ -1,0 +1,15 @@
+# Runtime — pin ranges; install with: pip install -e ".[service,mcp]"
+# Or: pip install -r requirements.txt
+
+dnspython>=2.6
+
+# Shared IP classification (repo-local package).
+# From this directory: pip install -e ../hirara-core
+hirara-core>=0.1
+
+# HTTP service
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# MCP front end (Claude Desktop / Cursor / agent runtimes)
+mcp>=2.0

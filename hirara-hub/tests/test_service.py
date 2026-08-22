@@ -32,6 +32,8 @@ async def test_require_auth_enforced_only_when_token_set(monkeypatch):
 def test_from_env_reads_token_and_urls(monkeypatch):
     monkeypatch.setenv("HUB_TOKEN", "abc")
     monkeypatch.setenv("HUB_HIRARAREADER_URL", "http://reader:9999")
+    monkeypatch.setenv("HUB_HIRARANET_URL", "http://net:8600")
     cfg = HubConfig.from_env()
     assert cfg.token == "abc"
     assert cfg.service_urls["hirarareader"] == "http://reader:9999"
+    assert cfg.service_urls["hiraranet"] == "http://net:8600"

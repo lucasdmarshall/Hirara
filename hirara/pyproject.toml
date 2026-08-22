@@ -24,7 +24,12 @@ dependencies = [
 dev = ["pytest>=8.0"]
 # Local mode: run the pure-library tools in this process, no hub required.
 # Each package pulls hirara-core (the shared SSRF guard) transitively.
-local = ["hirara-web>=0.1.0", "hirarapdf>=0.1.0", "hirarareader>=0.1.0"]
+local = [
+    "hirara-web>=0.1.0",
+    "hirarapdf>=0.1.0",
+    "hirarareader>=0.1.0",
+    "hiraranet>=0.1.0",
+]
 # Heavier, model-backed tools — opt in only if you want them in-process.
 ocr = ["hiraraocr>=0.1.0"]
 stt = ["hirarastt>=0.1.0"]

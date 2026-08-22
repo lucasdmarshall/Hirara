@@ -1,0 +1,16 @@
+# Hiraranet
+Copyright 2026 Lucas D Marshall (Kaung Myat San)
+
+This product includes software developed by Lucas D Marshall (Kaung Myat San).
+
+--------------------------------------------------------------------------------
+
+This product depends on software from third parties, each under its own license:
+
+  - dnspython (ISC)               https://github.com/rthalley/dnspython
+  - FastAPI (MIT)                 https://github.com/fastapi/fastapi
+  - uvicorn (BSD-3-Clause)        https://github.com/encode/uvicorn
+  - mcp (MIT)                     https://github.com/modelcontextprotocol/python-sdk
+
+It also depends on hirara-core, the shared SSRF guard for the Hirara tool
+hub, distributed in the same repository under the Apache License 2.0.

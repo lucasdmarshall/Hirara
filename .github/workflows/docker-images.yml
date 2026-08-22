@@ -36,6 +36,8 @@ jobs:
             dockerfile: hiraraocr/Dockerfile
           - name: hirara-reader
             dockerfile: hirarareader/Dockerfile
+          - name: hirara-net
+            dockerfile: hiraranet/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

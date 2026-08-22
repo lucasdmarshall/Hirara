@@ -23,6 +23,7 @@ from .client import (
     HiraraToolError,
     call,
     configure,
+    dns_lookup,
     execute_code,
     form_extract,
     health,
@@ -53,6 +54,7 @@ __all__ = [
     "ocr_read",
     "form_extract",
     "office_read",
+    "dns_lookup",
 ]
 
 __version__ = "0.2.0"
