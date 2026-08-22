@@ -23,7 +23,8 @@ can see private/reserved answers without re-implementing the deny list.
 |---|---|---|
 | **`dns_lookup`** | ✅ shipped | Resolve A/AAAA/MX/TXT/… ; annotate private IPs |
 | **`port_scan`** | ✅ shipped | TCP-connect scan ports on a host |
-| `service_enum` | 📋 planned | See [TOOLS.md](../TOOLS.md) |
+| **`service_enum`** | ✅ shipped | Banner / probe → service + product on each port |
+| `directory_enum` | 📋 planned | See [TOOLS.md](../TOOLS.md) |
 
 `dns_lookup` **only queries DNS**. It never opens a connection to the
 addresses it returns.
@@ -72,6 +73,13 @@ curl -X POST localhost:8600/port_scan -H 'content-type: application/json' \
 ```
 
 Omit `ports` to use the built-in common-port list.
+
+**Service enum** (banner + light probes):
+
+```bash
+curl -X POST localhost:8600/service_enum -H 'content-type: application/json' \
+  -d '{"host":"127.0.0.1","ports":[22,80,443]}'
+```
 
 As an MCP server over stdio:
 
@@ -136,6 +144,43 @@ results, not have them silently dropped.
 }
 ```
 
+### `service_enum`
+
+```json
+{
+  "host": "127.0.0.1",
+  "ip": "127.0.0.1",
+  "ports": [22, 80],
+  "results": [
+    {
+      "port": 22,
+      "status": "open",
+      "service": "ssh",
+      "product": "OpenSSH_9.6",
+      "banner": "SSH-2.0-OpenSSH_9.6",
+      "tls": false,
+      "latency_ms": 12.4,
+      "error": null
+    }
+  ],
+  "services": [
+    {
+      "port": 22,
+      "service": "ssh",
+      "product": "OpenSSH_9.6",
+      "tls": false,
+      "banner": "SSH-2.0-OpenSSH_9.6"
+    }
+  ],
+  "service_count": 1,
+  "duration_ms": 45.2,
+  "routable": false,
+  "block_reason": "127.0.0.1 is not globally routable",
+  "truncated": false,
+  "error": null
+}
+```
+
 Errors (empty host, bad port range, resolve failure) come back in
 `"error"`, not as HTTP status codes.
 
@@ -155,6 +200,7 @@ Errors (empty host, bad port range, resolve failure) come back in
 | `CNET_SCAN_TIMEOUT` | `1.5` | Per-port connect timeout (seconds) |
 | `CNET_SCAN_CONCURRENCY` | `32` | Max simultaneous connects |
 | `CNET_MAX_SCAN_PORTS` | `256` | Cap on ports per call |
+| `CNET_MAX_BANNER_CHARS` | `512` | Cap on returned banner text |
 | `CNET_PORT` | `8600` | Compose host port (loopback) |
 
 ---
@@ -162,7 +208,8 @@ Errors (empty host, bad port range, resolve failure) come back in
 ## Security
 
 - **DNS only for `dns_lookup`.** No connect on that tool.
-- **TCP connect for `port_scan`.** No SYN/raw packets, no UDP, no banner grab.
+- **TCP connect for `port_scan`.** No SYN/raw packets, no UDP.
+- **Banner + light probes for `service_enum`.** Optional TLS wrap; no exploit payloads.
 - **Loopback bind** in compose. Do not publish without auth — same rule as
   the other Hirara services.
 - **Allowlisted DNS record types.** Odd/obscure types are refused.

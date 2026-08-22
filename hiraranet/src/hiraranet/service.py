@@ -40,6 +40,16 @@ class PortScanRequest(BaseModel):
     concurrency: int | None = None
 
 
+class ServiceEnumRequest(BaseModel):
+    """JSON body for service_enum."""
+
+    host: str
+    ports: list[int | str] | str | None = None
+    timeout: float | None = None
+    concurrency: int | None = None
+    tls: bool | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -69,4 +79,15 @@ async def port_scan(request: PortScanRequest) -> dict:
         ports=request.ports,
         timeout=request.timeout,
         concurrency=request.concurrency,
+    )
+
+
+@app.post("/service_enum")
+async def service_enum(request: ServiceEnumRequest) -> dict:
+    return await _toolset.service_enum(
+        host=request.host,
+        ports=request.ports,
+        timeout=request.timeout,
+        concurrency=request.concurrency,
+        tls=request.tls,
     )

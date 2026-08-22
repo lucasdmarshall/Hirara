@@ -3,7 +3,7 @@
 Both front ends (HTTP service and MCP server) call into here, so the two can
 never drift apart in behaviour — only in transport.
 
-Tools: ``dns_lookup``, ``port_scan``.
+Tools: ``dns_lookup``, ``port_scan``, ``service_enum``.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import logging
 from dataclasses import dataclass
 
 from .config import NetConfig
+from .enum_svc import enum_result_to_dict, enum_services
 from .lookup import LookupError, lookup_dns, result_to_dict
 from .scan import ScanError, scan_ports, scan_result_to_dict
 
@@ -135,6 +136,68 @@ PORT_SCAN_SCHEMA = {
 }
 
 
+SERVICE_ENUM_SCHEMA = {
+    "name": "service_enum",
+    "description": (
+        "Identify services on open TCP ports. Connects to each port, reads a "
+        "banner when the peer greets first, and sends a short probe (HTTP HEAD, "
+        "Redis PING, …) when it stays silent. Returns per-port status, guessed "
+        "service name, optional product string, banner snippet, and whether TLS "
+        "was used.\n\n"
+        "Use after port_scan (or with an explicit ports list) to learn what is "
+        "speaking on each port. Omit ports for the same common-port default as "
+        "port_scan. Pass tls=true/false to force TLS; omit to auto-detect from "
+        "the port (443, 8443, …)."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "host": {
+                "type": "string",
+                "description": "Hostname or IP to probe.",
+            },
+            "ports": {
+                "description": (
+                    "Ports to probe (same shape as port_scan). Omit for the "
+                    "default common-port list."
+                ),
+                "oneOf": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 1, "maximum": 65535},
+                                {"type": "string"},
+                            ]
+                        },
+                    },
+                    {"type": "string"},
+                ],
+            },
+            "timeout": {
+                "type": "number",
+                "minimum": 0.1,
+                "description": "Per-port timeout in seconds.",
+            },
+            "concurrency": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Max simultaneous probes.",
+            },
+            "tls": {
+                "type": "boolean",
+                "description": (
+                    "Force TLS on/off for every port. Omit to auto-select from "
+                    "well-known TLS ports."
+                ),
+            },
+        },
+        "required": ["host"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _dns_envelope(**overrides) -> dict:
     envelope = {
         "name": None,
@@ -167,6 +230,24 @@ def _scan_envelope(**overrides) -> dict:
     return envelope
 
 
+def _enum_envelope(**overrides) -> dict:
+    envelope = {
+        "host": None,
+        "ip": None,
+        "ports": [],
+        "results": [],
+        "services": [],
+        "service_count": 0,
+        "duration_ms": None,
+        "routable": None,
+        "block_reason": None,
+        "truncated": False,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """Network tools sharing one config."""
@@ -178,13 +259,13 @@ class Toolset:
         return cls(config=NetConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [DNS_LOOKUP_SCHEMA, PORT_SCAN_SCHEMA]
+        return [DNS_LOOKUP_SCHEMA, PORT_SCAN_SCHEMA, SERVICE_ENUM_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["dns_lookup", "port_scan"],
+            "tools": ["dns_lookup", "port_scan", "service_enum"],
             "default_record_types": list(self.config.default_record_types),
             "default_scan_ports": list(self.config.default_scan_ports),
         }
@@ -236,10 +317,36 @@ class Toolset:
             log.exception("port_scan failed")
             return _scan_envelope(host=host, error=f"port_scan failed: {exc}")
 
+    async def service_enum(
+        self,
+        *,
+        host: str,
+        ports: list[int | str] | str | None = None,
+        timeout: float | None = None,
+        concurrency: int | None = None,
+        tls: bool | None = None,
+    ) -> dict:
+        try:
+            result = await enum_services(
+                host,
+                ports=ports,
+                timeout=timeout,
+                concurrency=concurrency,
+                tls=tls,
+                config=self.config,
+            )
+            return enum_result_to_dict(result)
+        except ScanError as exc:
+            return _enum_envelope(host=host, error=str(exc))
+        except Exception as exc:  # noqa: BLE001 — agent gets a body, not a 500
+            log.exception("service_enum failed")
+            return _enum_envelope(host=host, error=f"service_enum failed: {exc}")
+
 
 __all__ = [
     "DNS_LOOKUP_SCHEMA",
     "PORT_SCAN_SCHEMA",
+    "SERVICE_ENUM_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -248,7 +355,7 @@ __all__ = [
 
 
 # --- local backend: in-process dispatch for the hirara SDK -------------------
-TOOL_NAMES = ("dns_lookup", "port_scan")
+TOOL_NAMES = ("dns_lookup", "port_scan", "service_enum")
 _local_toolset: "Toolset | None" = None
 
 
@@ -266,6 +373,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().dns_lookup(**args)
     if name == "port_scan":
         return await _backend().port_scan(**args)
+    if name == "service_enum":
+        return await _backend().service_enum(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

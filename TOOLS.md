@@ -9,7 +9,7 @@ progress in this repo (hub + SDK + packages).
 | 2 | `web_fetch` | ✅ shipped | `hirara-web` / hub |
 | 3 | `dns_lookup` | ✅ shipped | `hiraranet` |
 | 4 | `port_scan` | ✅ shipped | `hiraranet` |
-| 5 | `service_enum` | 📋 planned | `hiraranet` |
+| 5 | `service_enum` | ✅ shipped | `hiraranet` |
 | 6 | `browser_open` | 📋 planned | `hirarabrowser` |
 | 7 | `browser_click` | 📋 planned | `hirarabrowser` |
 | 8 | `browser_type` | 📋 planned | `hirarabrowser` |
@@ -51,8 +51,8 @@ progress in this repo (hub + SDK + packages).
 
 ## Current focus
 
-**`dns_lookup`** and **`port_scan`** are shipped in [`hiraranet/`](hiraranet/).
-Next up from the list: `service_enum`.
+**`dns_lookup`**, **`port_scan`**, and **`service_enum`** are shipped in
+[`hiraranet/`](hiraranet/). Next up from the list: `browser_open`.
 
 ## Engineering conventions (all tools)
 

@@ -107,11 +107,12 @@ class NetConfig:
     # block_reason via hirara-core.check_ip.
     annotate_ips: bool = True
 
-    # --- port_scan ---
+    # --- port_scan / service_enum ---
     default_scan_ports: tuple[int, ...] = DEFAULT_SCAN_PORTS
     scan_timeout: float = 1.5
     scan_concurrency: int = 32
     max_scan_ports: int = 256
+    max_banner_chars: int = 512
 
     @classmethod
     def from_env(cls) -> "NetConfig":
@@ -132,6 +133,7 @@ class NetConfig:
                 "CNET_SCAN_CONCURRENCY", cls.scan_concurrency
             ),
             max_scan_ports=_env_int("CNET_MAX_SCAN_PORTS", cls.max_scan_ports),
+            max_banner_chars=_env_int("CNET_MAX_BANNER_CHARS", cls.max_banner_chars),
         )
 
 

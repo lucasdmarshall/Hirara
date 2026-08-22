@@ -272,6 +272,27 @@ class Client:
             args["concurrency"] = concurrency
         return self.call("port_scan", args)
 
+    def service_enum(
+        self,
+        host: str,
+        *,
+        ports: list[int | str] | str | None = None,
+        timeout: float | None = None,
+        concurrency: int | None = None,
+        tls: bool | None = None,
+        **extra,
+    ) -> dict:
+        args = {"host": host, **extra}
+        if ports is not None:
+            args["ports"] = ports
+        if timeout is not None:
+            args["timeout"] = timeout
+        if concurrency is not None:
+            args["concurrency"] = concurrency
+        if tls is not None:
+            args["tls"] = tls
+        return self.call("service_enum", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -323,6 +344,7 @@ form_extract = _delegate("form_extract")
 office_read = _delegate("office_read")
 dns_lookup = _delegate("dns_lookup")
 port_scan = _delegate("port_scan")
+service_enum = _delegate("service_enum")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -347,4 +369,5 @@ __all__ = [
     "office_read",
     "dns_lookup",
     "port_scan",
+    "service_enum",
 ]

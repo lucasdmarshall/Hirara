@@ -22,9 +22,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted network tools, no API keys. Use dns_lookup to resolve a "
-        "hostname (A/AAAA by default) or reverse-lookup an IP (PTR). Use "
-        "port_scan to TCP-connect probe ports on a host. Resolved IPs are "
-        "annotated with routable / block_reason."
+        "hostname, port_scan to find open TCP ports, and service_enum to "
+        "identify what is speaking on those ports (banner + light probes). "
+        "Resolved IPs are annotated with routable / block_reason."
     ),
 )
 
@@ -86,6 +86,39 @@ async def port_scan_tool(
         ports=ports,
         timeout=timeout,
         concurrency=concurrency,
+    )
+
+
+@server.tool(
+    name="service_enum",
+    description=(
+        "Identify services on TCP ports: connect, read banner / send a short "
+        "probe, return service name, product, banner, and tls flag. Same ports "
+        "shape as port_scan. Optional tls=true/false; omit to auto-select."
+    ),
+)
+async def service_enum_tool(
+    host: str,
+    ports: list[int | str] | str | None = None,
+    timeout: float | None = None,
+    concurrency: int | None = None,
+    tls: bool | None = None,
+) -> dict:
+    """Identify services listening on a host's ports.
+
+    Args:
+        host: Hostname or IP to probe.
+        ports: Ports / ranges to probe, or omit for defaults.
+        timeout: Per-port timeout in seconds.
+        concurrency: Max simultaneous probes.
+        tls: Force TLS on/off; omit for port-based auto.
+    """
+    return await _toolset.service_enum(
+        host=host,
+        ports=ports,
+        timeout=timeout,
+        concurrency=concurrency,
+        tls=tls,
     )
 
 

@@ -47,6 +47,7 @@ to be inspected.
 | **`office_read`** | ✅ shipped | Read docx / pptx / xlsx → markdown — [`hirarareader/`](hirarareader/) |
 | **`dns_lookup`** | ✅ shipped | Resolve DNS (A/AAAA/MX/TXT/…) — [`hiraranet/`](hiraranet/) |
 | **`port_scan`** | ✅ shipped | TCP-connect scan ports on a host — [`hiraranet/`](hiraranet/) |
+| **`service_enum`** | ✅ shipped | Banner/probe service ID on ports — [`hiraranet/`](hiraranet/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through
