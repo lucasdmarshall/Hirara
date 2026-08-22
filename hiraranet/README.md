@@ -209,7 +209,7 @@ Errors (empty host, bad port range, resolve failure) come back in
 
 - **DNS only for `dns_lookup`.** No connect on that tool.
 - **TCP connect for `port_scan`.** No SYN/raw packets, no UDP.
-- **Banner + light probes for `service_enum`.** Optional TLS wrap; no exploit payloads.
+- **Banner + light probes for `service_enum`.** Optional TLS wrap on known TLS ports.
 - **Loopback bind** in compose. Do not publish without auth — same rule as
   the other Hirara services.
 - **Allowlisted DNS record types.** Odd/obscure types are refused.
