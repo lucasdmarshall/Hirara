@@ -58,6 +58,28 @@ class TypeResult:
     error: str | None = None
 
 
+@dataclass
+class ScreenshotResult:
+    session_id: str | None = None
+    url: str | None = None
+    title: str | None = None
+    image_base64: str | None = None
+    mime_type: str | None = None
+    byte_count: int | None = None
+    full_page: bool = False
+    selector: str | None = None
+    truncated: bool = False
+    error: str | None = None
+
+
+# Minimal 1x1 PNG for FakeEngine screenshots (no Playwright needed).
+_FAKE_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f"
+    b"\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
 class BrowserEngine(Protocol):
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         """Return (browser, context, page, http_status)."""
@@ -79,6 +101,7 @@ class FakeEngine:
         self.closed: list[str] = []
         self.clicks: list[str] = []
         self.typed: list[tuple[str, str, bool]] = []
+        self.screenshots: list[dict] = []
 
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         self.opened.append(url)
@@ -122,6 +145,18 @@ class FakeEngine:
                 prev = self._values.get(selector, "")
                 self._values[selector] = prev + text
                 engine.typed.append((selector, text, False))
+
+            async def screenshot(self, **kwargs) -> bytes:
+                engine.screenshots.append(dict(kwargs))
+                return _FAKE_PNG
+
+            def locator(self, selector: str):
+                class _Loc:
+                    async def screenshot(self, **kwargs) -> bytes:
+                        engine.screenshots.append({"selector": selector, **kwargs})
+                        return _FAKE_PNG
+
+                return _Loc()
 
         page = _Page(self.title, self.text, url, self.status)
         return object(), object(), page, self.status
@@ -471,6 +506,129 @@ def type_result_to_dict(result: TypeResult) -> dict:
     }
 
 
+async def browser_screenshot(
+    session_id: str,
+    *,
+    full_page: bool = False,
+    selector: str | None = None,
+    image_format: str = "png",
+    quality: int | None = None,
+    timeout: float | None = None,
+    config: BrowserConfig | None = None,
+    store: SessionStore | None = None,
+) -> ScreenshotResult:
+    """Capture a screenshot of the current page (or a selector) as base64."""
+    import base64
+
+    cfg = config or BrowserConfig()
+    sessions = store if store is not None else SessionStore(
+        max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
+    )
+
+    sid = (session_id or "").strip()
+    if not sid:
+        return ScreenshotResult(error="session_id is required")
+
+    fmt = (image_format or "png").strip().lower()
+    if fmt not in {"png", "jpeg", "jpg"}:
+        return ScreenshotResult(
+            session_id=sid, error=f"unsupported image_format: {image_format!r}"
+        )
+    if fmt == "jpg":
+        fmt = "jpeg"
+
+    session = sessions.get(sid)
+    if session is None:
+        return ScreenshotResult(
+            session_id=sid, error=f"unknown session_id: {sid}"
+        )
+
+    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
+    if wait_timeout <= 0:
+        return ScreenshotResult(session_id=sid, error="timeout must be > 0")
+
+    page = session.page
+    sel = (selector or "").strip() or None
+    try:
+        shot_kwargs: dict = {
+            "type": fmt,
+            "timeout": int(wait_timeout * 1000),
+        }
+        if fmt == "jpeg" and quality is not None:
+            q = int(quality)
+            if q < 0 or q > 100:
+                return ScreenshotResult(
+                    session_id=sid, selector=sel, error="quality must be 0..100"
+                )
+            shot_kwargs["quality"] = q
+        elif fmt == "jpeg" and quality is None:
+            shot_kwargs["quality"] = 80
+
+        if sel:
+            wait = getattr(page, "wait_for_selector", None)
+            if callable(wait):
+                await wait(sel, timeout=int(wait_timeout * 1000), state="visible")
+            loc = page.locator(sel)
+            raw = await loc.screenshot(
+                **{k: v for k, v in shot_kwargs.items() if k != "full_page"}
+            )
+        else:
+            shot_kwargs["full_page"] = bool(full_page)
+            raw = await page.screenshot(**shot_kwargs)
+
+        if not isinstance(raw, (bytes, bytearray)):
+            return ScreenshotResult(
+                session_id=sid,
+                selector=sel,
+                error="screenshot returned no bytes",
+            )
+        data = bytes(raw)
+        truncated = False
+        if len(data) > cfg.max_screenshot_bytes:
+            data = data[: cfg.max_screenshot_bytes]
+            truncated = True
+
+        title = await page.title()
+        url = getattr(page, "url", session.url)
+        session.url = url
+        session.title = title
+        mime = "image/png" if fmt == "png" else "image/jpeg"
+        return ScreenshotResult(
+            session_id=sid,
+            url=url,
+            title=title,
+            image_base64=base64.b64encode(data).decode("ascii"),
+            mime_type=mime,
+            byte_count=len(data),
+            full_page=bool(full_page) and sel is None,
+            selector=sel,
+            truncated=truncated,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return ScreenshotResult(
+            session_id=sid,
+            selector=sel,
+            url=getattr(page, "url", session.url),
+            title=session.title,
+            error=f"screenshot failed: {exc}",
+        )
+
+
+def screenshot_result_to_dict(result: ScreenshotResult) -> dict:
+    return {
+        "session_id": result.session_id,
+        "url": result.url,
+        "title": result.title,
+        "image_base64": result.image_base64,
+        "mime_type": result.mime_type,
+        "byte_count": result.byte_count,
+        "full_page": result.full_page,
+        "selector": result.selector,
+        "truncated": result.truncated,
+        "error": result.error,
+    }
+
+
 __all__ = [
     "BrowserEngine",
     "BrowserError",
@@ -478,11 +636,14 @@ __all__ = [
     "FakeEngine",
     "OpenResult",
     "PlaywrightEngine",
+    "ScreenshotResult",
     "TypeResult",
     "browser_click",
     "browser_open",
+    "browser_screenshot",
     "browser_type",
     "click_result_to_dict",
     "open_result_to_dict",
+    "screenshot_result_to_dict",
     "type_result_to_dict",
 ]

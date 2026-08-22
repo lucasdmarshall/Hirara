@@ -13,8 +13,8 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted browser tools. Use browser_open to load a URL, "
-        "browser_click to click selectors, and browser_type to fill inputs "
-        "in that session."
+        "browser_click to click selectors, browser_type to fill inputs, "
+        "and browser_screenshot to capture the page in that session."
     ),
 )
 
@@ -119,6 +119,43 @@ async def browser_type_tool(
         clear=clear,
         press_enter=press_enter,
         delay_ms=delay_ms,
+    )
+
+
+@server.tool(
+    name="browser_screenshot",
+    description=(
+        "Capture a screenshot of the current page in an existing browser "
+        "session. Returns image_base64 (PNG by default) plus mime_type. "
+        "Pass full_page=true for the entire scrollable page, or selector to "
+        "capture a single element."
+    ),
+)
+async def browser_screenshot_tool(
+    session_id: str,
+    full_page: bool = False,
+    selector: str | None = None,
+    image_format: str = "png",
+    quality: int | None = None,
+    timeout: float | None = None,
+) -> dict:
+    """Screenshot a page or element in a browser session.
+
+    Args:
+        session_id: Session from browser_open.
+        full_page: Capture the full scrollable page when true.
+        selector: Optional element selector instead of the viewport.
+        image_format: png or jpeg.
+        quality: JPEG quality 0-100 (ignored for png).
+        timeout: Screenshot timeout in seconds.
+    """
+    return await _toolset.browser_screenshot(
+        session_id=session_id,
+        full_page=full_page,
+        selector=selector,
+        image_format=image_format,
+        quality=quality,
+        timeout=timeout,
     )
 
 

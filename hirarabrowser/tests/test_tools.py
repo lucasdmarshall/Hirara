@@ -10,6 +10,7 @@ from hirarabrowser.session import SessionStore
 from hirarabrowser.tools import (
     BROWSER_CLICK_SCHEMA,
     BROWSER_OPEN_SCHEMA,
+    BROWSER_SCREENSHOT_SCHEMA,
     BROWSER_TYPE_SCHEMA,
     Toolset,
 )
@@ -28,9 +29,15 @@ def test_schema_ready():
     tprops = BROWSER_TYPE_SCHEMA["input_schema"]["properties"]
     assert {"session_id", "selector", "text", "clear", "press_enter"} <= set(tprops)
 
+    assert BROWSER_SCREENSHOT_SCHEMA["name"] == "browser_screenshot"
+    sprops = BROWSER_SCREENSHOT_SCHEMA["input_schema"]["properties"]
+    assert {"session_id", "full_page", "selector", "image_format", "quality"} <= set(
+        sprops
+    )
+
 
 @pytest.mark.asyncio
-async def test_toolset_open_click_type(monkeypatch):
+async def test_toolset_open_click_type_screenshot(monkeypatch):
     monkeypatch.setattr(
         "hirarabrowser.browser.resolve_target",
         lambda url, **kw: object(),
@@ -52,6 +59,12 @@ async def test_toolset_open_click_type(monkeypatch):
     assert t["text"] == "search"
     assert t["cleared"] is True
 
+    s = await ts.browser_screenshot(session_id=sid, full_page=True)
+    assert s["error"] is None
+    assert s["mime_type"] == "image/png"
+    assert s["image_base64"]
+    assert s["full_page"] is True
+
 
 @pytest.mark.asyncio
 async def test_health():
@@ -62,4 +75,9 @@ async def test_health():
     )
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["browser_open", "browser_click", "browser_type"]
+    assert h["tools"] == [
+        "browser_open",
+        "browser_click",
+        "browser_type",
+        "browser_screenshot",
+    ]

@@ -18,7 +18,7 @@ default. URLs are checked with [`hirara-core`](../hirara-core/) before navigate.
 | **`browser_open`** | ✅ shipped | Open URL → `session_id`, title, final URL |
 | **`browser_click`** | ✅ shipped | Click a selector in a session |
 | **`browser_type`** | ✅ shipped | Type into an input (fill or append) |
-| `browser_screenshot` | 📋 planned | Capture a page screenshot |
+| **`browser_screenshot`** | ✅ shipped | Capture viewport / full page / element as PNG or JPEG |
 
 ---
 
@@ -72,6 +72,13 @@ curl -X POST localhost:8700/browser_type -H 'content-type: application/json' \
   -d '{"session_id":"<id>","selector":"input[name=q]","text":"hirara","press_enter":true}'
 ```
 
+**Screenshot** the page (or pass `"selector"` / `"full_page":true`):
+
+```bash
+curl -X POST localhost:8700/browser_screenshot -H 'content-type: application/json' \
+  -d '{"session_id":"<id>","full_page":false}'
+```
+
 MCP:
 
 ```bash
@@ -95,6 +102,7 @@ docker compose up -d --build
 | `CBRO_MAX_SESSIONS` | `8` | Concurrent sessions |
 | `CBRO_SESSION_TTL` | `600` | Idle session TTL (seconds) |
 | `CBRO_MAX_TEXT_CHARS` | `50000` | Cap on `include_text` body |
+| `CBRO_MAX_SCREENSHOT_BYTES` | `5000000` | Cap on raw screenshot bytes |
 | `CBRO_ALLOW_PRIVATE_URLS` | `true` (lib) / `false` (image) | Permit RFC1918 / loopback |
 | `CBRO_BROWSER` | `chromium` | `chromium` / `firefox` / `webkit` |
 | `CBRO_PORT` | `8700` | Compose host port |

@@ -1,6 +1,6 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``browser_open``, ``browser_click``, ``browser_type`` (screenshot follows).
+Tools: ``browser_open``, ``browser_click``, ``browser_type``, ``browser_screenshot``.
 """
 
 from __future__ import annotations
@@ -11,9 +11,11 @@ from dataclasses import dataclass
 from .browser import (
     browser_click,
     browser_open,
+    browser_screenshot,
     browser_type,
     click_result_to_dict,
     open_result_to_dict,
+    screenshot_result_to_dict,
     type_result_to_dict,
 )
 from .config import BrowserConfig
@@ -149,6 +151,52 @@ BROWSER_TYPE_SCHEMA = {
 }
 
 
+BROWSER_SCREENSHOT_SCHEMA = {
+    "name": "browser_screenshot",
+    "description": (
+        "Capture a screenshot of the current page in an existing browser "
+        "session. Returns image_base64 (PNG by default) plus mime_type. "
+        "Pass full_page=true for the entire scrollable page, or selector to "
+        "capture a single element."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {
+                "type": "string",
+                "description": "Session from browser_open.",
+            },
+            "full_page": {
+                "type": "boolean",
+                "description": "If true, capture the full scrollable page.",
+            },
+            "selector": {
+                "type": "string",
+                "description": "Optional element selector to screenshot instead of the viewport.",
+            },
+            "image_format": {
+                "type": "string",
+                "enum": ["png", "jpeg", "jpg"],
+                "description": "Image format (default png).",
+            },
+            "quality": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "JPEG quality 0-100 (ignored for png).",
+            },
+            "timeout": {
+                "type": "number",
+                "minimum": 0.1,
+                "description": "Screenshot timeout in seconds.",
+            },
+        },
+        "required": ["session_id"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _open_envelope(**overrides) -> dict:
     envelope = {
         "session_id": None,
@@ -191,6 +239,23 @@ def _type_envelope(**overrides) -> dict:
     return envelope
 
 
+def _screenshot_envelope(**overrides) -> dict:
+    envelope = {
+        "session_id": None,
+        "url": None,
+        "title": None,
+        "image_base64": None,
+        "mime_type": None,
+        "byte_count": None,
+        "full_page": False,
+        "selector": None,
+        "truncated": False,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """Browser tools sharing one config + session store."""
@@ -210,13 +275,23 @@ class Toolset:
         )
 
     def schemas(self) -> list[dict]:
-        return [BROWSER_OPEN_SCHEMA, BROWSER_CLICK_SCHEMA, BROWSER_TYPE_SCHEMA]
+        return [
+            BROWSER_OPEN_SCHEMA,
+            BROWSER_CLICK_SCHEMA,
+            BROWSER_TYPE_SCHEMA,
+            BROWSER_SCREENSHOT_SCHEMA,
+        ]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["browser_open", "browser_click", "browser_type"],
+            "tools": [
+                "browser_open",
+                "browser_click",
+                "browser_type",
+                "browser_screenshot",
+            ],
             "sessions": len(self.store),
             "headless": self.config.headless,
         }
@@ -305,11 +380,42 @@ class Toolset:
                 error=f"browser_type failed: {exc}",
             )
 
+    async def browser_screenshot(
+        self,
+        *,
+        session_id: str,
+        full_page: bool = False,
+        selector: str | None = None,
+        image_format: str = "png",
+        quality: int | None = None,
+        timeout: float | None = None,
+    ) -> dict:
+        try:
+            result = await browser_screenshot(
+                session_id,
+                full_page=full_page,
+                selector=selector,
+                image_format=image_format,
+                quality=quality,
+                timeout=timeout,
+                config=self.config,
+                store=self.store,
+            )
+            return screenshot_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("browser_screenshot failed")
+            return _screenshot_envelope(
+                session_id=session_id,
+                selector=selector,
+                error=f"browser_screenshot failed: {exc}",
+            )
+
 
 __all__ = [
     "BROWSER_OPEN_SCHEMA",
     "BROWSER_CLICK_SCHEMA",
     "BROWSER_TYPE_SCHEMA",
+    "BROWSER_SCREENSHOT_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -317,7 +423,12 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("browser_open", "browser_click", "browser_type")
+TOOL_NAMES = (
+    "browser_open",
+    "browser_click",
+    "browser_type",
+    "browser_screenshot",
+)
 _local_toolset: "Toolset | None" = None
 
 
@@ -336,6 +447,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().browser_click(**args)
     if name == "browser_type":
         return await _backend().browser_type(**args)
+    if name == "browser_screenshot":
+        return await _backend().browser_screenshot(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

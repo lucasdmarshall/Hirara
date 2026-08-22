@@ -44,6 +44,15 @@ class BrowserTypeRequest(BaseModel):
     delay_ms: float | None = None
 
 
+class BrowserScreenshotRequest(BaseModel):
+    session_id: str
+    full_page: bool = False
+    selector: str | None = None
+    image_format: str = "png"
+    quality: int | None = None
+    timeout: float | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -85,4 +94,16 @@ async def browser_type(request: BrowserTypeRequest) -> dict:
         clear=request.clear,
         press_enter=request.press_enter,
         delay_ms=request.delay_ms,
+    )
+
+
+@app.post("/browser_screenshot")
+async def browser_screenshot(request: BrowserScreenshotRequest) -> dict:
+    return await _toolset.browser_screenshot(
+        session_id=request.session_id,
+        full_page=request.full_page,
+        selector=request.selector,
+        image_format=request.image_format,
+        quality=request.quality,
+        timeout=request.timeout,
     )

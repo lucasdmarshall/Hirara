@@ -221,3 +221,99 @@ async def test_type_requires_fields():
     assert r.error and "session_id" in r.error
     r2 = await browser_type("abc", "", "x")
     assert r2.error and "selector" in r2.error
+
+
+@pytest.mark.asyncio
+async def test_screenshot_happy_path(monkeypatch):
+    import base64
+
+    from hirarabrowser.browser import browser_screenshot
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine(title="Shot")
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_screenshot(
+        opened.session_id,
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error is None
+    assert r.truncated is False
+    assert r.mime_type == "image/png"
+    assert r.byte_count and r.byte_count > 0
+    assert base64.b64decode(r.image_base64)
+    assert engine.screenshots
+    assert engine.screenshots[0]["type"] == "png"
+
+
+@pytest.mark.asyncio
+async def test_screenshot_selector(monkeypatch):
+    from hirarabrowser.browser import browser_screenshot
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine()
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_screenshot(
+        opened.session_id,
+        selector="#hero",
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error is None
+    assert r.selector == "#hero"
+    assert r.full_page is False
+    assert any(s.get("selector") == "#hero" for s in engine.screenshots)
+
+
+@pytest.mark.asyncio
+async def test_screenshot_unknown_session():
+    from hirarabrowser.browser import browser_screenshot
+
+    r = await browser_screenshot(
+        "missing",
+        store=SessionStore(max_sessions=2, session_ttl=60),
+    )
+    assert r.error and "unknown session" in r.error
+
+
+@pytest.mark.asyncio
+async def test_screenshot_bad_format(monkeypatch):
+    from hirarabrowser.browser import browser_screenshot
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine()
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_screenshot(
+        opened.session_id,
+        image_format="gif",
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error and "unsupported" in r.error

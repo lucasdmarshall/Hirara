@@ -356,6 +356,31 @@ class Client:
             args["delay_ms"] = delay_ms
         return self.call("browser_type", args)
 
+    def browser_screenshot(
+        self,
+        session_id: str,
+        *,
+        full_page: bool = False,
+        selector: str | None = None,
+        image_format: str = "png",
+        quality: int | None = None,
+        timeout: float | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "session_id": session_id,
+            "full_page": full_page,
+            "image_format": image_format,
+            **extra,
+        }
+        if selector is not None:
+            args["selector"] = selector
+        if quality is not None:
+            args["quality"] = quality
+        if timeout is not None:
+            args["timeout"] = timeout
+        return self.call("browser_screenshot", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -411,6 +436,7 @@ service_enum = _delegate("service_enum")
 browser_open = _delegate("browser_open")
 browser_click = _delegate("browser_click")
 browser_type = _delegate("browser_type")
+browser_screenshot = _delegate("browser_screenshot")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -439,4 +465,5 @@ __all__ = [
     "browser_open",
     "browser_click",
     "browser_type",
+    "browser_screenshot",
 ]
