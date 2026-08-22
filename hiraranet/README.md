@@ -127,8 +127,8 @@ Errors (empty name, unsupported type, total DNS failure) come back in
 ## Security
 
 - **DNS only.** No connect, no port probe, no banner grab.
-- **Loopback bind** in compose. Do not publish without auth — an open resolver
-  proxy burns your upstream and can aid reconnaissance.
+- **Loopback bind** in compose. Do not publish without auth — same rule as
+  the other Hirara services.
 - **Allowlisted record types.** Odd/obscure types are refused.
 - **IP annotation** reuses the hub's shared deny list so agents reason about
   private targets the same way `web_fetch` would.
