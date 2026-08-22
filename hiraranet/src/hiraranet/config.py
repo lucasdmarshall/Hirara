@@ -7,13 +7,45 @@ on a trusted laptop or locked down on a network-exposed host.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Record types agents commonly need. Keep the allowlist tight — DNS is free
 # egress to whoever the resolver talks to, and odd types are rarely useful.
 DEFAULT_RECORD_TYPES: tuple[str, ...] = ("A", "AAAA")
 ALLOWED_RECORD_TYPES = frozenset(
     {"A", "AAAA", "CNAME", "MX", "TXT", "NS", "SOA", "PTR", "SRV", "CAA"}
+)
+
+# Well-known ports used when port_scan omits ``ports``.
+DEFAULT_SCAN_PORTS: tuple[int, ...] = (
+    21,
+    22,
+    23,
+    25,
+    53,
+    80,
+    110,
+    111,
+    135,
+    139,
+    143,
+    443,
+    445,
+    993,
+    995,
+    1433,
+    1521,
+    1723,
+    2049,
+    3306,
+    3389,
+    5432,
+    5900,
+    6379,
+    8080,
+    8443,
+    9200,
+    27017,
 )
 
 
@@ -39,6 +71,19 @@ def _env_csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(part.strip().upper() for part in raw.split(",") if part.strip())
 
 
+def _env_ports(name: str, default: tuple[int, ...]) -> tuple[int, ...]:
+    raw = os.getenv(name)
+    if not raw:
+        return default
+    out: list[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        out.append(int(part))
+    return tuple(out) if out else default
+
+
 @dataclass(frozen=True)
 class NetConfig:
     """Network-tool knobs."""
@@ -58,11 +103,15 @@ class NetConfig:
     # Optional recursive resolver IP/host. Empty = system default resolvers.
     nameserver: str | None = None
 
-    # When True, answers whose value is a non-global IP are still returned but
-    # flagged via ``routable`` / ``block_reason`` (using hirara-core.check_ip).
-    # There is no "block private answers" mode on purpose: DNS lookup is
-    # read-only and agents need to *see* that a name points at 127.0.0.1.
+    # When True, answers / scan targets are annotated with routable /
+    # block_reason via hirara-core.check_ip.
     annotate_ips: bool = True
+
+    # --- port_scan ---
+    default_scan_ports: tuple[int, ...] = DEFAULT_SCAN_PORTS
+    scan_timeout: float = 1.5
+    scan_concurrency: int = 32
+    max_scan_ports: int = 256
 
     @classmethod
     def from_env(cls) -> "NetConfig":
@@ -75,11 +124,20 @@ class NetConfig:
             max_answers=_env_int("CNET_MAX_ANSWERS", cls.max_answers),
             nameserver=nameserver,
             annotate_ips=_env_bool("CNET_ANNOTATE_IPS", cls.annotate_ips),
+            default_scan_ports=_env_ports(
+                "CNET_DEFAULT_SCAN_PORTS", cls.default_scan_ports
+            ),
+            scan_timeout=_env_float("CNET_SCAN_TIMEOUT", cls.scan_timeout),
+            scan_concurrency=_env_int(
+                "CNET_SCAN_CONCURRENCY", cls.scan_concurrency
+            ),
+            max_scan_ports=_env_int("CNET_MAX_SCAN_PORTS", cls.max_scan_ports),
         )
 
 
 __all__ = [
     "ALLOWED_RECORD_TYPES",
     "DEFAULT_RECORD_TYPES",
+    "DEFAULT_SCAN_PORTS",
     "NetConfig",
 ]

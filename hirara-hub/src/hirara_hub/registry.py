@@ -46,6 +46,7 @@ TOOLS: dict[str, ToolRoute] = {
     "form_extract": ToolRoute("form_extract", "hiraraocr", "/form_extract"),
     "office_read": ToolRoute("office_read", "hirarareader", "/office_read"),
     "dns_lookup": ToolRoute("dns_lookup", "hiraranet", "/dns_lookup"),
+    "port_scan": ToolRoute("port_scan", "hiraranet", "/port_scan"),
 }
 
 

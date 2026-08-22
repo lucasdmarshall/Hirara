@@ -1,4 +1,4 @@
-"""MCP front end — agents resolve DNS as a tool.
+"""MCP front end — agents use network tools.
 
 Run over stdio for Claude Code / Claude Desktop / Cursor::
 
@@ -22,9 +22,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted network tools, no API keys. Use dns_lookup to resolve a "
-        "hostname (A/AAAA by default) or reverse-lookup an IP (PTR). Answers "
-        "that are private/reserved IPs are annotated, not hidden. This tool "
-        "never connects to the resolved addresses."
+        "hostname (A/AAAA by default) or reverse-lookup an IP (PTR). Use "
+        "port_scan to TCP-connect probe ports on a host. Resolved IPs are "
+        "annotated with routable / block_reason."
     ),
 )
 
@@ -55,6 +55,37 @@ async def dns_lookup_tool(
         name=name,
         record_types=record_types,
         nameserver=nameserver,
+    )
+
+
+@server.tool(
+    name="port_scan",
+    description=(
+        "TCP-connect scan a host for open ports. Resolves once, then probes "
+        "each port. Returns per-port status (open/closed/timeout/error), "
+        "latency, and open_ports. Omit ports for a common-port default list; "
+        "ranges like \"8000-8010\" are accepted."
+    ),
+)
+async def port_scan_tool(
+    host: str,
+    ports: list[int | str] | str | None = None,
+    timeout: float | None = None,
+    concurrency: int | None = None,
+) -> dict:
+    """TCP-connect scan a hostname or IP.
+
+    Args:
+        host: Hostname or IP to scan.
+        ports: Ports / ranges to probe, or omit for defaults.
+        timeout: Per-port connect timeout in seconds.
+        concurrency: Max simultaneous connect attempts.
+    """
+    return await _toolset.port_scan(
+        host=host,
+        ports=ports,
+        timeout=timeout,
+        concurrency=concurrency,
     )
 
 

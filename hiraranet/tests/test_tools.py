@@ -6,7 +6,7 @@ import dns.rdatatype
 import pytest
 
 from hiraranet.config import NetConfig
-from hiraranet.tools import DNS_LOOKUP_SCHEMA, Toolset
+from hiraranet.tools import DNS_LOOKUP_SCHEMA, PORT_SCAN_SCHEMA, Toolset
 
 from conftest import FakeAnswer, FakeResolver, FakeRRset
 
@@ -20,6 +20,11 @@ def test_schema_is_agent_ready():
     props = DNS_LOOKUP_SCHEMA["input_schema"]["properties"]
     assert {"name", "record_types", "nameserver"} <= set(props)
     assert "name" in DNS_LOOKUP_SCHEMA["input_schema"]["required"]
+
+    assert PORT_SCAN_SCHEMA["name"] == "port_scan"
+    scan_props = PORT_SCAN_SCHEMA["input_schema"]["properties"]
+    assert {"host", "ports", "timeout", "concurrency"} <= set(scan_props)
+    assert "host" in PORT_SCAN_SCHEMA["input_schema"]["required"]
 
 
 @pytest.mark.asyncio
@@ -50,6 +55,29 @@ async def test_dns_lookup_happy_path(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_port_scan_happy_path(monkeypatch):
+    import hiraranet.tools as tools_module
+    from hiraranet import scan as scan_module
+
+    async def fake_scan(host, **kwargs):
+        kwargs = {
+            **kwargs,
+            "connector": _open_connector,
+            "resolver": lambda h: ("203.0.113.9", True, None),
+        }
+        return await scan_module.scan_ports(host, **kwargs)
+
+    async def _open_connector(host, port, timeout):
+        return "open" if port == 443 else "closed"
+
+    monkeypatch.setattr(tools_module, "scan_ports", fake_scan)
+    r = await _toolset().port_scan(host="example.com", ports=[80, 443])
+    assert r["error"] is None
+    assert r["open_ports"] == [443]
+    assert r["open_count"] == 1
+
+
+@pytest.mark.asyncio
 async def test_missing_name_returns_envelope():
     r = await _toolset().dns_lookup(name="")
     assert r["error"]
@@ -69,6 +97,7 @@ async def test_health_and_schemas():
     ts = _toolset()
     h = ts.health()
     assert h["status"] == "ok"
-    assert "dns_lookup" in h["tools"]
-    schemas = ts.schemas()
-    assert schemas[0]["name"] == "dns_lookup"
+    assert h["tools"] == ["dns_lookup", "port_scan"]
+    names = [s["name"] for s in ts.schemas()]
+    assert names == ["dns_lookup", "port_scan"]
+

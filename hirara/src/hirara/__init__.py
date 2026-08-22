@@ -32,6 +32,7 @@ from .client import (
     pdf_create,
     pdf_info,
     pdf_read,
+    port_scan,
     tools,
     web_fetch,
     web_search,
@@ -55,6 +56,7 @@ __all__ = [
     "form_extract",
     "office_read",
     "dns_lookup",
+    "port_scan",
 ]
 
 __version__ = "0.2.0"

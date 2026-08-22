@@ -254,6 +254,24 @@ class Client:
             args["nameserver"] = nameserver
         return self.call("dns_lookup", args)
 
+    def port_scan(
+        self,
+        host: str,
+        *,
+        ports: list[int | str] | str | None = None,
+        timeout: float | None = None,
+        concurrency: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {"host": host, **extra}
+        if ports is not None:
+            args["ports"] = ports
+        if timeout is not None:
+            args["timeout"] = timeout
+        if concurrency is not None:
+            args["concurrency"] = concurrency
+        return self.call("port_scan", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -304,6 +322,7 @@ ocr_read = _delegate("ocr_read")
 form_extract = _delegate("form_extract")
 office_read = _delegate("office_read")
 dns_lookup = _delegate("dns_lookup")
+port_scan = _delegate("port_scan")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -327,4 +346,5 @@ __all__ = [
     "form_extract",
     "office_read",
     "dns_lookup",
+    "port_scan",
 ]

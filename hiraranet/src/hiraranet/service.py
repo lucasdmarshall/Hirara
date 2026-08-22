@@ -4,8 +4,7 @@
 
 Same Toolset as the MCP server, so the two cannot drift apart in behaviour.
 
-Bind this to localhost or keep it behind your own auth. Anyone who can reach
-it can spend your DNS resolver budget on arbitrary names.
+Bind this to localhost or keep it behind your own auth.
 """
 
 from __future__ import annotations
@@ -32,6 +31,15 @@ class DnsLookupRequest(BaseModel):
     nameserver: str | None = None
 
 
+class PortScanRequest(BaseModel):
+    """JSON body for port_scan."""
+
+    host: str
+    ports: list[int | str] | str | None = None
+    timeout: float | None = None
+    concurrency: int | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -39,7 +47,7 @@ async def health() -> dict:
 
 @app.get("/schemas")
 async def schemas() -> dict:
-    """Tool definition, ready to drop into an LLM `tools` array."""
+    """Tool definitions, ready to drop into an LLM `tools` array."""
     return {"tools": _toolset.schemas()}
 
 
@@ -51,4 +59,14 @@ async def dns_lookup(request: DnsLookupRequest) -> dict:
         name=request.name,
         record_types=request.record_types,
         nameserver=request.nameserver,
+    )
+
+
+@app.post("/port_scan")
+async def port_scan(request: PortScanRequest) -> dict:
+    return await _toolset.port_scan(
+        host=request.host,
+        ports=request.ports,
+        timeout=request.timeout,
+        concurrency=request.concurrency,
     )
