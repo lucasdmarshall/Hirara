@@ -34,6 +34,7 @@ from .client import (
     pdf_read,
     port_scan,
     service_enum,
+    browser_open,
     tools,
     web_fetch,
     web_search,
@@ -59,6 +60,7 @@ __all__ = [
     "dns_lookup",
     "port_scan",
     "service_enum",
+    "browser_open",
 ]
 
 __version__ = "0.2.0"

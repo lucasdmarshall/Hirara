@@ -293,6 +293,22 @@ class Client:
             args["tls"] = tls
         return self.call("service_enum", args)
 
+    def browser_open(
+        self,
+        url: str,
+        *,
+        session_id: str | None = None,
+        timeout: float | None = None,
+        include_text: bool = False,
+        **extra,
+    ) -> dict:
+        args = {"url": url, "include_text": include_text, **extra}
+        if session_id is not None:
+            args["session_id"] = session_id
+        if timeout is not None:
+            args["timeout"] = timeout
+        return self.call("browser_open", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -345,6 +361,7 @@ office_read = _delegate("office_read")
 dns_lookup = _delegate("dns_lookup")
 port_scan = _delegate("port_scan")
 service_enum = _delegate("service_enum")
+browser_open = _delegate("browser_open")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -370,4 +387,5 @@ __all__ = [
     "dns_lookup",
     "port_scan",
     "service_enum",
+    "browser_open",
 ]

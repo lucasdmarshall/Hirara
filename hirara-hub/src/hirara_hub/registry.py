@@ -19,6 +19,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hiraraocr": 8400,
     "hirarareader": 8500,
     "hiraranet": 8600,
+    "hirarabrowser": 8700,
 }
 
 
@@ -48,6 +49,7 @@ TOOLS: dict[str, ToolRoute] = {
     "dns_lookup": ToolRoute("dns_lookup", "hiraranet", "/dns_lookup"),
     "port_scan": ToolRoute("port_scan", "hiraranet", "/port_scan"),
     "service_enum": ToolRoute("service_enum", "hiraranet", "/service_enum"),
+    "browser_open": ToolRoute("browser_open", "hirarabrowser", "/browser_open"),
 }
 
 

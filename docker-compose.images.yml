@@ -64,10 +64,16 @@ services:
     restart: unless-stopped
     networks: [hirara]
 
+  hirarabrowser:
+    image: ghcr.io/lucasdmarshall/hirara-browser:${HIRARA_TAG:-latest}
+    restart: unless-stopped
+    shm_size: "256mb"
+    networks: [hirara]
+
   hub:
     image: ghcr.io/lucasdmarshall/hirara-hub:${HIRARA_TAG:-latest}
     restart: unless-stopped
-    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet]
+    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser]
     environment:
       - HUB_TOKEN=${HUB_TOKEN:-}
       - HUB_WEBSEARCH_URL=http://websearch:8000
@@ -76,6 +82,7 @@ services:
       - HUB_HIRARAOCR_URL=http://hiraraocr:8400
       - HUB_HIRARAREADER_URL=http://hirarareader:8500
       - HUB_HIRARANET_URL=http://hiraranet:8600
+      - HUB_HIRARABROWSER_URL=http://hirarabrowser:8700
       - HUB_HIRARASTT_URL=http://hirarastt:8100
     ports:
       - "127.0.0.1:${HUB_PORT:-8080}:8080"

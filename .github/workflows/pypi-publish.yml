@@ -53,6 +53,7 @@ jobs:
           - { name: hirarapdf, path: hirarapdf, environment: pypi-pdf }
           - { name: hirarareader, path: hirarareader, environment: pypi-reader }
           - { name: hiraranet, path: hiraranet, environment: pypi-net }
+          - { name: hirarabrowser, path: hirarabrowser, environment: pypi-browser }
           - { name: hirara, path: hirara, environment: pypi-sdk }
     steps:
       - uses: actions/checkout@v4

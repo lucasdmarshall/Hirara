@@ -1,0 +1,12 @@
+# Runtime — install with: pip install -e ".[service,mcp]"
+# Or: pip install -r requirements.txt
+#
+# After install, fetch browser binaries once:
+#   playwright install chromium
+
+playwright>=1.40
+hirara-core>=0.1
+
+fastapi>=0.115
+uvicorn[standard]>=0.30
+mcp>=2.0
