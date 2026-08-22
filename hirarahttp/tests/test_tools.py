@@ -7,7 +7,12 @@ import pytest
 
 from hirarahttp.config import HttpConfig
 from hirarahttp.history import HistoryStore
-from hirarahttp.tools import HTTP_HISTORY_SCHEMA, HTTP_REQUEST_SCHEMA, Toolset
+from hirarahttp.tools import (
+    HTTP_HISTORY_SCHEMA,
+    HTTP_REQUEST_SCHEMA,
+    INSPECT_HEADERS_SCHEMA,
+    Toolset,
+)
 
 
 def test_schema_ready():
@@ -18,6 +23,10 @@ def test_schema_ready():
     assert HTTP_HISTORY_SCHEMA["name"] == "http_history"
     hprops = HTTP_HISTORY_SCHEMA["input_schema"]["properties"]
     assert {"limit", "offset", "id", "include_body", "clear"} <= set(hprops)
+
+    assert INSPECT_HEADERS_SCHEMA["name"] == "inspect_headers"
+    iprops = INSPECT_HEADERS_SCHEMA["input_schema"]["properties"]
+    assert {"id", "which", "headers"} <= set(iprops)
 
 
 @pytest.mark.asyncio
@@ -70,6 +79,56 @@ async def test_toolset_records_history(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_inspect_headers_from_history(monkeypatch):
+    import socket
+
+    def resolver(host, port, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            200,
+            headers={
+                "content-type": "text/plain",
+                "x-content-type-options": "nosniff",
+            },
+            content=b"ok",
+        )
+    )
+
+    async def _wrapped(url, **kwargs):
+        from hirarahttp.request import http_request as real
+
+        kwargs.setdefault("resolver", resolver)
+        kwargs.setdefault("transport", transport)
+        return await real(url, **kwargs)
+
+    monkeypatch.setattr("hirarahttp.tools.http_request", _wrapped)
+
+    ts = Toolset(
+        config=HttpConfig(history_size=10),
+        history=HistoryStore(max_entries=10, max_body_chars=1000),
+    )
+    r = await ts.http_request(url="https://example.com/")
+    view = await ts.inspect_headers(id=r["request_id"], which="both")
+    assert view["error"] is None
+    assert view["response"]["content_type"] == "text/plain"
+    assert "x-content-type-options" in view["response"]["interesting"]
+    assert view["request"]["by_name"]["host"] == "example.com"
+
+
+@pytest.mark.asyncio
+async def test_inspect_headers_raw_map():
+    ts = Toolset(config=HttpConfig())
+    view = await ts.inspect_headers(
+        headers={"Content-Type": "application/json", "Server": "x"},
+        which="response",
+    )
+    assert view["error"] is None
+    assert view["response"]["interesting"]["content-type"] == "application/json"
+
+
+@pytest.mark.asyncio
 async def test_history_unknown_id():
     ts = Toolset(config=HttpConfig())
     r = await ts.http_history(id="nope")
@@ -80,5 +139,5 @@ def test_health():
     ts = Toolset(config=HttpConfig())
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["http_request", "http_history"]
+    assert h["tools"] == ["http_request", "http_history", "inspect_headers"]
     assert h["history_count"] == 0

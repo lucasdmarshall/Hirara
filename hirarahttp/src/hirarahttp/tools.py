@@ -3,7 +3,7 @@
 Both front ends (HTTP service and MCP server) call into here, so the two can
 never drift apart in behaviour — only in transport.
 
-Tools: ``http_request``, ``http_history``.
+Tools: ``http_request``, ``http_history``, ``inspect_headers``.
 """
 
 from __future__ import annotations
@@ -13,6 +13,11 @@ from dataclasses import dataclass
 
 from .config import HttpConfig
 from .history import HistoryStore, entry_to_dict, entry_to_summary
+from .inspect import (
+    inspect_headers_from_entry,
+    inspect_headers_from_maps,
+    inspect_headers_result_to_dict,
+)
 from .request import http_request, result_to_dict
 
 log = logging.getLogger(__name__)
@@ -118,6 +123,41 @@ HTTP_HISTORY_SCHEMA = {
 }
 
 
+INSPECT_HEADERS_SCHEMA = {
+    "name": "inspect_headers",
+    "description": (
+        "Inspect HTTP headers from a recorded http_request (pass id) or from "
+        "a raw headers object. Returns a sorted header list, lower-cased "
+        "by_name map, interesting/common fields (content-type, cache, CORS, "
+        "security headers, …), and missing_common security headers for "
+        "responses. Use which=request|response|both (default response)."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "History request_id from http_request / http_history.",
+            },
+            "which": {
+                "type": "string",
+                "enum": ["request", "response", "both"],
+                "description": "Which side to inspect (default response).",
+            },
+            "headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": (
+                    "Optional raw headers to inspect when id is omitted. "
+                    "Treated as the side selected by which (default response)."
+                ),
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
 def _request_envelope(**overrides) -> dict:
     envelope = {
         "request_id": None,
@@ -152,6 +192,21 @@ def _history_envelope(**overrides) -> dict:
     return envelope
 
 
+def _inspect_headers_envelope(**overrides) -> dict:
+    envelope = {
+        "request_id": None,
+        "which": None,
+        "url": None,
+        "method": None,
+        "status": None,
+        "request": None,
+        "response": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """HTTP tools sharing one config + history store."""
@@ -171,13 +226,13 @@ class Toolset:
         return cls(config=HttpConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [HTTP_REQUEST_SCHEMA, HTTP_HISTORY_SCHEMA]
+        return [HTTP_REQUEST_SCHEMA, HTTP_HISTORY_SCHEMA, INSPECT_HEADERS_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["http_request", "http_history"],
+            "tools": ["http_request", "http_history", "inspect_headers"],
             "max_bytes": self.config.max_bytes,
             "max_redirects": self.config.max_redirects,
             "history_size": self.config.history_size,
@@ -266,10 +321,59 @@ class Toolset:
             log.exception("http_history failed")
             return _history_envelope(error=f"http_history failed: {exc}")
 
+    async def inspect_headers(
+        self,
+        *,
+        id: str | None = None,
+        which: str = "response",
+        headers: dict[str, str] | None = None,
+    ) -> dict:
+        try:
+            sid = (id or "").strip() if id is not None else ""
+            if sid:
+                assert self.history is not None
+                entry = self.history.get(sid)
+                if entry is None:
+                    return _inspect_headers_envelope(
+                        which=which,
+                        error=f"unknown history id: {id}",
+                    )
+                result = inspect_headers_from_entry(entry, which=which)
+                return inspect_headers_result_to_dict(result)
+
+            if headers is not None:
+                side = (which or "response").strip().lower()
+                if side == "both":
+                    return _inspect_headers_envelope(
+                        which=side,
+                        error="pass id to inspect both sides, or set which to request/response with headers",
+                    )
+                if side == "request":
+                    result = inspect_headers_from_maps(
+                        request_headers=headers, which="request"
+                    )
+                else:
+                    result = inspect_headers_from_maps(
+                        response_headers=headers, which="response"
+                    )
+                return inspect_headers_result_to_dict(result)
+
+            return _inspect_headers_envelope(
+                which=which,
+                error="id or headers is required",
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.exception("inspect_headers failed")
+            return _inspect_headers_envelope(
+                which=which,
+                error=f"inspect_headers failed: {exc}",
+            )
+
 
 __all__ = [
     "HTTP_REQUEST_SCHEMA",
     "HTTP_HISTORY_SCHEMA",
+    "INSPECT_HEADERS_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -277,7 +381,7 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("http_request", "http_history")
+TOOL_NAMES = ("http_request", "http_history", "inspect_headers")
 _local_toolset: "Toolset | None" = None
 
 
@@ -294,6 +398,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().http_request(**args)
     if name == "http_history":
         return await _backend().http_history(**args)
+    if name == "inspect_headers":
+        return await _backend().inspect_headers(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

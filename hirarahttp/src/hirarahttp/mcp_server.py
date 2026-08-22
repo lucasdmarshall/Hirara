@@ -22,8 +22,8 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
-        "HTTP request (any method) and get status, headers, and body. Use "
-        "http_history to list or fetch recent requests from this process. "
+        "HTTP request, http_history to list recent calls, and inspect_headers "
+        "to analyze request/response headers from a request_id or raw map. "
         "URLs and redirect hops go through Hirara's SSRF perimeter."
     ),
 )
@@ -103,6 +103,29 @@ async def http_history_tool(
         include_body=include_body,
         clear=clear,
     )
+
+
+@server.tool(
+    name="inspect_headers",
+    description=(
+        "Inspect HTTP headers from a recorded request (id) or a raw headers "
+        "object. Returns sorted list, by_name, interesting fields, and "
+        "missing_common security headers for responses."
+    ),
+)
+async def inspect_headers_tool(
+    id: str | None = None,
+    which: str = "response",
+    headers: dict[str, str] | None = None,
+) -> dict:
+    """Inspect request or response headers.
+
+    Args:
+        id: History request_id.
+        which: request / response / both.
+        headers: Raw header map when id is omitted.
+    """
+    return await _toolset.inspect_headers(id=id, which=which, headers=headers)
 
 
 def main() -> None:

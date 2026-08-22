@@ -433,6 +433,21 @@ class Client:
             args["id"] = id
         return self.call("http_history", args)
 
+    def inspect_headers(
+        self,
+        *,
+        id: str | None = None,
+        which: str = "response",
+        headers: dict[str, str] | None = None,
+        **extra,
+    ) -> dict:
+        args = {"which": which, **extra}
+        if id is not None:
+            args["id"] = id
+        if headers is not None:
+            args["headers"] = headers
+        return self.call("inspect_headers", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -491,6 +506,7 @@ browser_type = _delegate("browser_type")
 browser_screenshot = _delegate("browser_screenshot")
 http_request = _delegate("http_request")
 http_history = _delegate("http_history")
+inspect_headers = _delegate("inspect_headers")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -522,4 +538,5 @@ __all__ = [
     "browser_screenshot",
     "http_request",
     "http_history",
+    "inspect_headers",
 ]

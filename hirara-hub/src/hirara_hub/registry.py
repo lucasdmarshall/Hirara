@@ -58,6 +58,9 @@ TOOLS: dict[str, ToolRoute] = {
     ),
     "http_request": ToolRoute("http_request", "hirarahttp", "/http_request"),
     "http_history": ToolRoute("http_history", "hirarahttp", "/http_history"),
+    "inspect_headers": ToolRoute(
+        "inspect_headers", "hirarahttp", "/inspect_headers"
+    ),
 }
 
 

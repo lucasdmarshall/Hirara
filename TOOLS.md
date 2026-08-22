@@ -16,7 +16,7 @@ progress in this repo (hub + SDK + packages).
 | 9 | `browser_screenshot` | ✅ shipped | `hirarabrowser` |
 | 10 | `http_request` | ✅ shipped | `hirarahttp` |
 | 11 | `http_history` | ✅ shipped | `hirarahttp` |
-| 12 | `inspect_headers` | 📋 planned | `hirarahttp` |
+| 12 | `inspect_headers` | ✅ shipped | `hirarahttp` |
 | 13 | `inspect_cookies` | 📋 planned | `hirarahttp` |
 | 14 | `inspect_response` | 📋 planned | `hirarahttp` |
 | 15 | `directory_enum` | 📋 planned | `hiraranet` / `hirarahttp` |
@@ -52,8 +52,8 @@ progress in this repo (hub + SDK + packages).
 ## Current focus
 
 **`dns_lookup`**, **`port_scan`**, **`service_enum`** (`hiraranet/`),
-**`browser_*`** (`hirarabrowser/`), and **`http_request`** / **`http_history`**
-(`hirarahttp/`) are shipped. Next up: `inspect_headers`.
+**`browser_*`** (`hirarabrowser/`), and **`http_request`** / **`http_history`** /
+**`inspect_headers`** (`hirarahttp/`) are shipped. Next up: `inspect_cookies`.
 
 ## Engineering conventions (all tools)
 

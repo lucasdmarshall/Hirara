@@ -82,3 +82,20 @@ async def http_history_endpoint(request: HttpHistoryBody) -> dict:
         include_body=request.include_body,
         clear=request.clear,
     )
+
+
+class InspectHeadersBody(BaseModel):
+    """JSON body for inspect_headers."""
+
+    id: str | None = None
+    which: str = "response"
+    headers: dict[str, str] | None = None
+
+
+@app.post("/inspect_headers")
+async def inspect_headers_endpoint(request: InspectHeadersBody) -> dict:
+    return await _toolset.inspect_headers(
+        id=request.id,
+        which=request.which,
+        headers=request.headers,
+    )

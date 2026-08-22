@@ -40,6 +40,7 @@ from .client import (
     browser_screenshot,
     http_request,
     http_history,
+    inspect_headers,
     tools,
     web_fetch,
     web_search,
@@ -71,6 +72,7 @@ __all__ = [
     "browser_screenshot",
     "http_request",
     "http_history",
+    "inspect_headers",
 ]
 
 __version__ = "0.2.0"
