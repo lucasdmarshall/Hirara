@@ -12,9 +12,8 @@ server = MCPServer(
     name="hirarabrowser",
     version="0.1.0",
     instructions=(
-        "Self-hosted browser tools. Use browser_open to load a URL in a "
-        "headless browser and get session_id / title / final url. Reuse "
-        "session_id for later browser_* tools."
+        "Self-hosted browser tools. Use browser_open to load a URL and get a "
+        "session_id, then browser_click to click selectors in that session."
     ),
 )
 
@@ -48,6 +47,38 @@ async def browser_open_tool(
         session_id=session_id,
         timeout=timeout,
         include_text=include_text,
+    )
+
+
+@server.tool(
+    name="browser_click",
+    description=(
+        "Click an element in an existing browser session. Pass session_id from "
+        "browser_open and a CSS/text selector. Returns url/title after click."
+    ),
+)
+async def browser_click_tool(
+    session_id: str,
+    selector: str,
+    timeout: float | None = None,
+    button: str = "left",
+    click_count: int = 1,
+) -> dict:
+    """Click a selector in a browser session.
+
+    Args:
+        session_id: Session from browser_open.
+        selector: Element selector (CSS, text=, …).
+        timeout: Wait/click timeout in seconds.
+        button: left / right / middle.
+        click_count: 1 or 2 for double-click.
+    """
+    return await _toolset.browser_click(
+        session_id=session_id,
+        selector=selector,
+        timeout=timeout,
+        button=button,
+        click_count=click_count,
     )
 
 

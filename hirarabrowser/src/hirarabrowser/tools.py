@@ -1,6 +1,6 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``browser_open`` (click / type / screenshot follow).
+Tools: ``browser_open``, ``browser_click`` (type / screenshot follow).
 """
 
 from __future__ import annotations
@@ -8,7 +8,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .browser import browser_open, open_result_to_dict
+from .browser import (
+    browser_click,
+    browser_open,
+    click_result_to_dict,
+    open_result_to_dict,
+)
 from .config import BrowserConfig
 from .session import SessionStore
 
@@ -52,7 +57,49 @@ BROWSER_OPEN_SCHEMA = {
 }
 
 
-def _envelope(**overrides) -> dict:
+BROWSER_CLICK_SCHEMA = {
+    "name": "browser_click",
+    "description": (
+        "Click an element in an existing browser session. Use after "
+        "browser_open. Pass a CSS selector (or text=… / role-based selector "
+        "Playwright accepts). Returns the session's url/title after the click "
+        "(useful when the click navigates)."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {
+                "type": "string",
+                "description": "Session from browser_open.",
+            },
+            "selector": {
+                "type": "string",
+                "description": "Element selector to click (CSS, text=, etc.).",
+            },
+            "timeout": {
+                "type": "number",
+                "minimum": 0.1,
+                "description": "Wait/click timeout in seconds.",
+            },
+            "button": {
+                "type": "string",
+                "enum": ["left", "right", "middle"],
+                "description": "Mouse button (default left).",
+            },
+            "click_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "description": "1 = single click, 2 = double click.",
+            },
+        },
+        "required": ["session_id", "selector"],
+        "additionalProperties": False,
+    },
+}
+
+
+def _open_envelope(**overrides) -> dict:
     envelope = {
         "session_id": None,
         "url": None,
@@ -60,6 +107,19 @@ def _envelope(**overrides) -> dict:
         "status": None,
         "text": None,
         "truncated": False,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
+def _click_envelope(**overrides) -> dict:
+    envelope = {
+        "session_id": None,
+        "selector": None,
+        "url": None,
+        "title": None,
+        "clicked": False,
         "error": None,
     }
     envelope.update(overrides)
@@ -85,13 +145,13 @@ class Toolset:
         )
 
     def schemas(self) -> list[dict]:
-        return [BROWSER_OPEN_SCHEMA]
+        return [BROWSER_OPEN_SCHEMA, BROWSER_CLICK_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["browser_open"],
+            "tools": ["browser_open", "browser_click"],
             "sessions": len(self.store),
             "headless": self.config.headless,
         }
@@ -117,11 +177,40 @@ class Toolset:
             return open_result_to_dict(result)
         except Exception as exc:  # noqa: BLE001
             log.exception("browser_open failed")
-            return _envelope(error=f"browser_open failed: {exc}")
+            return _open_envelope(error=f"browser_open failed: {exc}")
+
+    async def browser_click(
+        self,
+        *,
+        session_id: str,
+        selector: str,
+        timeout: float | None = None,
+        button: str = "left",
+        click_count: int = 1,
+    ) -> dict:
+        try:
+            result = await browser_click(
+                session_id,
+                selector,
+                timeout=timeout,
+                button=button,
+                click_count=click_count,
+                config=self.config,
+                store=self.store,
+            )
+            return click_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("browser_click failed")
+            return _click_envelope(
+                session_id=session_id,
+                selector=selector,
+                error=f"browser_click failed: {exc}",
+            )
 
 
 __all__ = [
     "BROWSER_OPEN_SCHEMA",
+    "BROWSER_CLICK_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -129,7 +218,7 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("browser_open",)
+TOOL_NAMES = ("browser_open", "browser_click")
 _local_toolset: "Toolset | None" = None
 
 
@@ -144,6 +233,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     args = arguments or {}
     if name == "browser_open":
         return await _backend().browser_open(**args)
+    if name == "browser_click":
+        return await _backend().browser_click(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

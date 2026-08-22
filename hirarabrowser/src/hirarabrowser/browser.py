@@ -36,6 +36,16 @@ class OpenResult:
     error: str | None = None
 
 
+@dataclass
+class ClickResult:
+    session_id: str | None = None
+    selector: str | None = None
+    url: str | None = None
+    title: str | None = None
+    clicked: bool = False
+    error: str | None = None
+
+
 class BrowserEngine(Protocol):
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         """Return (browser, context, page, http_status)."""
@@ -55,9 +65,11 @@ class FakeEngine:
         self.text = text
         self.opened: list[str] = []
         self.closed: list[str] = []
+        self.clicks: list[str] = []
 
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         self.opened.append(url)
+        engine = self
 
         class _Resp:
             def __init__(self, status: int) -> None:
@@ -69,6 +81,7 @@ class FakeEngine:
                 self._text = text
                 self.url = url
                 self._status = status
+                self._clicks: list[str] = []
 
             async def title(self) -> str:
                 return self._title
@@ -79,6 +92,16 @@ class FakeEngine:
             async def goto(self, url: str, **kwargs):
                 self.url = url
                 return _Resp(self._status)
+
+            async def click(self, selector: str, **kwargs):
+                self._clicks.append(selector)
+                engine.clicks.append(selector)
+                # Simulate navigation after click.
+                self.url = self.url.rstrip("/") + "/clicked"
+                self._title = "Clicked"
+
+            async def wait_for_selector(self, selector: str, **kwargs):
+                return None
 
         page = _Page(self.title, self.text, url, self.status)
         return object(), object(), page, self.status
@@ -242,12 +265,96 @@ def open_result_to_dict(result: OpenResult) -> dict:
     }
 
 
+async def browser_click(
+    session_id: str,
+    selector: str,
+    *,
+    timeout: float | None = None,
+    button: str = "left",
+    click_count: int = 1,
+    config: BrowserConfig | None = None,
+    store: SessionStore | None = None,
+) -> ClickResult:
+    """Click ``selector`` in an existing browser session."""
+    cfg = config or BrowserConfig()
+    sessions = store if store is not None else SessionStore(
+        max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
+    )
+
+    sid = (session_id or "").strip()
+    sel = (selector or "").strip()
+    if not sid:
+        return ClickResult(error="session_id is required")
+    if not sel:
+        return ClickResult(session_id=sid or None, error="selector is required")
+    if button not in {"left", "right", "middle"}:
+        return ClickResult(session_id=sid, selector=sel, error=f"invalid button: {button!r}")
+    if click_count < 1 or click_count > 3:
+        return ClickResult(
+            session_id=sid, selector=sel, error="click_count must be 1..3"
+        )
+
+    session = sessions.get(sid)
+    if session is None:
+        return ClickResult(session_id=sid, selector=sel, error=f"unknown session_id: {sid}")
+
+    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
+    if wait_timeout <= 0:
+        return ClickResult(session_id=sid, selector=sel, error="timeout must be > 0")
+
+    page = session.page
+    try:
+        wait = getattr(page, "wait_for_selector", None)
+        if callable(wait):
+            await wait(sel, timeout=int(wait_timeout * 1000), state="visible")
+        await page.click(
+            sel,
+            timeout=int(wait_timeout * 1000),
+            button=button,
+            click_count=click_count,
+        )
+        title = await page.title()
+        url = getattr(page, "url", session.url)
+        session.url = url
+        session.title = title
+        return ClickResult(
+            session_id=sid,
+            selector=sel,
+            url=url,
+            title=title,
+            clicked=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return ClickResult(
+            session_id=sid,
+            selector=sel,
+            url=getattr(page, "url", session.url),
+            title=session.title,
+            clicked=False,
+            error=f"click failed: {exc}",
+        )
+
+
+def click_result_to_dict(result: ClickResult) -> dict:
+    return {
+        "session_id": result.session_id,
+        "selector": result.selector,
+        "url": result.url,
+        "title": result.title,
+        "clicked": result.clicked,
+        "error": result.error,
+    }
+
+
 __all__ = [
     "BrowserEngine",
     "BrowserError",
+    "ClickResult",
     "FakeEngine",
     "OpenResult",
     "PlaywrightEngine",
+    "browser_click",
     "browser_open",
+    "click_result_to_dict",
     "open_result_to_dict",
 ]

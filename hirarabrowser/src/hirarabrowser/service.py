@@ -26,6 +26,14 @@ class BrowserOpenRequest(BaseModel):
     include_text: bool = False
 
 
+class BrowserClickRequest(BaseModel):
+    session_id: str
+    selector: str
+    timeout: float | None = None
+    button: str = "left"
+    click_count: int = 1
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -43,4 +51,15 @@ async def browser_open(request: BrowserOpenRequest) -> dict:
         session_id=request.session_id,
         timeout=request.timeout,
         include_text=request.include_text,
+    )
+
+
+@app.post("/browser_click")
+async def browser_click(request: BrowserClickRequest) -> dict:
+    return await _toolset.browser_click(
+        session_id=request.session_id,
+        selector=request.selector,
+        timeout=request.timeout,
+        button=request.button,
+        click_count=request.click_count,
     )

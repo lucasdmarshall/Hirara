@@ -105,5 +105,5 @@ def test_every_tool_has_a_route():
     assert set(TOOLS) >= {
         "web_search", "web_fetch", "pdf_read", "pdf_info", "pdf_create",
         "execute_code", "ocr_read", "form_extract", "office_read",
-        "dns_lookup", "port_scan", "service_enum", "browser_open",
+        "dns_lookup", "port_scan", "service_enum", "browser_open", "browser_click",
     }

@@ -49,6 +49,7 @@ to be inspected.
 | **`port_scan`** | ✅ shipped | TCP-connect scan ports on a host — [`hiraranet/`](hiraranet/) |
 | **`service_enum`** | ✅ shipped | Banner/probe service ID on ports — [`hiraranet/`](hiraranet/) |
 | **`browser_open`** | ✅ shipped | Open a URL in headless Chromium — [`hirarabrowser/`](hirarabrowser/) |
+| **`browser_click`** | ✅ shipped | Click a selector in a browser session — [`hirarabrowser/`](hirarabrowser/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

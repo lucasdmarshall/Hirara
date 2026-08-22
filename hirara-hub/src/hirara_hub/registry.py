@@ -50,6 +50,7 @@ TOOLS: dict[str, ToolRoute] = {
     "port_scan": ToolRoute("port_scan", "hiraranet", "/port_scan"),
     "service_enum": ToolRoute("service_enum", "hiraranet", "/service_enum"),
     "browser_open": ToolRoute("browser_open", "hirarabrowser", "/browser_open"),
+    "browser_click": ToolRoute("browser_click", "hirarabrowser", "/browser_click"),
 }
 
 

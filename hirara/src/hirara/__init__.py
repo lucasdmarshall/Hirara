@@ -35,6 +35,7 @@ from .client import (
     port_scan,
     service_enum,
     browser_open,
+    browser_click,
     tools,
     web_fetch,
     web_search,
@@ -61,6 +62,7 @@ __all__ = [
     "port_scan",
     "service_enum",
     "browser_open",
+    "browser_click",
 ]
 
 __version__ = "0.2.0"

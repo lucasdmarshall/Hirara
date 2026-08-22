@@ -309,6 +309,27 @@ class Client:
             args["timeout"] = timeout
         return self.call("browser_open", args)
 
+    def browser_click(
+        self,
+        session_id: str,
+        selector: str,
+        *,
+        timeout: float | None = None,
+        button: str = "left",
+        click_count: int = 1,
+        **extra,
+    ) -> dict:
+        args = {
+            "session_id": session_id,
+            "selector": selector,
+            "button": button,
+            "click_count": click_count,
+            **extra,
+        }
+        if timeout is not None:
+            args["timeout"] = timeout
+        return self.call("browser_click", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -362,6 +383,7 @@ dns_lookup = _delegate("dns_lookup")
 port_scan = _delegate("port_scan")
 service_enum = _delegate("service_enum")
 browser_open = _delegate("browser_open")
+browser_click = _delegate("browser_click")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -388,4 +410,5 @@ __all__ = [
     "port_scan",
     "service_enum",
     "browser_open",
+    "browser_click",
 ]

@@ -16,7 +16,7 @@ default. URLs are checked with [`hirara-core`](../hirara-core/) before navigate.
 | Tool | Status | What it does |
 |---|---|---|
 | **`browser_open`** | ✅ shipped | Open URL → `session_id`, title, final URL |
-| `browser_click` | 📋 planned | Click a selector in a session |
+| **`browser_click`** | ✅ shipped | Click a selector in a session |
 | `browser_type` | 📋 planned | Type into a selector |
 | `browser_screenshot` | 📋 planned | Capture a page screenshot |
 
@@ -56,6 +56,13 @@ Reuse a session (navigate the same browser):
 ```bash
 curl -X POST localhost:8700/browser_open -H 'content-type: application/json' \
   -d '{"url":"https://example.org/","session_id":"<id>"}'
+```
+
+**Click** in that session:
+
+```bash
+curl -X POST localhost:8700/browser_click -H 'content-type: application/json' \
+  -d '{"session_id":"<id>","selector":"a#more-information"}'
 ```
 
 MCP:

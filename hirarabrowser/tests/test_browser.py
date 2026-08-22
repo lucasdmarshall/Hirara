@@ -101,3 +101,54 @@ async def test_unknown_session(monkeypatch):
         config=BrowserConfig(),
     )
     assert r.error and "unknown session" in r.error
+
+
+@pytest.mark.asyncio
+async def test_click_happy_path(monkeypatch):
+    from hirarabrowser.browser import browser_click
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine()
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_click(
+        opened.session_id,
+        "a#more",
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error is None
+    assert r.clicked is True
+    assert r.selector == "a#more"
+    assert r.url.endswith("/clicked")
+    assert engine.clicks == ["a#more"]
+
+
+@pytest.mark.asyncio
+async def test_click_requires_session_and_selector():
+    from hirarabrowser.browser import browser_click
+
+    r = await browser_click("", "a")
+    assert r.error and "session_id" in r.error
+    r2 = await browser_click("abc", "")
+    assert r2.error and "selector" in r2.error
+
+
+@pytest.mark.asyncio
+async def test_click_unknown_session():
+    from hirarabrowser.browser import browser_click
+
+    r = await browser_click(
+        "missing",
+        "button",
+        store=SessionStore(max_sessions=2, session_ttl=60),
+    )
+    assert r.error and "unknown session" in r.error
