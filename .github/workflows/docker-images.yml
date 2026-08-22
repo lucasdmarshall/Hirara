@@ -40,6 +40,8 @@ jobs:
             dockerfile: hiraranet/Dockerfile
           - name: hirara-browser
             dockerfile: hirarabrowser/Dockerfile
+          - name: hirara-http
+            dockerfile: hirarahttp/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

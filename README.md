@@ -52,6 +52,7 @@ to be inspected.
 | **`browser_click`** | ✅ shipped | Click a selector in a browser session — [`hirarabrowser/`](hirarabrowser/) |
 | **`browser_type`** | ✅ shipped | Type into an input in a browser session — [`hirarabrowser/`](hirarabrowser/) |
 | **`browser_screenshot`** | ✅ shipped | Capture a page/element screenshot — [`hirarabrowser/`](hirarabrowser/) |
+| **`http_request`** | ✅ shipped | Raw HTTP request (status/headers/body) — [`hirarahttp/`](hirarahttp/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

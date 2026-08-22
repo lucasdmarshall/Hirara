@@ -20,6 +20,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hirarareader": 8500,
     "hiraranet": 8600,
     "hirarabrowser": 8700,
+    "hirarahttp": 8800,
 }
 
 
@@ -55,6 +56,7 @@ TOOLS: dict[str, ToolRoute] = {
     "browser_screenshot": ToolRoute(
         "browser_screenshot", "hirarabrowser", "/browser_screenshot"
     ),
+    "http_request": ToolRoute("http_request", "hirarahttp", "/http_request"),
 }
 
 

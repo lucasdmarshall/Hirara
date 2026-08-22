@@ -1,0 +1,8 @@
+# Runtime — pin ranges; install with: pip install -e ".[service,mcp]"
+# Or: pip install -r requirements.txt
+
+httpx>=0.28
+hirara-core>=0.1
+fastapi>=0.115
+uvicorn[standard]>=0.30
+mcp>=2.0

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.env
+*.docx
+*.pptx
+*.xlsx
+!tests/fixtures/*
+!tests/fixtures/.gitkeep

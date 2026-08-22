@@ -19,6 +19,7 @@ _URLS = {
     "hirarareader": "http://hirarareader",
     "hiraranet": "http://hiraranet",
     "hirarabrowser": "http://hirarabrowser",
+    "hirarahttp": "http://hirarahttp",
 }
 
 # Which services are "up" in a given test, and what their /schemas returns.
@@ -107,4 +108,5 @@ def test_every_tool_has_a_route():
         "execute_code", "ocr_read", "form_extract", "office_read",
         "dns_lookup", "port_scan", "service_enum",
         "browser_open", "browser_click", "browser_type", "browser_screenshot",
+        "http_request",
     }

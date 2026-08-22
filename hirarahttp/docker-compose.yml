@@ -1,0 +1,40 @@
+# HiraraHttp — self-hosted HTTP tools for agents (HTTP + MCP).
+#
+# v1: http_request. Bound to loopback: put your own auth in front before
+# exposing this.
+
+name: hirarahttp
+
+services:
+  hirarahttp:
+    build:
+      # Context is the repo root so the build can reach the shared
+      # hirara-core package (a sibling of this tool's directory).
+      context: ..
+      dockerfile: hirarahttp/Dockerfile
+    restart: unless-stopped
+    environment:
+      - CHTTP_TIMEOUT=${CHTTP_TIMEOUT:-30}
+      - CHTTP_MAX_BYTES=${CHTTP_MAX_BYTES:-2000000}
+      - CHTTP_MAX_REDIRECTS=${CHTTP_MAX_REDIRECTS:-5}
+      - CHTTP_MAX_REQUEST_BODY_BYTES=${CHTTP_MAX_REQUEST_BODY_BYTES:-1000000}
+      - CHTTP_ALLOW_PRIVATE_IPS=${CHTTP_ALLOW_PRIVATE_IPS:-false}
+    ports:
+      - "127.0.0.1:${CHTTP_PORT:-8800}:8800"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8800/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge

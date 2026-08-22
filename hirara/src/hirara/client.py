@@ -381,6 +381,37 @@ class Client:
             args["timeout"] = timeout
         return self.call("browser_screenshot", args)
 
+    def http_request(
+        self,
+        url: str,
+        *,
+        method: str = "GET",
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        timeout: float | None = None,
+        follow_redirects: bool = True,
+        max_redirects: int | None = None,
+        max_bytes: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "url": url,
+            "method": method,
+            "follow_redirects": follow_redirects,
+            **extra,
+        }
+        if headers is not None:
+            args["headers"] = headers
+        if body is not None:
+            args["body"] = body
+        if timeout is not None:
+            args["timeout"] = timeout
+        if max_redirects is not None:
+            args["max_redirects"] = max_redirects
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        return self.call("http_request", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -437,6 +468,7 @@ browser_open = _delegate("browser_open")
 browser_click = _delegate("browser_click")
 browser_type = _delegate("browser_type")
 browser_screenshot = _delegate("browser_screenshot")
+http_request = _delegate("http_request")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -466,4 +498,5 @@ __all__ = [
     "browser_click",
     "browser_type",
     "browser_screenshot",
+    "http_request",
 ]
