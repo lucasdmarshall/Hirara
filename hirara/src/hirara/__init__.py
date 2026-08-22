@@ -36,6 +36,7 @@ from .client import (
     service_enum,
     browser_open,
     browser_click,
+    browser_type,
     tools,
     web_fetch,
     web_search,
@@ -63,6 +64,7 @@ __all__ = [
     "service_enum",
     "browser_open",
     "browser_click",
+    "browser_type",
 ]
 
 __version__ = "0.2.0"

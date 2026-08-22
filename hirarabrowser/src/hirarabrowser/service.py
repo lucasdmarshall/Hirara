@@ -34,6 +34,16 @@ class BrowserClickRequest(BaseModel):
     click_count: int = 1
 
 
+class BrowserTypeRequest(BaseModel):
+    session_id: str
+    selector: str
+    text: str
+    timeout: float | None = None
+    clear: bool = True
+    press_enter: bool = False
+    delay_ms: float | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -62,4 +72,17 @@ async def browser_click(request: BrowserClickRequest) -> dict:
         timeout=request.timeout,
         button=request.button,
         click_count=request.click_count,
+    )
+
+
+@app.post("/browser_type")
+async def browser_type(request: BrowserTypeRequest) -> dict:
+    return await _toolset.browser_type(
+        session_id=request.session_id,
+        selector=request.selector,
+        text=request.text,
+        timeout=request.timeout,
+        clear=request.clear,
+        press_enter=request.press_enter,
+        delay_ms=request.delay_ms,
     )

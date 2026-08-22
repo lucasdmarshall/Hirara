@@ -17,7 +17,7 @@ default. URLs are checked with [`hirara-core`](../hirara-core/) before navigate.
 |---|---|---|
 | **`browser_open`** | ✅ shipped | Open URL → `session_id`, title, final URL |
 | **`browser_click`** | ✅ shipped | Click a selector in a session |
-| `browser_type` | 📋 planned | Type into a selector |
+| **`browser_type`** | ✅ shipped | Type into an input (fill or append) |
 | `browser_screenshot` | 📋 planned | Capture a page screenshot |
 
 ---
@@ -63,6 +63,13 @@ curl -X POST localhost:8700/browser_open -H 'content-type: application/json' \
 ```bash
 curl -X POST localhost:8700/browser_click -H 'content-type: application/json' \
   -d '{"session_id":"<id>","selector":"a#more-information"}'
+```
+
+**Type** into an input:
+
+```bash
+curl -X POST localhost:8700/browser_type -H 'content-type: application/json' \
+  -d '{"session_id":"<id>","selector":"input[name=q]","text":"hirara","press_enter":true}'
 ```
 
 MCP:

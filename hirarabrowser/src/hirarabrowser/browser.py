@@ -46,6 +46,18 @@ class ClickResult:
     error: str | None = None
 
 
+@dataclass
+class TypeResult:
+    session_id: str | None = None
+    selector: str | None = None
+    text: str | None = None
+    cleared: bool = False
+    url: str | None = None
+    title: str | None = None
+    typed: bool = False
+    error: str | None = None
+
+
 class BrowserEngine(Protocol):
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         """Return (browser, context, page, http_status)."""
@@ -66,6 +78,7 @@ class FakeEngine:
         self.opened: list[str] = []
         self.closed: list[str] = []
         self.clicks: list[str] = []
+        self.typed: list[tuple[str, str, bool]] = []
 
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
         self.opened.append(url)
@@ -81,7 +94,7 @@ class FakeEngine:
                 self._text = text
                 self.url = url
                 self._status = status
-                self._clicks: list[str] = []
+                self._values: dict[str, str] = {}
 
             async def title(self) -> str:
                 return self._title
@@ -94,14 +107,21 @@ class FakeEngine:
                 return _Resp(self._status)
 
             async def click(self, selector: str, **kwargs):
-                self._clicks.append(selector)
                 engine.clicks.append(selector)
-                # Simulate navigation after click.
                 self.url = self.url.rstrip("/") + "/clicked"
                 self._title = "Clicked"
 
             async def wait_for_selector(self, selector: str, **kwargs):
                 return None
+
+            async def fill(self, selector: str, value: str, **kwargs):
+                self._values[selector] = value
+                engine.typed.append((selector, value, True))
+
+            async def type(self, selector: str, text: str, **kwargs):
+                prev = self._values.get(selector, "")
+                self._values[selector] = prev + text
+                engine.typed.append((selector, text, False))
 
         page = _Page(self.title, self.text, url, self.status)
         return object(), object(), page, self.status
@@ -346,6 +366,111 @@ def click_result_to_dict(result: ClickResult) -> dict:
     }
 
 
+async def browser_type(
+    session_id: str,
+    selector: str,
+    text: str,
+    *,
+    timeout: float | None = None,
+    clear: bool = True,
+    press_enter: bool = False,
+    delay_ms: float | None = None,
+    config: BrowserConfig | None = None,
+    store: SessionStore | None = None,
+) -> TypeResult:
+    """Type ``text`` into ``selector`` in an existing browser session.
+
+    When ``clear`` is true (default), uses Playwright ``fill`` (replace).
+    When false, uses ``type`` (append keystrokes). Optional ``press_enter``
+    sends Enter afterward.
+    """
+    cfg = config or BrowserConfig()
+    sessions = store if store is not None else SessionStore(
+        max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
+    )
+
+    sid = (session_id or "").strip()
+    sel = (selector or "").strip()
+    if not sid:
+        return TypeResult(error="session_id is required")
+    if not sel:
+        return TypeResult(session_id=sid or None, error="selector is required")
+    if text is None:
+        return TypeResult(session_id=sid, selector=sel, error="text is required")
+
+    session = sessions.get(sid)
+    if session is None:
+        return TypeResult(
+            session_id=sid, selector=sel, text=text, error=f"unknown session_id: {sid}"
+        )
+
+    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
+    if wait_timeout <= 0:
+        return TypeResult(
+            session_id=sid, selector=sel, text=text, error="timeout must be > 0"
+        )
+
+    page = session.page
+    try:
+        wait = getattr(page, "wait_for_selector", None)
+        if callable(wait):
+            await wait(sel, timeout=int(wait_timeout * 1000), state="visible")
+        ms = int(wait_timeout * 1000)
+        if clear:
+            await page.fill(sel, text, timeout=ms)
+        else:
+            kwargs: dict = {"timeout": ms}
+            if delay_ms is not None:
+                kwargs["delay"] = float(delay_ms)
+            await page.type(sel, text, **kwargs)
+        if press_enter:
+            press = getattr(page, "press", None)
+            if callable(press):
+                await press(sel, "Enter", timeout=ms)
+            else:
+                # Fallback: type a newline via keyboard if available.
+                kb = getattr(page, "keyboard", None)
+                if kb is not None and hasattr(kb, "press"):
+                    await kb.press("Enter")
+        title = await page.title()
+        url = getattr(page, "url", session.url)
+        session.url = url
+        session.title = title
+        return TypeResult(
+            session_id=sid,
+            selector=sel,
+            text=text,
+            cleared=clear,
+            url=url,
+            title=title,
+            typed=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return TypeResult(
+            session_id=sid,
+            selector=sel,
+            text=text,
+            cleared=clear,
+            url=getattr(page, "url", session.url),
+            title=session.title,
+            typed=False,
+            error=f"type failed: {exc}",
+        )
+
+
+def type_result_to_dict(result: TypeResult) -> dict:
+    return {
+        "session_id": result.session_id,
+        "selector": result.selector,
+        "text": result.text,
+        "cleared": result.cleared,
+        "url": result.url,
+        "title": result.title,
+        "typed": result.typed,
+        "error": result.error,
+    }
+
+
 __all__ = [
     "BrowserEngine",
     "BrowserError",
@@ -353,8 +478,11 @@ __all__ = [
     "FakeEngine",
     "OpenResult",
     "PlaywrightEngine",
+    "TypeResult",
     "browser_click",
     "browser_open",
+    "browser_type",
     "click_result_to_dict",
     "open_result_to_dict",
+    "type_result_to_dict",
 ]

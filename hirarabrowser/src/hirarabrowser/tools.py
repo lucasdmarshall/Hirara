@@ -1,6 +1,6 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``browser_open``, ``browser_click`` (type / screenshot follow).
+Tools: ``browser_open``, ``browser_click``, ``browser_type`` (screenshot follows).
 """
 
 from __future__ import annotations
@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from .browser import (
     browser_click,
     browser_open,
+    browser_type,
     click_result_to_dict,
     open_result_to_dict,
+    type_result_to_dict,
 )
 from .config import BrowserConfig
 from .session import SessionStore
@@ -99,6 +101,54 @@ BROWSER_CLICK_SCHEMA = {
 }
 
 
+BROWSER_TYPE_SCHEMA = {
+    "name": "browser_type",
+    "description": (
+        "Type text into an input/textarea in an existing browser session. "
+        "Use after browser_open. By default clears the field first (fill); "
+        "pass clear=false to append keystrokes. Optional press_enter submits "
+        "the field afterward."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {
+                "type": "string",
+                "description": "Session from browser_open.",
+            },
+            "selector": {
+                "type": "string",
+                "description": "Input selector (CSS, text=, etc.).",
+            },
+            "text": {
+                "type": "string",
+                "description": "Text to type into the element.",
+            },
+            "timeout": {
+                "type": "number",
+                "minimum": 0.1,
+                "description": "Wait/type timeout in seconds.",
+            },
+            "clear": {
+                "type": "boolean",
+                "description": "If true (default), replace existing value; if false, append.",
+            },
+            "press_enter": {
+                "type": "boolean",
+                "description": "If true, press Enter after typing.",
+            },
+            "delay_ms": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Per-keystroke delay in ms when clear=false.",
+            },
+        },
+        "required": ["session_id", "selector", "text"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _open_envelope(**overrides) -> dict:
     envelope = {
         "session_id": None,
@@ -126,6 +176,21 @@ def _click_envelope(**overrides) -> dict:
     return envelope
 
 
+def _type_envelope(**overrides) -> dict:
+    envelope = {
+        "session_id": None,
+        "selector": None,
+        "text": None,
+        "cleared": False,
+        "url": None,
+        "title": None,
+        "typed": False,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """Browser tools sharing one config + session store."""
@@ -145,13 +210,13 @@ class Toolset:
         )
 
     def schemas(self) -> list[dict]:
-        return [BROWSER_OPEN_SCHEMA, BROWSER_CLICK_SCHEMA]
+        return [BROWSER_OPEN_SCHEMA, BROWSER_CLICK_SCHEMA, BROWSER_TYPE_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["browser_open", "browser_click"],
+            "tools": ["browser_open", "browser_click", "browser_type"],
             "sessions": len(self.store),
             "headless": self.config.headless,
         }
@@ -207,10 +272,44 @@ class Toolset:
                 error=f"browser_click failed: {exc}",
             )
 
+    async def browser_type(
+        self,
+        *,
+        session_id: str,
+        selector: str,
+        text: str,
+        timeout: float | None = None,
+        clear: bool = True,
+        press_enter: bool = False,
+        delay_ms: float | None = None,
+    ) -> dict:
+        try:
+            result = await browser_type(
+                session_id,
+                selector,
+                text,
+                timeout=timeout,
+                clear=clear,
+                press_enter=press_enter,
+                delay_ms=delay_ms,
+                config=self.config,
+                store=self.store,
+            )
+            return type_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("browser_type failed")
+            return _type_envelope(
+                session_id=session_id,
+                selector=selector,
+                text=text,
+                error=f"browser_type failed: {exc}",
+            )
+
 
 __all__ = [
     "BROWSER_OPEN_SCHEMA",
     "BROWSER_CLICK_SCHEMA",
+    "BROWSER_TYPE_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -218,7 +317,7 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("browser_open", "browser_click")
+TOOL_NAMES = ("browser_open", "browser_click", "browser_type")
 _local_toolset: "Toolset | None" = None
 
 
@@ -235,6 +334,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().browser_open(**args)
     if name == "browser_click":
         return await _backend().browser_click(**args)
+    if name == "browser_type":
+        return await _backend().browser_type(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

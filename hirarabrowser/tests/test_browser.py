@@ -152,3 +152,72 @@ async def test_click_unknown_session():
         store=SessionStore(max_sessions=2, session_ttl=60),
     )
     assert r.error and "unknown session" in r.error
+
+
+@pytest.mark.asyncio
+async def test_type_happy_path(monkeypatch):
+    from hirarabrowser.browser import browser_type
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine()
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_type(
+        opened.session_id,
+        "input[name=q]",
+        "hello",
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error is None
+    assert r.typed is True
+    assert r.cleared is True
+    assert r.text == "hello"
+    assert engine.typed == [("input[name=q]", "hello", True)]
+
+
+@pytest.mark.asyncio
+async def test_type_append_without_clear(monkeypatch):
+    from hirarabrowser.browser import browser_type
+
+    monkeypatch.setattr(
+        "hirarabrowser.browser.resolve_target",
+        lambda url, **kw: object(),
+    )
+    engine = FakeEngine()
+    store = SessionStore(max_sessions=4, session_ttl=60)
+    opened = await browser_open(
+        "https://example.com/",
+        store=store,
+        engine=engine,
+        config=BrowserConfig(),
+    )
+    r = await browser_type(
+        opened.session_id,
+        "#q",
+        "world",
+        clear=False,
+        store=store,
+        config=BrowserConfig(),
+    )
+    assert r.error is None
+    assert r.cleared is False
+    assert engine.typed == [("#q", "world", False)]
+
+
+@pytest.mark.asyncio
+async def test_type_requires_fields():
+    from hirarabrowser.browser import browser_type
+
+    r = await browser_type("", "input", "x")
+    assert r.error and "session_id" in r.error
+    r2 = await browser_type("abc", "", "x")
+    assert r2.error and "selector" in r2.error

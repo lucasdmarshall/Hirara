@@ -12,8 +12,9 @@ server = MCPServer(
     name="hirarabrowser",
     version="0.1.0",
     instructions=(
-        "Self-hosted browser tools. Use browser_open to load a URL and get a "
-        "session_id, then browser_click to click selectors in that session."
+        "Self-hosted browser tools. Use browser_open to load a URL, "
+        "browser_click to click selectors, and browser_type to fill inputs "
+        "in that session."
     ),
 )
 
@@ -79,6 +80,45 @@ async def browser_click_tool(
         timeout=timeout,
         button=button,
         click_count=click_count,
+    )
+
+
+@server.tool(
+    name="browser_type",
+    description=(
+        "Type text into an input in an existing browser session. Defaults to "
+        "clearing the field first; pass clear=false to append. Optional "
+        "press_enter after typing."
+    ),
+)
+async def browser_type_tool(
+    session_id: str,
+    selector: str,
+    text: str,
+    timeout: float | None = None,
+    clear: bool = True,
+    press_enter: bool = False,
+    delay_ms: float | None = None,
+) -> dict:
+    """Type into a selector in a browser session.
+
+    Args:
+        session_id: Session from browser_open.
+        selector: Input selector.
+        text: Text to type.
+        timeout: Wait/type timeout in seconds.
+        clear: Replace existing value when true.
+        press_enter: Press Enter after typing.
+        delay_ms: Per-key delay when clear=false.
+    """
+    return await _toolset.browser_type(
+        session_id=session_id,
+        selector=selector,
+        text=text,
+        timeout=timeout,
+        clear=clear,
+        press_enter=press_enter,
+        delay_ms=delay_ms,
     )
 
 
