@@ -50,6 +50,12 @@ class HttpConfig:
     # True on a trusted laptop; False in the Docker image.
     allow_private_ips: bool = True
 
+    # In-process http_request history ring buffer.
+    history_size: int = 100
+
+    # Cap on body chars retained per history entry (0 = drop bodies).
+    history_body_chars: int = 32_768
+
     @classmethod
     def from_env(cls) -> "HttpConfig":
         return cls(
@@ -65,6 +71,10 @@ class HttpConfig:
             or cls.user_agent,
             allow_private_ips=_env_bool(
                 "CHTTP_ALLOW_PRIVATE_IPS", cls.allow_private_ips
+            ),
+            history_size=_env_int("CHTTP_HISTORY_SIZE", cls.history_size),
+            history_body_chars=_env_int(
+                "CHTTP_HISTORY_BODY_CHARS", cls.history_body_chars
             ),
         )
 

@@ -22,8 +22,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
-        "HTTP request (any method) and get status, headers, and body. URLs and "
-        "redirect hops go through Hirara's SSRF perimeter."
+        "HTTP request (any method) and get status, headers, and body. Use "
+        "http_history to list or fetch recent requests from this process. "
+        "URLs and redirect hops go through Hirara's SSRF perimeter."
     ),
 )
 
@@ -69,6 +70,38 @@ async def http_request_tool(
         follow_redirects=follow_redirects,
         max_redirects=max_redirects,
         max_bytes=max_bytes,
+    )
+
+
+@server.tool(
+    name="http_history",
+    description=(
+        "List or fetch recent http_request calls from this process. Newest "
+        "first. Pass id for one full entry; clear=true to wipe the buffer."
+    ),
+)
+async def http_history_tool(
+    limit: int = 20,
+    offset: int = 0,
+    id: str | None = None,
+    include_body: bool = False,
+    clear: bool = False,
+) -> dict:
+    """List or fetch recorded HTTP exchanges.
+
+    Args:
+        limit: Max entries (default 20).
+        offset: Skip newest N for pagination.
+        id: Fetch one entry by request_id.
+        include_body: Include bodies in list mode.
+        clear: Wipe history when true.
+    """
+    return await _toolset.http_history(
+        limit=limit,
+        offset=offset,
+        id=id,
+        include_body=include_body,
+        clear=clear,
     )
 
 

@@ -16,7 +16,7 @@ redirect hop) goes through [`hirara-core`](../hirara-core/) resolve-then-pin.
 | Tool | Status | What it does |
 |---|---|---|
 | **`http_request`** | ✅ shipped | Send method/headers/body → status, headers, body |
-| `http_history` | 📋 planned | List recent requests from this process |
+| **`http_history`** | ✅ shipped | List / fetch recent requests from this process |
 | `inspect_headers` / `inspect_cookies` / `inspect_response` | 📋 planned | Structured views of a response |
 | `request_replay` / `parameter_test` / `response_compare` | 📋 planned | Replay and compare |
 
@@ -64,6 +64,13 @@ curl -X POST localhost:8800/http_request -H 'content-type: application/json' \
   -d '{"url":"https://httpbin.org/post","method":"POST","headers":{"Content-Type":"application/json"},"body":"{\"hello\":\"hirara\"}"}'
 ```
 
+**History** of recent calls (newest first; pass `"id"` for one full entry):
+
+```bash
+curl -X POST localhost:8800/http_history -H 'content-type: application/json' \
+  -d '{"limit":10}'
+```
+
 MCP:
 
 ```bash
@@ -88,6 +95,8 @@ docker compose up -d --build
 | `CHTTP_MAX_REQUEST_BODY_BYTES` | `1000000` | Cap on outbound body |
 | `CHTTP_MAX_HEADERS` | `40` | Cap on custom header count |
 | `CHTTP_ALLOW_PRIVATE_IPS` | `true` (lib) / `false` (image) | Permit RFC1918 / loopback |
+| `CHTTP_HISTORY_SIZE` | `100` | Max recorded `http_request` entries |
+| `CHTTP_HISTORY_BODY_CHARS` | `32768` | Cap on body chars kept per entry |
 | `CHTTP_USER_AGENT` | Hirara UA | Default User-Agent |
 | `CHTTP_PORT` | `8800` | Compose host port |
 

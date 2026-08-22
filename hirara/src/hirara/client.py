@@ -412,6 +412,27 @@ class Client:
             args["max_bytes"] = max_bytes
         return self.call("http_request", args)
 
+    def http_history(
+        self,
+        *,
+        limit: int = 20,
+        offset: int = 0,
+        id: str | None = None,
+        include_body: bool = False,
+        clear: bool = False,
+        **extra,
+    ) -> dict:
+        args = {
+            "limit": limit,
+            "offset": offset,
+            "include_body": include_body,
+            "clear": clear,
+            **extra,
+        }
+        if id is not None:
+            args["id"] = id
+        return self.call("http_history", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -469,6 +490,7 @@ browser_click = _delegate("browser_click")
 browser_type = _delegate("browser_type")
 browser_screenshot = _delegate("browser_screenshot")
 http_request = _delegate("http_request")
+http_history = _delegate("http_history")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -499,4 +521,5 @@ __all__ = [
     "browser_type",
     "browser_screenshot",
     "http_request",
+    "http_history",
 ]

@@ -36,6 +36,16 @@ class HttpRequestBody(BaseModel):
     max_bytes: int | None = None
 
 
+class HttpHistoryBody(BaseModel):
+    """JSON body for http_history."""
+
+    limit: int = 20
+    offset: int = 0
+    id: str | None = None
+    include_body: bool = False
+    clear: bool = False
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -60,4 +70,15 @@ async def http_request_endpoint(request: HttpRequestBody) -> dict:
         follow_redirects=request.follow_redirects,
         max_redirects=request.max_redirects,
         max_bytes=request.max_bytes,
+    )
+
+
+@app.post("/http_history")
+async def http_history_endpoint(request: HttpHistoryBody) -> dict:
+    return await _toolset.http_history(
+        limit=request.limit,
+        offset=request.offset,
+        id=request.id,
+        include_body=request.include_body,
+        clear=request.clear,
     )
