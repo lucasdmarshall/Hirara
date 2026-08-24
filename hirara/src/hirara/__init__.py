@@ -46,6 +46,7 @@ from .client import (
     directory_enum,
     file_read,
     file_write,
+    decode,
     tools,
     web_fetch,
     web_search,
@@ -83,6 +84,7 @@ __all__ = [
     "directory_enum",
     "file_read",
     "file_write",
+    "decode",
 ]
 
 __version__ = "0.2.0"

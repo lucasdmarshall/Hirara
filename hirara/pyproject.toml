@@ -31,6 +31,7 @@ local = [
     "hiraranet>=0.1.0",
     "hirarahttp>=0.1.0",
     "hirarafs>=0.1.0",
+    "hirarautil>=0.1.0",
 ]
 # Heavier, model-backed tools — opt in only if you want them in-process.
 ocr = ["hiraraocr>=0.1.0"]

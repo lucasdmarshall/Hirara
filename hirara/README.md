@@ -81,6 +81,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `dns_lookup` · `port_scan` · `service_enum` | network |
 | `http_request` · `http_history` · `inspect_*` · `directory_enum` | HTTP |
 | `file_read(path, …)` · `file_write(path, content, …)` | filesystem (hub/local path) |
+| `decode(input, format=…)` | encodings (base64/hex/url/…) |
 | `call(name, arguments)` | any tool, raw |
 
 File tools like PDF/OCR accept `path=` (local, auto-base64), `url=`, or `base64=`.

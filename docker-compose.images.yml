@@ -81,10 +81,15 @@ services:
     volumes: [fs-data:/data]
     networks: [hirara]
 
+  hirarautil:
+    image: ghcr.io/lucasdmarshall/hirara-util:${HIRARA_TAG:-latest}
+    restart: unless-stopped
+    networks: [hirara]
+
   hub:
     image: ghcr.io/lucasdmarshall/hirara-hub:${HIRARA_TAG:-latest}
     restart: unless-stopped
-    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs]
+    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs, hirarautil]
     environment:
       - HUB_TOKEN=${HUB_TOKEN:-}
       - HUB_WEBSEARCH_URL=http://websearch:8000
@@ -96,6 +101,7 @@ services:
       - HUB_HIRARABROWSER_URL=http://hirarabrowser:8700
       - HUB_HIRARAHTTP_URL=http://hirarahttp:8800
       - HUB_HIRARAFS_URL=http://hirarafs:8900
+      - HUB_HIRARAUTIL_URL=http://hirarautil:9000
       - HUB_HIRARASTT_URL=http://hirarastt:8100
     ports:
       - "127.0.0.1:${HUB_PORT:-8080}:8080"

@@ -555,6 +555,15 @@ class Client:
             args["max_bytes"] = max_bytes
         return self.call("file_write", args)
 
+    def decode(
+        self,
+        input: str,
+        *,
+        format: str = "auto",
+        **extra,
+    ) -> dict:
+        return self.call("decode", {"input": input, "format": format, **extra})
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -619,6 +628,7 @@ inspect_response = _delegate("inspect_response")
 directory_enum = _delegate("directory_enum")
 file_read = _delegate("file_read")
 file_write = _delegate("file_write")
+decode = _delegate("decode")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -656,4 +666,5 @@ __all__ = [
     "directory_enum",
     "file_read",
     "file_write",
+    "decode",
 ]

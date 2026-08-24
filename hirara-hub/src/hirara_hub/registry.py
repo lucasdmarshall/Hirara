@@ -22,6 +22,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hirarabrowser": 8700,
     "hirarahttp": 8800,
     "hirarafs": 8900,
+    "hirarautil": 9000,
 }
 
 
@@ -71,6 +72,7 @@ TOOLS: dict[str, ToolRoute] = {
     "directory_enum": ToolRoute("directory_enum", "hirarahttp", "/directory_enum"),
     "file_read": ToolRoute("file_read", "hirarafs", "/file_read"),
     "file_write": ToolRoute("file_write", "hirarafs", "/file_write"),
+    "decode": ToolRoute("decode", "hirarautil", "/decode"),
 }
 
 

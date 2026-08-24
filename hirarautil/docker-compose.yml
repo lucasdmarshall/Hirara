@@ -1,0 +1,34 @@
+# HiraraUtil — self-hosted utility tools for agents (HTTP + MCP).
+#
+# v1: decode. Bound to loopback.
+
+name: hirarautil
+
+services:
+  hirarautil:
+    build:
+      context: ..
+      dockerfile: hirarautil/Dockerfile
+    restart: unless-stopped
+    environment:
+      - CUTIL_MAX_INPUT_CHARS=${CUTIL_MAX_INPUT_CHARS:-1000000}
+      - CUTIL_MAX_OUTPUT_BYTES=${CUTIL_MAX_OUTPUT_BYTES:-2000000}
+    ports:
+      - "127.0.0.1:${CUTIL_PORT:-9000}:9000"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9000/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge
