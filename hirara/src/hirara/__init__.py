@@ -52,6 +52,7 @@ from .client import (
     database_schema,
     application_logs,
     process_list,
+    environment_read,
     tools,
     web_fetch,
     web_search,
@@ -95,6 +96,7 @@ __all__ = [
     "database_schema",
     "application_logs",
     "process_list",
+    "environment_read",
 ]
 
 __version__ = "0.2.0"

@@ -6,6 +6,21 @@ import os
 from dataclasses import dataclass
 
 
+DEFAULT_REDACT_PATTERNS: tuple[str, ...] = (
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "access_key",
+    "private_key",
+    "credential",
+    "auth",
+    "bearer",
+)
+
+
 def _env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     return int(raw) if raw else default
@@ -66,11 +81,24 @@ class OpsConfig:
     max_processes: int = 500
     allow_process_list: bool = True
 
+    # environment_read: allow switch, redaction, caps.
+    allow_environment_read: bool = True
+    redact_env: bool = True
+    redact_patterns: tuple[str, ...] = DEFAULT_REDACT_PATTERNS
+    max_env_vars: int = 500
+
     def resolved_sources(self) -> dict[str, str]:
         return dict(self.log_sources or {})
 
     @classmethod
     def from_env(cls) -> "OpsConfig":
+        raw_patterns = os.getenv("COPS_REDACT_PATTERNS")
+        if raw_patterns is None:
+            patterns = DEFAULT_REDACT_PATTERNS
+        else:
+            patterns = tuple(
+                p.strip() for p in raw_patterns.replace(":", ",").split(",") if p.strip()
+            )
         return cls(
             log_sources=_env_sources() or None,
             roots=_env_roots("COPS_ROOTS", cls.roots),
@@ -84,7 +112,13 @@ class OpsConfig:
             allow_process_list=_env_bool(
                 "COPS_ALLOW_PROCESS_LIST", cls.allow_process_list
             ),
+            allow_environment_read=_env_bool(
+                "COPS_ALLOW_ENVIRONMENT_READ", cls.allow_environment_read
+            ),
+            redact_env=_env_bool("COPS_REDACT_ENV", cls.redact_env),
+            redact_patterns=patterns or DEFAULT_REDACT_PATTERNS,
+            max_env_vars=_env_int("COPS_MAX_ENV_VARS", cls.max_env_vars),
         )
 
 
-__all__ = ["OpsConfig"]
+__all__ = ["DEFAULT_REDACT_PATTERNS", "OpsConfig"]

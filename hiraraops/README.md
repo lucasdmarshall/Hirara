@@ -2,7 +2,7 @@
 
 # Hiraraops
 
-**Self-hosted ops tools for AI agents — read application logs safely.**
+**Self-hosted ops tools for AI agents — logs, processes, and environment.**
 
 Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths gated by
 `COPS_ROOTS`; Docker serves files under `/logs`.
@@ -17,7 +17,7 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths gated by
 |---|---|---|
 | **`application_logs`** | ✅ shipped | Tail / head / grep a log file |
 | **`process_list`** | ✅ shipped | List running processes (`/proc`) |
-| `environment_read` | 📋 planned | Read process environment |
+| **`environment_read`** | ✅ shipped | Read process environment (self or pid) |
 
 ---
 
@@ -47,6 +47,13 @@ curl -X POST localhost:9200/process_list -H 'content-type: application/json' \
   -d '{"pattern":"python","max_processes":20}'
 ```
 
+**Environment:**
+
+```bash
+curl -X POST localhost:9200/environment_read -H 'content-type: application/json' \
+  -d '{"pattern":"^PATH|^HOME","include_values":true}'
+```
+
 MCP: `python -m hiraraops.mcp_server`
 
 Docker:
@@ -70,6 +77,10 @@ COPS_LOGS=/var/log COPS_LOG_SOURCES=app=/logs/app.log docker compose up -d --bui
 | `COPS_MAX_PROCESSES` | `500` | Cap on processes returned |
 | `COPS_ALLOW_PROCESS_LIST` | `true` | When false, `process_list` returns an error |
 | `COPS_PROC_ROOT` | `/proc` | Proc filesystem root (tests / containers) |
+| `COPS_ALLOW_ENVIRONMENT_READ` | `true` | When false, `environment_read` returns an error |
+| `COPS_REDACT_ENV` | `true` | Redact secret-like keys by default |
+| `COPS_REDACT_PATTERNS` | password,token,… | Substrings matched against key names |
+| `COPS_MAX_ENV_VARS` | `500` | Cap on variables returned |
 | `COPS_PORT` | `9200` | Compose host port |
 
 ---

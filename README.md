@@ -66,6 +66,7 @@ to be inspected.
 | **`database_schema`** | ✅ shipped | List tables / columns on SQLite — [`hiraradb/`](hiraradb/) |
 | **`application_logs`** | ✅ shipped | Tail / head / grep application logs — [`hiraraops/`](hiraraops/) |
 | **`process_list`** | ✅ shipped | List running processes — [`hiraraops/`](hiraraops/) |
+| **`environment_read`** | ✅ shipped | Read process environment — [`hiraraops/`](hiraraops/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

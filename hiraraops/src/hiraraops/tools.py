@@ -1,6 +1,6 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``application_logs``, ``process_list``.
+Tools: ``application_logs``, ``process_list``, ``environment_read``.
 """
 
 from __future__ import annotations
@@ -9,6 +9,8 @@ import logging
 from dataclasses import dataclass
 
 from .config import OpsConfig
+from .environ import EnvironError, environment_read as read_environ
+from .environ import result_to_dict as environ_result_to_dict
 from .logs import LogsError, application_logs as read_logs
 from .logs import result_to_dict as logs_result_to_dict
 from .processes import ProcessError, process_list as list_processes
@@ -103,6 +105,56 @@ PROCESS_LIST_SCHEMA = {
 }
 
 
+ENVIRONMENT_READ_SCHEMA = {
+    "name": "environment_read",
+    "description": (
+        "Read environment variables for this process or another pid via "
+        "/proc/<pid>/environ. Filter with keys and/or pattern (regex on key "
+        "names). Secret-like keys are redacted by default (COPS_REDACT_ENV). "
+        "Errors stay in the JSON envelope."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "pid": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Optional process id; omit to read this process.",
+            },
+            "keys": {
+                "description": (
+                    "Optional key filter: list of names, or comma-separated string."
+                ),
+                "oneOf": [
+                    {"type": "string"},
+                    {"type": "array", "items": {"type": "string"}},
+                ],
+            },
+            "pattern": {
+                "type": "string",
+                "description": "Optional regex matched against key names.",
+            },
+            "include_values": {
+                "type": "boolean",
+                "description": "Include values (default true); false returns keys only.",
+            },
+            "redact": {
+                "type": "boolean",
+                "description": (
+                    "Override redaction (default follows COPS_REDACT_ENV)."
+                ),
+            },
+            "max_vars": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Cap on variables returned.",
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
 def _logs_envelope(**overrides) -> dict:
     envelope = {
         "source": None,
@@ -137,6 +189,22 @@ def _process_envelope(**overrides) -> dict:
     return envelope
 
 
+def _environ_envelope(**overrides) -> dict:
+    envelope = {
+        "pid": None,
+        "source": None,
+        "variables": {},
+        "keys": [],
+        "variable_count": 0,
+        "redacted_keys": [],
+        "truncated": False,
+        "pattern": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """Ops tools sharing one config."""
@@ -148,13 +216,17 @@ class Toolset:
         return cls(config=OpsConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [APPLICATION_LOGS_SCHEMA, PROCESS_LIST_SCHEMA]
+        return [
+            APPLICATION_LOGS_SCHEMA,
+            PROCESS_LIST_SCHEMA,
+            ENVIRONMENT_READ_SCHEMA,
+        ]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["application_logs", "process_list"],
+            "tools": ["application_logs", "process_list", "environment_read"],
             "sources": sorted(self.config.resolved_sources()),
             "roots": list(self.config.roots),
             "allow_any_path": self.config.allow_any_path,
@@ -162,6 +234,9 @@ class Toolset:
             "max_lines": self.config.max_lines,
             "allow_process_list": self.config.allow_process_list,
             "max_processes": self.config.max_processes,
+            "allow_environment_read": self.config.allow_environment_read,
+            "redact_env": self.config.redact_env,
+            "max_env_vars": self.config.max_env_vars,
         }
 
     async def application_logs(
@@ -235,10 +310,45 @@ class Toolset:
                 error=f"process_list failed: {exc}",
             )
 
+    async def environment_read(
+        self,
+        *,
+        pid: int | None = None,
+        keys: list[str] | str | None = None,
+        pattern: str | None = None,
+        include_values: bool = True,
+        redact: bool | None = None,
+        max_vars: int | None = None,
+    ) -> dict:
+        import asyncio
+
+        try:
+            result = await asyncio.to_thread(
+                read_environ,
+                pid=pid,
+                keys=keys,
+                pattern=pattern,
+                include_values=include_values,
+                redact=redact,
+                max_vars=max_vars,
+                config=self.config,
+            )
+            return environ_result_to_dict(result)
+        except EnvironError as exc:
+            return _environ_envelope(pid=pid, pattern=pattern, error=str(exc))
+        except Exception as exc:  # noqa: BLE001
+            log.exception("environment_read failed")
+            return _environ_envelope(
+                pid=pid,
+                pattern=pattern,
+                error=f"environment_read failed: {exc}",
+            )
+
 
 __all__ = [
     "APPLICATION_LOGS_SCHEMA",
     "PROCESS_LIST_SCHEMA",
+    "ENVIRONMENT_READ_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -246,7 +356,7 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("application_logs", "process_list")
+TOOL_NAMES = ("application_logs", "process_list", "environment_read")
 _local_toolset: "Toolset | None" = None
 
 
@@ -263,6 +373,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().application_logs(**args)
     if name == "process_list":
         return await _backend().process_list(**args)
+    if name == "environment_read":
+        return await _backend().environment_read(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

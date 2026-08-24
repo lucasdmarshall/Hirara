@@ -684,6 +684,30 @@ class Client:
             args["max_processes"] = max_processes
         return self.call("process_list", args)
 
+    def environment_read(
+        self,
+        *,
+        pid: int | None = None,
+        keys: list[str] | str | None = None,
+        pattern: str | None = None,
+        include_values: bool = True,
+        redact: bool | None = None,
+        max_vars: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {"include_values": include_values, **extra}
+        if pid is not None:
+            args["pid"] = pid
+        if keys is not None:
+            args["keys"] = keys
+        if pattern is not None:
+            args["pattern"] = pattern
+        if redact is not None:
+            args["redact"] = redact
+        if max_vars is not None:
+            args["max_vars"] = max_vars
+        return self.call("environment_read", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -754,6 +778,7 @@ database_query = _delegate("database_query")
 database_schema = _delegate("database_schema")
 application_logs = _delegate("application_logs")
 process_list = _delegate("process_list")
+environment_read = _delegate("environment_read")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -797,4 +822,5 @@ __all__ = [
     "database_schema",
     "application_logs",
     "process_list",
+    "environment_read",
 ]

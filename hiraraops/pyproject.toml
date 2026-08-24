@@ -1,7 +1,7 @@
 [project]
 name = "hiraraops"
 version = "0.1.0"
-description = "Self-hosted ops tools for AI agents — application_logs / process_list over HTTP and MCP"
+description = "Self-hosted ops tools for AI agents — logs / processes / environment over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

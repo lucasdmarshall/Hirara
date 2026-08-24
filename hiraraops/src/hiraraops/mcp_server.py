@@ -1,4 +1,4 @@
-"""MCP front end — logs and process listing.
+"""MCP front end — logs, processes, and environment.
 
     python -m hiraraops.mcp_server
 """
@@ -16,8 +16,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted ops tools, no API keys. Use application_logs to tail or "
-        "head a log file, and process_list to inspect running processes from "
-        "/proc."
+        "head a log file, process_list to inspect running processes from "
+        "/proc, and environment_read to inspect process environment variables "
+        "(with secret redaction by default)."
     ),
 )
 
@@ -91,6 +92,41 @@ async def process_list_tool(
         pid=pid,
         max_processes=max_processes,
         include_cmdline=include_cmdline,
+    )
+
+
+@server.tool(
+    name="environment_read",
+    description=(
+        "Read environment variables for this process or another pid. Optional "
+        "keys filter, pattern regex on key names, include_values, and redact."
+    ),
+)
+async def environment_read_tool(
+    pid: int | None = None,
+    keys: list[str] | str | None = None,
+    pattern: str | None = None,
+    include_values: bool = True,
+    redact: bool | None = None,
+    max_vars: int | None = None,
+) -> dict:
+    """Read process environment variables.
+
+    Args:
+        pid: Optional process id; omit for this process.
+        keys: Optional key name filter (list or comma-separated string).
+        pattern: Optional regex on key names.
+        include_values: Include values (default true).
+        redact: Override secret redaction.
+        max_vars: Cap on variables returned.
+    """
+    return await _toolset.environment_read(
+        pid=pid,
+        keys=keys,
+        pattern=pattern,
+        include_values=include_values,
+        redact=redact,
+        max_vars=max_vars,
     )
 
 

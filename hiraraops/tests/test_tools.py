@@ -7,6 +7,7 @@ import pytest
 from hiraraops.config import OpsConfig
 from hiraraops.tools import (
     APPLICATION_LOGS_SCHEMA,
+    ENVIRONMENT_READ_SCHEMA,
     PROCESS_LIST_SCHEMA,
     TOOL_NAMES,
     Toolset,
@@ -17,6 +18,7 @@ from hiraraops.tools import (
 def test_schema():
     assert APPLICATION_LOGS_SCHEMA["name"] == "application_logs"
     assert PROCESS_LIST_SCHEMA["name"] == "process_list"
+    assert ENVIRONMENT_READ_SCHEMA["name"] == "environment_read"
 
 
 def test_health():
@@ -24,9 +26,11 @@ def test_health():
         config=OpsConfig(log_sources={"app": "/logs/app.log"}, roots=("/logs",))
     ).health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["application_logs", "process_list"]
+    assert h["tools"] == ["application_logs", "process_list", "environment_read"]
     assert h["sources"] == ["app"]
     assert h["allow_process_list"] is True
+    assert h["allow_environment_read"] is True
+    assert h["redact_env"] is True
 
 
 @pytest.mark.asyncio
@@ -56,7 +60,18 @@ async def test_toolset_process_list(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_toolset_environment_read():
+    ts = Toolset(config=OpsConfig(redact_env=True))
+    # Force deterministic input via process self-read is flaky; call core via
+    # tool with empty keys filter on real env is fine — just check envelope.
+    r = await ts.environment_read(keys=["PATH"], include_values=True)
+    assert r["error"] is None
+    assert r["source"] == "self"
+    assert "PATH" in r["keys"]
+
+
+@pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("application_logs", "process_list")
+    assert TOOL_NAMES == ("application_logs", "process_list", "environment_read")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

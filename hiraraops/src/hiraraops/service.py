@@ -41,6 +41,17 @@ class ProcessListRequest(BaseModel):
     include_cmdline: bool = True
 
 
+class EnvironmentReadRequest(BaseModel):
+    """JSON body for environment_read."""
+
+    pid: int | None = None
+    keys: list[str] | str | None = None
+    pattern: str | None = None
+    include_values: bool = True
+    redact: bool | None = None
+    max_vars: int | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -72,4 +83,16 @@ async def process_list_endpoint(request: ProcessListRequest) -> dict:
         pid=request.pid,
         max_processes=request.max_processes,
         include_cmdline=request.include_cmdline,
+    )
+
+
+@app.post("/environment_read")
+async def environment_read_endpoint(request: EnvironmentReadRequest) -> dict:
+    return await _toolset.environment_read(
+        pid=request.pid,
+        keys=request.keys,
+        pattern=request.pattern,
+        include_values=request.include_values,
+        redact=request.redact,
+        max_vars=request.max_vars,
     )

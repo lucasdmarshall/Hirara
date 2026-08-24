@@ -117,5 +117,5 @@ def test_every_tool_has_a_route():
         "file_read", "file_write",
         "decode", "hash",
         "database_query", "database_schema",
-        "application_logs", "process_list",
+        "application_logs", "process_list", "environment_read",
     }

@@ -29,7 +29,7 @@ progress in this repo (hub + SDK + packages).
 | 22 | `database_schema` | ✅ shipped | `hiraradb` |
 | 23 | `application_logs` | ✅ shipped | `hiraraops` |
 | 24 | `process_list` | ✅ shipped | `hiraraops` |
-| 25 | `environment_read` | 📋 planned | `hiraraops` |
+| 25 | `environment_read` | ✅ shipped | `hiraraops` |
 | 26 | `jwt_inspect` | 📋 planned | `hirarautil` |
 | 27 | `jwt_decode` | 📋 planned | `hirarautil` |
 | 28 | `request_replay` | 📋 planned | `hirarahttp` |
@@ -55,8 +55,9 @@ progress in this repo (hub + SDK + packages).
 **`browser_*`** (`hirarabrowser/`), the `hirarahttp` cluster,
 **`file_read` / `file_write`** (`hirarafs/`), **`decode` / `hash`**
 (`hirarautil/`), **`database_query` / `database_schema`** (`hiraradb/`),
-and **`application_logs` / `process_list`** (`hiraraops/`) are shipped.
-Next up: `environment_read` (`hiraraops`).
+and **`application_logs` / `process_list` / `environment_read`**
+(`hiraraops/`) are shipped.
+Next up: `jwt_inspect` / `jwt_decode` (`hirarautil`).
 
 ## Engineering conventions (all tools)
 
