@@ -115,5 +115,5 @@ def test_every_tool_has_a_route():
         "inspect_response", "directory_enum",
         "file_read", "file_write",
         "decode", "hash",
-        "database_query",
+        "database_query", "database_schema",
     }

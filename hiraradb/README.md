@@ -16,7 +16,7 @@ default; paths gated by `CDB_ROOTS`.
 | Tool | Status | What it does |
 |---|---|---|
 | **`database_query`** | ✅ shipped | Run one SQL statement → columns + rows |
-| `database_schema` | 📋 planned | List tables / columns |
+| **`database_schema`** | ✅ shipped | List tables / columns (optional indexes, FKs) |
 
 v1 supports **SQLite** only (`path` / `sqlite:///…` / `CDB_PATH`).
 
@@ -39,6 +39,13 @@ With a file DB and params:
 ```bash
 curl -X POST localhost:9100/database_query -H 'content-type: application/json' \
   -d '{"sql":"SELECT id, name FROM users WHERE id = ?","params":[1],"path":"/tmp/app.db"}'
+```
+
+**Schema** (tables + columns):
+
+```bash
+curl -X POST localhost:9100/database_schema -H 'content-type: application/json' \
+  -d '{"path":"/tmp/app.db","include_indexes":true}'
 ```
 
 MCP: `python -m hiraradb.mcp_server`

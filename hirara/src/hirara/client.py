@@ -606,6 +606,36 @@ class Client:
             args["readonly"] = readonly
         return self.call("database_query", args)
 
+    def database_schema(
+        self,
+        *,
+        database: str | None = None,
+        path: str | None = None,
+        table: str | None = None,
+        include_views: bool = True,
+        include_indexes: bool = False,
+        include_foreign_keys: bool = False,
+        include_sql: bool = False,
+        max_tables: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "include_views": include_views,
+            "include_indexes": include_indexes,
+            "include_foreign_keys": include_foreign_keys,
+            "include_sql": include_sql,
+            **extra,
+        }
+        if database is not None:
+            args["database"] = database
+        if path is not None:
+            args["path"] = path
+        if table is not None:
+            args["table"] = table
+        if max_tables is not None:
+            args["max_tables"] = max_tables
+        return self.call("database_schema", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -673,6 +703,7 @@ file_write = _delegate("file_write")
 decode = _delegate("decode")
 hash = _delegate("hash")
 database_query = _delegate("database_query")
+database_schema = _delegate("database_schema")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -713,4 +744,5 @@ __all__ = [
     "decode",
     "hash",
     "database_query",
+    "database_schema",
 ]

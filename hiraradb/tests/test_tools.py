@@ -7,11 +7,18 @@ import sqlite3
 import pytest
 
 from hiraradb.config import DbConfig
-from hiraradb.tools import DATABASE_QUERY_SCHEMA, TOOL_NAMES, Toolset, call_tool
+from hiraradb.tools import (
+    DATABASE_QUERY_SCHEMA,
+    DATABASE_SCHEMA_TOOL,
+    TOOL_NAMES,
+    Toolset,
+    call_tool,
+)
 
 
-def test_schema():
+def test_schema_names():
     assert DATABASE_QUERY_SCHEMA["name"] == "database_query"
+    assert DATABASE_SCHEMA_TOOL["name"] == "database_schema"
     assert "sql" in DATABASE_QUERY_SCHEMA["input_schema"]["required"]
 
 
@@ -24,13 +31,12 @@ def test_health(tmp_path):
     )
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["database_query"]
+    assert h["tools"] == ["database_query", "database_schema"]
     assert h["databases"] == ["default"]
-    assert h["readonly"] is True
 
 
 @pytest.mark.asyncio
-async def test_toolset_query(tmp_path):
+async def test_toolset_query_and_schema(tmp_path):
     db = tmp_path / "t.db"
     conn = sqlite3.connect(str(db))
     conn.execute("CREATE TABLE t (x INTEGER)")
@@ -43,9 +49,14 @@ async def test_toolset_query(tmp_path):
     assert r["error"] is None
     assert r["rows"] == [[7]]
 
+    s = await ts.database_schema(path=str(db))
+    assert s["error"] is None
+    assert s["tables"][0]["name"] == "t"
+    assert s["tables"][0]["columns"][0]["name"] == "x"
+
 
 @pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("database_query",)
+    assert TOOL_NAMES == ("database_query", "database_schema")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

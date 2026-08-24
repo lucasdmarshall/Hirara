@@ -1,4 +1,4 @@
-"""MCP front end — query configured SQLite databases.
+"""MCP front end — query and inspect configured SQLite databases.
 
     python -m hiraradb.mcp_server
 """
@@ -17,8 +17,8 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted database tools, no API keys. Use database_query to run "
-        "one SQL statement against a configured SQLite database. Read-only by "
-        "default. Pass params for placeholders."
+        "one SQL statement, and database_schema to list tables/columns. "
+        "Read-only by default."
     ),
 )
 
@@ -58,6 +58,47 @@ async def database_query_tool(
         path=path,
         max_rows=max_rows,
         readonly=readonly,
+    )
+
+
+@server.tool(
+    name="database_schema",
+    description=(
+        "List SQLite tables/views and columns. Optional table filter; "
+        "include_indexes, include_foreign_keys, include_sql for more detail."
+    ),
+)
+async def database_schema_tool(
+    database: str | None = None,
+    path: str | None = None,
+    table: str | None = None,
+    include_views: bool = True,
+    include_indexes: bool = False,
+    include_foreign_keys: bool = False,
+    include_sql: bool = False,
+    max_tables: int | None = None,
+) -> dict:
+    """Inspect database schema.
+
+    Args:
+        database: Named DB from config.
+        path: Ad-hoc sqlite path.
+        table: Limit to one table/view.
+        include_views: Include views (default true).
+        include_indexes: Include indexes.
+        include_foreign_keys: Include foreign keys.
+        include_sql: Include CREATE SQL.
+        max_tables: Cap on objects returned.
+    """
+    return await _toolset.database_schema(
+        database=database,
+        path=path,
+        table=table,
+        include_views=include_views,
+        include_indexes=include_indexes,
+        include_foreign_keys=include_foreign_keys,
+        include_sql=include_sql,
+        max_tables=max_tables,
     )
 
 

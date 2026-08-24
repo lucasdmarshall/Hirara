@@ -49,6 +49,7 @@ from .client import (
     decode,
     hash,
     database_query,
+    database_schema,
     tools,
     web_fetch,
     web_search,
@@ -89,6 +90,7 @@ __all__ = [
     "decode",
     "hash",
     "database_query",
+    "database_schema",
 ]
 
 __version__ = "0.2.0"

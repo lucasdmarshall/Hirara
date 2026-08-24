@@ -76,6 +76,9 @@ TOOLS: dict[str, ToolRoute] = {
     "decode": ToolRoute("decode", "hirarautil", "/decode"),
     "hash": ToolRoute("hash", "hirarautil", "/hash"),
     "database_query": ToolRoute("database_query", "hiraradb", "/database_query"),
+    "database_schema": ToolRoute(
+        "database_schema", "hiraradb", "/database_schema"
+    ),
 }
 
 

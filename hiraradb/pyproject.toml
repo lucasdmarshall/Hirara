@@ -1,7 +1,7 @@
 [project]
 name = "hiraradb"
 version = "0.1.0"
-description = "Self-hosted database tools for AI agents — database_query first, over HTTP and MCP"
+description = "Self-hosted database tools for AI agents — database_query / database_schema over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

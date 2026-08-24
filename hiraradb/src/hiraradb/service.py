@@ -31,6 +31,19 @@ class DatabaseQueryRequest(BaseModel):
     readonly: bool | None = None
 
 
+class DatabaseSchemaRequest(BaseModel):
+    """JSON body for database_schema."""
+
+    database: str | None = None
+    path: str | None = None
+    table: str | None = None
+    include_views: bool = True
+    include_indexes: bool = False
+    include_foreign_keys: bool = False
+    include_sql: bool = False
+    max_tables: int | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -50,4 +63,18 @@ async def database_query_endpoint(request: DatabaseQueryRequest) -> dict:
         path=request.path,
         max_rows=request.max_rows,
         readonly=request.readonly,
+    )
+
+
+@app.post("/database_schema")
+async def database_schema_endpoint(request: DatabaseSchemaRequest) -> dict:
+    return await _toolset.database_schema(
+        database=request.database,
+        path=request.path,
+        table=request.table,
+        include_views=request.include_views,
+        include_indexes=request.include_indexes,
+        include_foreign_keys=request.include_foreign_keys,
+        include_sql=request.include_sql,
+        max_tables=request.max_tables,
     )
