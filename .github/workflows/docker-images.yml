@@ -48,6 +48,8 @@ jobs:
             dockerfile: hirarautil/Dockerfile
           - name: hirara-db
             dockerfile: hiraradb/Dockerfile
+          - name: hirara-ops
+            dockerfile: hiraraops/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

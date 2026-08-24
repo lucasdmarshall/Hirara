@@ -636,6 +636,33 @@ class Client:
             args["max_tables"] = max_tables
         return self.call("database_schema", args)
 
+    def application_logs(
+        self,
+        *,
+        path: str | None = None,
+        source: str | None = None,
+        lines: int | None = None,
+        from_end: bool = True,
+        pattern: str | None = None,
+        level: str | None = None,
+        max_bytes: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {"from_end": from_end, **extra}
+        if path is not None:
+            args["path"] = path
+        if source is not None:
+            args["source"] = source
+        if lines is not None:
+            args["lines"] = lines
+        if pattern is not None:
+            args["pattern"] = pattern
+        if level is not None:
+            args["level"] = level
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        return self.call("application_logs", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -704,6 +731,7 @@ decode = _delegate("decode")
 hash = _delegate("hash")
 database_query = _delegate("database_query")
 database_schema = _delegate("database_schema")
+application_logs = _delegate("application_logs")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -745,4 +773,5 @@ __all__ = [
     "hash",
     "database_query",
     "database_schema",
+    "application_logs",
 ]

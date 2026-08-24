@@ -24,6 +24,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hirarafs": 8900,
     "hirarautil": 9000,
     "hiraradb": 9100,
+    "hiraraops": 9200,
 }
 
 
@@ -78,6 +79,9 @@ TOOLS: dict[str, ToolRoute] = {
     "database_query": ToolRoute("database_query", "hiraradb", "/database_query"),
     "database_schema": ToolRoute(
         "database_schema", "hiraradb", "/database_schema"
+    ),
+    "application_logs": ToolRoute(
+        "application_logs", "hiraraops", "/application_logs"
     ),
 }
 

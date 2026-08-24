@@ -94,6 +94,12 @@ services:
     volumes: [db-data:/data:ro]
     networks: [hirara]
 
+  hiraraops:
+    build: { context: ., dockerfile: hiraraops/Dockerfile }
+    restart: unless-stopped
+    volumes: [ops-logs:/logs:ro]
+    networks: [hirara]
+
   # hirarastt (Whisper STT) is still experimental and heavy (downloads a
   # model at boot). Uncomment to include it — the gateway will pick it up.
   # hirarastt:
@@ -105,7 +111,7 @@ services:
   hub:
     build: { context: ., dockerfile: hirara-hub/Dockerfile }
     restart: unless-stopped
-    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs, hirarautil, hiraradb]
+    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs, hirarautil, hiraradb, hiraraops]
     environment:
       - HUB_TOKEN=${HUB_TOKEN:-}
       - HUB_WEBSEARCH_URL=http://websearch:8000
@@ -119,6 +125,7 @@ services:
       - HUB_HIRARAFS_URL=http://hirarafs:8900
       - HUB_HIRARAUTIL_URL=http://hirarautil:9000
       - HUB_HIRARADB_URL=http://hiraradb:9100
+      - HUB_HIRARAOPS_URL=http://hiraraops:9200
       - HUB_HIRARASTT_URL=http://hirarastt:8100
     ports:
       - "127.0.0.1:${HUB_PORT:-8080}:8080"
@@ -134,3 +141,4 @@ volumes:
   stt-models:
   fs-data:
   db-data:
+  ops-logs:
