@@ -80,6 +80,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `execute_code(language, code, …)` | sandboxed code |
 | `dns_lookup` · `port_scan` · `service_enum` | network |
 | `http_request` · `http_history` · `inspect_*` · `directory_enum` | HTTP |
+| `request_replay` · `parameter_test` · `response_compare` | replay / compare |
 | `file_read(path, …)` · `file_write(path, content, …)` | filesystem (hub/local path) |
 | `decode(input, format=…)` · `hash(input, algorithms=…)` | encodings / digests |
 | `jwt_inspect(…)` · `jwt_decode(…)` | JWT header / payload |

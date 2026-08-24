@@ -22,9 +22,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
-        "HTTP request, http_history, inspect_headers, inspect_cookies, "
-        "inspect_response, and directory_enum to probe paths on a base URL. "
-        "URLs and redirect hops go through Hirara's SSRF perimeter."
+        "HTTP request, http_history, inspect_*, directory_enum, request_replay, "
+        "parameter_test, and response_compare. URLs and redirect hops go "
+        "through Hirara's SSRF perimeter."
     ),
 )
 
@@ -222,6 +222,164 @@ async def directory_enum_tool(
         timeout=timeout,
         concurrency=concurrency,
         include_not_found=include_not_found,
+    )
+
+
+@server.tool(
+    name="request_replay",
+    description=(
+        "Replay a recorded http_request by history id with optional "
+        "url/method/headers/body overrides."
+    ),
+)
+async def request_replay_tool(
+    id: str,
+    url: str | None = None,
+    method: str | None = None,
+    headers: dict[str, str] | None = None,
+    body: str | None = None,
+    merge_headers: bool = True,
+    timeout: float | None = None,
+    follow_redirects: bool = True,
+    max_redirects: int | None = None,
+    max_bytes: int | None = None,
+) -> dict:
+    """Replay a recorded request.
+
+    Args:
+        id: History request_id.
+        url: Optional URL override.
+        method: Optional method override.
+        headers: Optional header overrides.
+        body: Optional body override.
+        merge_headers: Merge overrides into stored headers.
+        timeout: Request timeout seconds.
+        follow_redirects: Follow redirects.
+        max_redirects: Max redirect hops.
+        max_bytes: Response body cap.
+    """
+    return await _toolset.request_replay(
+        id=id,
+        url=url,
+        method=method,
+        headers=headers,
+        body=body,
+        merge_headers=merge_headers,
+        timeout=timeout,
+        follow_redirects=follow_redirects,
+        max_redirects=max_redirects,
+        max_bytes=max_bytes,
+    )
+
+
+@server.tool(
+    name="parameter_test",
+    description=(
+        "Vary one parameter (query/header/cookie/body/path) across values "
+        "against a base request from history id and/or url."
+    ),
+)
+async def parameter_test_tool(
+    location: str,
+    name: str,
+    values: list[str] | str,
+    id: str | None = None,
+    url: str | None = None,
+    method: str | None = None,
+    headers: dict[str, str] | None = None,
+    body: str | None = None,
+    timeout: float | None = None,
+    follow_redirects: bool = True,
+    max_redirects: int | None = None,
+    max_bytes: int | None = None,
+    concurrency: int | None = None,
+    include_body: bool = False,
+    body_preview_chars: int = 200,
+) -> dict:
+    """Test one parameter across multiple values.
+
+    Args:
+        location: query, header, cookie, body, path, or url.
+        name: Parameter name.
+        values: Values to try.
+        id: Optional history base request.
+        url: Base URL when not using history alone.
+        method: HTTP method.
+        headers: Request headers.
+        body: Request body.
+        timeout: Per-request timeout.
+        follow_redirects: Follow redirects.
+        max_redirects: Max redirect hops.
+        max_bytes: Response body cap.
+        concurrency: Max concurrent probes.
+        include_body: Include body_preview per trial.
+        body_preview_chars: Preview length.
+    """
+    return await _toolset.parameter_test(
+        location=location,
+        name=name,
+        values=values,
+        id=id,
+        url=url,
+        method=method,
+        headers=headers,
+        body=body,
+        timeout=timeout,
+        follow_redirects=follow_redirects,
+        max_redirects=max_redirects,
+        max_bytes=max_bytes,
+        concurrency=concurrency,
+        include_body=include_body,
+        body_preview_chars=body_preview_chars,
+    )
+
+
+@server.tool(
+    name="response_compare",
+    description=(
+        "Compare two responses by history id and/or inline status/headers/body."
+    ),
+)
+async def response_compare_tool(
+    left_id: str | None = None,
+    right_id: str | None = None,
+    left_status: int | None = None,
+    right_status: int | None = None,
+    left_headers: dict[str, str] | None = None,
+    right_headers: dict[str, str] | None = None,
+    left_body: str | None = None,
+    right_body: str | None = None,
+    compare_headers: bool = True,
+    compare_body: bool = True,
+    ignore_headers: list[str] | str | None = None,
+) -> dict:
+    """Diff two HTTP responses.
+
+    Args:
+        left_id: Left history id.
+        right_id: Right history id.
+        left_status: Inline left status.
+        right_status: Inline right status.
+        left_headers: Inline left headers.
+        right_headers: Inline right headers.
+        left_body: Inline left body.
+        right_body: Inline right body.
+        compare_headers: Include header diff.
+        compare_body: Include body diff.
+        ignore_headers: Headers to ignore.
+    """
+    return await _toolset.response_compare(
+        left_id=left_id,
+        right_id=right_id,
+        left_status=left_status,
+        right_status=right_status,
+        left_headers=left_headers,
+        right_headers=right_headers,
+        left_body=left_body,
+        right_body=right_body,
+        compare_headers=compare_headers,
+        compare_body=compare_body,
+        ignore_headers=ignore_headers,
     )
 
 

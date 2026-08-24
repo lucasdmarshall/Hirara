@@ -4,7 +4,8 @@ Both front ends (HTTP service and MCP server) call into here, so the two can
 never drift apart in behaviour — only in transport.
 
 Tools: ``http_request``, ``http_history``, ``inspect_headers``,
-``inspect_cookies``, ``inspect_response``, ``directory_enum``.
+``inspect_cookies``, ``inspect_response``, ``directory_enum``,
+``request_replay``, ``parameter_test``, ``response_compare``.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from .compare import compare_result_to_dict, response_compare
 from .config import HttpConfig
 from .enum_dir import directory_enum, enum_result_to_dict
 from .history import HistoryStore, entry_to_dict, entry_to_summary
@@ -25,6 +27,12 @@ from .inspect import (
     inspect_response_from_entry,
     inspect_response_from_parts,
     inspect_response_result_to_dict,
+)
+from .replay import (
+    parameter_test,
+    parameter_test_result_to_dict,
+    replay_result_to_dict,
+    request_replay,
 )
 from .request import http_request, result_to_dict
 
@@ -302,6 +310,139 @@ DIRECTORY_ENUM_SCHEMA = {
 }
 
 
+
+REQUEST_REPLAY_SCHEMA = {
+    "name": "request_replay",
+    "description": (
+        "Re-issue a recorded http_request by history id. Optional url/method/"
+        "headers/body overrides. Headers merge with the stored request by "
+        "default (merge_headers=false replaces). Records a new history entry."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "History request_id to replay.",
+            },
+            "url": {"type": "string", "description": "Optional URL override."},
+            "method": {
+                "type": "string",
+                "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+                "description": "Optional method override.",
+            },
+            "headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": "Optional header overrides.",
+            },
+            "body": {"type": "string", "description": "Optional request body override."},
+            "merge_headers": {
+                "type": "boolean",
+                "description": "Merge overrides into stored headers (default true).",
+            },
+            "timeout": {"type": "number", "minimum": 0.1},
+            "follow_redirects": {"type": "boolean"},
+            "max_redirects": {"type": "integer", "minimum": 0},
+            "max_bytes": {"type": "integer", "minimum": 1},
+        },
+        "required": ["id"],
+        "additionalProperties": False,
+    },
+}
+
+
+PARAMETER_TEST_SCHEMA = {
+    "name": "parameter_test",
+    "description": (
+        "Send a base request once per parameter value. Base comes from history "
+        "id and/or url/method/headers/body. location is query, header, cookie, "
+        "body, path, or url. For path/url, put {name} or {{name}} in the URL. "
+        "Each probe is recorded in history."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "location": {
+                "type": "string",
+                "enum": ["query", "header", "cookie", "body", "path", "url"],
+                "description": "Where to place the parameter.",
+            },
+            "name": {"type": "string", "description": "Parameter / header / cookie name."},
+            "values": {
+                "description": "Values to try (list or comma-separated string).",
+                "oneOf": [
+                    {"type": "array", "items": {"type": "string"}},
+                    {"type": "string"},
+                ],
+            },
+            "id": {"type": "string", "description": "Optional history id for the base request."},
+            "url": {"type": "string", "description": "Base URL (required if no id)."},
+            "method": {
+                "type": "string",
+                "enum": ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            },
+            "headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+            "body": {"type": "string"},
+            "timeout": {"type": "number", "minimum": 0.1},
+            "follow_redirects": {"type": "boolean"},
+            "max_redirects": {"type": "integer", "minimum": 0},
+            "max_bytes": {"type": "integer", "minimum": 1},
+            "concurrency": {"type": "integer", "minimum": 1},
+            "include_body": {
+                "type": "boolean",
+                "description": "Include body_preview per trial (default false).",
+            },
+            "body_preview_chars": {"type": "integer", "minimum": 0},
+        },
+        "required": ["location", "name", "values"],
+        "additionalProperties": False,
+    },
+}
+
+
+RESPONSE_COMPARE_SCHEMA = {
+    "name": "response_compare",
+    "description": (
+        "Compare two HTTP responses by history id and/or inline status/"
+        "headers/body. Reports status, header, and body differences. "
+        "Volatile headers (date, etag, …) are ignored by default."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "left_id": {"type": "string"},
+            "right_id": {"type": "string"},
+            "left_status": {"type": "integer"},
+            "right_status": {"type": "integer"},
+            "left_headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+            "right_headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+            "left_body": {"type": "string"},
+            "right_body": {"type": "string"},
+            "compare_headers": {"type": "boolean"},
+            "compare_body": {"type": "boolean"},
+            "ignore_headers": {
+                "description": "Header names to ignore (list or comma-separated).",
+                "oneOf": [
+                    {"type": "array", "items": {"type": "string"}},
+                    {"type": "string"},
+                ],
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
 def _request_envelope(**overrides) -> dict:
     envelope = {
         "request_id": None,
@@ -311,6 +452,7 @@ def _request_envelope(**overrides) -> dict:
         "status": None,
         "reason": None,
         "request_headers": {},
+        "request_body": None,
         "response_headers": {},
         "body": None,
         "body_encoding": None,
@@ -419,6 +561,52 @@ def _directory_enum_envelope(**overrides) -> dict:
     return envelope
 
 
+
+def _replay_envelope(**overrides) -> dict:
+    envelope = {
+        "source_id": None,
+        "request": {},
+        "response": {},
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
+def _parameter_test_envelope(**overrides) -> dict:
+    envelope = {
+        "source_id": None,
+        "location": None,
+        "name": None,
+        "values": [],
+        "results": [],
+        "probed": 0,
+        "truncated": False,
+        "duration_ms": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
+def _compare_envelope(**overrides) -> dict:
+    envelope = {
+        "left": None,
+        "right": None,
+        "same": None,
+        "status_equal": None,
+        "headers_equal": None,
+        "body_equal": None,
+        "status_diff": None,
+        "header_diffs": [],
+        "ignored_headers": [],
+        "body_diff": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """HTTP tools sharing one config + history store."""
@@ -445,6 +633,9 @@ class Toolset:
             INSPECT_COOKIES_SCHEMA,
             INSPECT_RESPONSE_SCHEMA,
             DIRECTORY_ENUM_SCHEMA,
+            REQUEST_REPLAY_SCHEMA,
+            PARAMETER_TEST_SCHEMA,
+            RESPONSE_COMPARE_SCHEMA,
         ]
 
     def health(self) -> dict:
@@ -458,6 +649,9 @@ class Toolset:
                 "inspect_cookies",
                 "inspect_response",
                 "directory_enum",
+                "request_replay",
+                "parameter_test",
+                "response_compare",
             ],
             "max_bytes": self.config.max_bytes,
             "max_redirects": self.config.max_redirects,
@@ -718,6 +912,130 @@ class Toolset:
                 error=f"directory_enum failed: {exc}",
             )
 
+    async def request_replay(
+        self,
+        *,
+        id: str,
+        url: str | None = None,
+        method: str | None = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        merge_headers: bool = True,
+        timeout: float | None = None,
+        follow_redirects: bool = True,
+        max_redirects: int | None = None,
+        max_bytes: int | None = None,
+    ) -> dict:
+        try:
+            assert self.history is not None
+            result = await request_replay(
+                id=id,
+                history=self.history,
+                url=url,
+                method=method,
+                headers=headers,
+                body=body,
+                merge_headers=merge_headers,
+                timeout=timeout,
+                follow_redirects=follow_redirects,
+                max_redirects=max_redirects,
+                max_bytes=max_bytes,
+                config=self.config,
+                record=self.history.record,
+            )
+            return replay_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("request_replay failed")
+            return _replay_envelope(
+                source_id=id,
+                error=f"request_replay failed: {exc}",
+            )
+
+    async def parameter_test(
+        self,
+        *,
+        location: str,
+        name: str,
+        values: list[str] | str,
+        id: str | None = None,
+        url: str | None = None,
+        method: str | None = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        timeout: float | None = None,
+        follow_redirects: bool = True,
+        max_redirects: int | None = None,
+        max_bytes: int | None = None,
+        concurrency: int | None = None,
+        include_body: bool = False,
+        body_preview_chars: int = 200,
+    ) -> dict:
+        try:
+            result = await parameter_test(
+                location=location,
+                name=name,
+                values=values,
+                id=id,
+                url=url,
+                method=method,
+                headers=headers,
+                body=body,
+                history=self.history,
+                timeout=timeout,
+                follow_redirects=follow_redirects,
+                max_redirects=max_redirects,
+                max_bytes=max_bytes,
+                concurrency=concurrency,
+                include_body=include_body,
+                body_preview_chars=body_preview_chars,
+                config=self.config,
+                record=self.history.record if self.history is not None else None,
+            )
+            return parameter_test_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("parameter_test failed")
+            return _parameter_test_envelope(
+                location=location,
+                name=name,
+                error=f"parameter_test failed: {exc}",
+            )
+
+    async def response_compare(
+        self,
+        *,
+        left_id: str | None = None,
+        right_id: str | None = None,
+        left_status: int | None = None,
+        right_status: int | None = None,
+        left_headers: dict[str, str] | None = None,
+        right_headers: dict[str, str] | None = None,
+        left_body: str | None = None,
+        right_body: str | None = None,
+        compare_headers: bool = True,
+        compare_body: bool = True,
+        ignore_headers: list[str] | str | None = None,
+    ) -> dict:
+        try:
+            result = response_compare(
+                left_id=left_id,
+                right_id=right_id,
+                left_status=left_status,
+                right_status=right_status,
+                left_headers=left_headers,
+                right_headers=right_headers,
+                left_body=left_body,
+                right_body=right_body,
+                compare_headers=compare_headers,
+                compare_body=compare_body,
+                ignore_headers=ignore_headers,
+                history=self.history,
+            )
+            return compare_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("response_compare failed")
+            return _compare_envelope(error=f"response_compare failed: {exc}")
+
+
 
 __all__ = [
     "HTTP_REQUEST_SCHEMA",
@@ -726,6 +1044,9 @@ __all__ = [
     "INSPECT_COOKIES_SCHEMA",
     "INSPECT_RESPONSE_SCHEMA",
     "DIRECTORY_ENUM_SCHEMA",
+    "REQUEST_REPLAY_SCHEMA",
+    "PARAMETER_TEST_SCHEMA",
+    "RESPONSE_COMPARE_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -740,6 +1061,9 @@ TOOL_NAMES = (
     "inspect_cookies",
     "inspect_response",
     "directory_enum",
+    "request_replay",
+    "parameter_test",
+    "response_compare",
 )
 _local_toolset: "Toolset | None" = None
 
@@ -765,6 +1089,12 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().inspect_response(**args)
     if name == "directory_enum":
         return await _backend().directory_enum(**args)
+    if name == "request_replay":
+        return await _backend().request_replay(**args)
+    if name == "parameter_test":
+        return await _backend().parameter_test(**args)
+    if name == "response_compare":
+        return await _backend().response_compare(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

@@ -32,9 +32,9 @@ progress in this repo (hub + SDK + packages).
 | 25 | `environment_read` | ✅ shipped | `hiraraops` |
 | 26 | `jwt_inspect` | ✅ shipped | `hirarautil` |
 | 27 | `jwt_decode` | ✅ shipped | `hirarautil` |
-| 28 | `request_replay` | 📋 planned | `hirarahttp` |
-| 29 | `parameter_test` | 📋 planned | `hirarahttp` |
-| 30 | `response_compare` | 📋 planned | `hirarahttp` |
+| 28 | `request_replay` | ✅ shipped | `hirarahttp` |
+| 29 | `parameter_test` | ✅ shipped | `hirarahttp` |
+| 30 | `response_compare` | ✅ shipped | `hirarahttp` |
 
 ## Package clusters
 
@@ -55,9 +55,11 @@ progress in this repo (hub + SDK + packages).
 **`browser_*`** (`hirarabrowser/`), the `hirarahttp` cluster,
 **`file_read` / `file_write`** (`hirarafs/`), **`decode` / `hash` /
 `jwt_inspect` / `jwt_decode`** (`hirarautil/`), **`database_query` /
-`database_schema`** (`hiraradb/`), and **`application_logs` / `process_list` /
-`environment_read`** (`hiraraops/`) are shipped.
-Next up: `request_replay` / `parameter_test` / `response_compare` (`hirarahttp`).
+`database_schema`** (`hiraradb/`), **`application_logs` / `process_list` /
+`environment_read`** (`hiraraops/`), and the full **`hirarahttp`** cluster
+(including **`request_replay` / `parameter_test` / `response_compare`**) are
+shipped.
+Roadmap table above is complete for the current target surface.
 
 ## Engineering conventions (all tools)
 

@@ -72,6 +72,11 @@ TOOLS: dict[str, ToolRoute] = {
         "inspect_response", "hirarahttp", "/inspect_response"
     ),
     "directory_enum": ToolRoute("directory_enum", "hirarahttp", "/directory_enum"),
+    "request_replay": ToolRoute("request_replay", "hirarahttp", "/request_replay"),
+    "parameter_test": ToolRoute("parameter_test", "hirarahttp", "/parameter_test"),
+    "response_compare": ToolRoute(
+        "response_compare", "hirarahttp", "/response_compare"
+    ),
     "file_read": ToolRoute("file_read", "hirarafs", "/file_read"),
     "file_write": ToolRoute("file_write", "hirarafs", "/file_write"),
     "decode": ToolRoute("decode", "hirarautil", "/decode"),

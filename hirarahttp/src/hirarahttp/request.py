@@ -68,6 +68,7 @@ class RequestResult:
     status: int | None = None
     reason: str | None = None
     request_headers: dict[str, str] = field(default_factory=dict)
+    request_body: str | None = None
     response_headers: dict[str, str] = field(default_factory=dict)
     body: str | None = None
     body_encoding: str | None = None
@@ -182,6 +183,7 @@ def _finalize(
     redirects: list[str],
     request_headers: dict[str, str],
     started: float,
+    request_body: str | None = None,
     error: str | None = None,
 ) -> RequestResult:
     content_type = response.headers.get("content-type", "")
@@ -193,6 +195,7 @@ def _finalize(
         status=response.status_code,
         reason=response.reason_phrase or None,
         request_headers=request_headers,
+        request_body=request_body,
         response_headers=_header_map(response.headers),
         body=body_text,
         body_encoding=encoding,
@@ -277,6 +280,8 @@ async def http_request(
     sent_headers: dict[str, str] = {}
     active_method = verb
     active_body = payload
+    # Preserve the caller-supplied body string for history / replay.
+    original_body = body if isinstance(body, str) else None
 
     limits = httpx.Limits(max_connections=4, max_keepalive_connections=0)
     try:
@@ -335,6 +340,7 @@ async def http_request(
                                 redirects=redirects,
                                 request_headers=sent_headers,
                                 started=started,
+                                request_body=original_body,
                                 error="redirect with no Location header",
                             )
                         redirects.append(current)
@@ -364,6 +370,7 @@ async def http_request(
                     redirects=redirects,
                     request_headers=sent_headers,
                     started=started,
+                    request_body=original_body,
                 )
 
             return RequestResult(
@@ -411,6 +418,7 @@ def result_to_dict(result: RequestResult) -> dict:
         "status": result.status,
         "reason": result.reason,
         "request_headers": result.request_headers,
+        "request_body": result.request_body,
         "response_headers": result.response_headers,
         "body": result.body,
         "body_encoding": result.body_encoding,

@@ -25,6 +25,7 @@ class HistoryEntry:
     status: int | None = None
     reason: str | None = None
     request_headers: dict[str, str] = field(default_factory=dict)
+    request_body: str | None = None
     response_headers: dict[str, str] = field(default_factory=dict)
     body: str | None = None
     body_encoding: str | None = None
@@ -34,6 +35,7 @@ class HistoryEntry:
     redirects: list[str] = field(default_factory=list)
     error: str | None = None
     body_stored: bool = True
+    request_body_stored: bool = True
 
 
 class HistoryStore:
@@ -55,16 +57,21 @@ class HistoryStore:
             self._entries.clear()
             return n
 
+    def _cap_text(self, text: str | None) -> tuple[str | None, bool]:
+        if text is None:
+            return None, False
+        if not isinstance(text, str):
+            return None, False
+        if self.max_body_chars == 0:
+            return None, False
+        if len(text) > self.max_body_chars:
+            return text[: self.max_body_chars], False
+        return text, True
+
     def record(self, result: dict[str, Any]) -> HistoryEntry:
         """Append a tool result dict; returns the stored entry (with id)."""
-        body = result.get("body")
-        body_stored = True
-        if isinstance(body, str) and self.max_body_chars and len(body) > self.max_body_chars:
-            body = body[: self.max_body_chars]
-            body_stored = False
-        elif body is not None and self.max_body_chars == 0:
-            body = None
-            body_stored = False
+        body, body_stored = self._cap_text(result.get("body"))
+        request_body, request_body_stored = self._cap_text(result.get("request_body"))
 
         entry = HistoryEntry(
             id=uuid.uuid4().hex,
@@ -75,6 +82,7 @@ class HistoryStore:
             status=result.get("status"),
             reason=result.get("reason"),
             request_headers=dict(result.get("request_headers") or {}),
+            request_body=request_body,
             response_headers=dict(result.get("response_headers") or {}),
             body=body,
             body_encoding=result.get("body_encoding"),
@@ -84,6 +92,7 @@ class HistoryStore:
             redirects=list(result.get("redirects") or []),
             error=result.get("error"),
             body_stored=body_stored and body is not None,
+            request_body_stored=request_body_stored and request_body is not None,
         )
         with self._lock:
             self._entries.append(entry)
@@ -144,10 +153,13 @@ def entry_to_dict(entry: HistoryEntry, *, include_body: bool = True) -> dict[str
     out["response_headers"] = dict(entry.response_headers)
     out["body_encoding"] = entry.body_encoding
     out["body_stored"] = entry.body_stored
+    out["request_body_stored"] = entry.request_body_stored
     if include_body:
         out["body"] = entry.body
+        out["request_body"] = entry.request_body
     else:
         out["body"] = None
+        out["request_body"] = None
     return out
 
 

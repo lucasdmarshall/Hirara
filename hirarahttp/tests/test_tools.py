@@ -303,5 +303,8 @@ def test_health():
         "inspect_cookies",
         "inspect_response",
         "directory_enum",
+        "request_replay",
+        "parameter_test",
+        "response_compare",
     ]
     assert h["history_count"] == 0

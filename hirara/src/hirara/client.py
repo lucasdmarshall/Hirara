@@ -513,6 +513,133 @@ class Client:
             args["concurrency"] = concurrency
         return self.call("directory_enum", args)
 
+    def request_replay(
+        self,
+        id: str,
+        *,
+        url: str | None = None,
+        method: str | None = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        merge_headers: bool = True,
+        timeout: float | None = None,
+        follow_redirects: bool = True,
+        max_redirects: int | None = None,
+        max_bytes: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "id": id,
+            "merge_headers": merge_headers,
+            "follow_redirects": follow_redirects,
+            **extra,
+        }
+        if url is not None:
+            args["url"] = url
+        if method is not None:
+            args["method"] = method
+        if headers is not None:
+            args["headers"] = headers
+        if body is not None:
+            args["body"] = body
+        if timeout is not None:
+            args["timeout"] = timeout
+        if max_redirects is not None:
+            args["max_redirects"] = max_redirects
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        return self.call("request_replay", args)
+
+    def parameter_test(
+        self,
+        location: str,
+        name: str,
+        values: list[str] | str,
+        *,
+        id: str | None = None,
+        url: str | None = None,
+        method: str | None = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+        timeout: float | None = None,
+        follow_redirects: bool = True,
+        max_redirects: int | None = None,
+        max_bytes: int | None = None,
+        concurrency: int | None = None,
+        include_body: bool = False,
+        body_preview_chars: int = 200,
+        **extra,
+    ) -> dict:
+        args = {
+            "location": location,
+            "name": name,
+            "values": values,
+            "follow_redirects": follow_redirects,
+            "include_body": include_body,
+            "body_preview_chars": body_preview_chars,
+            **extra,
+        }
+        if id is not None:
+            args["id"] = id
+        if url is not None:
+            args["url"] = url
+        if method is not None:
+            args["method"] = method
+        if headers is not None:
+            args["headers"] = headers
+        if body is not None:
+            args["body"] = body
+        if timeout is not None:
+            args["timeout"] = timeout
+        if max_redirects is not None:
+            args["max_redirects"] = max_redirects
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        if concurrency is not None:
+            args["concurrency"] = concurrency
+        return self.call("parameter_test", args)
+
+    def response_compare(
+        self,
+        *,
+        left_id: str | None = None,
+        right_id: str | None = None,
+        left_status: int | None = None,
+        right_status: int | None = None,
+        left_headers: dict[str, str] | None = None,
+        right_headers: dict[str, str] | None = None,
+        left_body: str | None = None,
+        right_body: str | None = None,
+        compare_headers: bool = True,
+        compare_body: bool = True,
+        ignore_headers: list[str] | str | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "compare_headers": compare_headers,
+            "compare_body": compare_body,
+            **extra,
+        }
+        if left_id is not None:
+            args["left_id"] = left_id
+        if right_id is not None:
+            args["right_id"] = right_id
+        if left_status is not None:
+            args["left_status"] = left_status
+        if right_status is not None:
+            args["right_status"] = right_status
+        if left_headers is not None:
+            args["left_headers"] = left_headers
+        if right_headers is not None:
+            args["right_headers"] = right_headers
+        if left_body is not None:
+            args["left_body"] = left_body
+        if right_body is not None:
+            args["right_body"] = right_body
+        if ignore_headers is not None:
+            args["ignore_headers"] = ignore_headers
+        return self.call("response_compare", args)
+
     def file_read(
         self,
         path: str,
@@ -801,6 +928,9 @@ inspect_headers = _delegate("inspect_headers")
 inspect_cookies = _delegate("inspect_cookies")
 inspect_response = _delegate("inspect_response")
 directory_enum = _delegate("directory_enum")
+request_replay = _delegate("request_replay")
+parameter_test = _delegate("parameter_test")
+response_compare = _delegate("response_compare")
 file_read = _delegate("file_read")
 file_write = _delegate("file_write")
 decode = _delegate("decode")
@@ -847,6 +977,9 @@ __all__ = [
     "inspect_cookies",
     "inspect_response",
     "directory_enum",
+    "request_replay",
+    "parameter_test",
+    "response_compare",
     "file_read",
     "file_write",
     "decode",

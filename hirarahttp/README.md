@@ -21,7 +21,9 @@ redirect hop) goes through [`hirara-core`](../hirara-core/) resolve-then-pin.
 | **`inspect_cookies`** | ✅ shipped | Parse Cookie / Set-Cookie (flags, path, domain) |
 | **`inspect_response`** | ✅ shipped | Status class, body kind, JSON keys, HTML title |
 | **`directory_enum`** | ✅ shipped | Probe a base URL for existing paths |
-| `request_replay` / `parameter_test` / `response_compare` | 📋 planned | Replay and compare |
+| **`request_replay`** | ✅ shipped | Re-issue a recorded request (optional overrides) |
+| **`parameter_test`** | ✅ shipped | Vary one parameter across values |
+| **`response_compare`** | ✅ shipped | Diff two responses (history or inline) |
 
 ---
 
@@ -102,6 +104,19 @@ curl -X POST localhost:8800/directory_enum -H 'content-type: application/json' \
   -d '{"url":"https://example.com/","paths":["robots.txt","admin","api"]}'
 ```
 
+**Replay / parameter test / compare:**
+
+```bash
+curl -X POST localhost:8800/request_replay -H 'content-type: application/json' \
+  -d '{"id":"<request_id>"}'
+
+curl -X POST localhost:8800/parameter_test -H 'content-type: application/json' \
+  -d '{"id":"<request_id>","location":"query","name":"q","values":["a","b"]}'
+
+curl -X POST localhost:8800/response_compare -H 'content-type: application/json' \
+  -d '{"left_id":"<id1>","right_id":"<id2>"}'
+```
+
 MCP:
 
 ```bash
@@ -131,6 +146,8 @@ docker compose up -d --build
 | `CHTTP_ENUM_CONCURRENCY` | `8` | Max concurrent directory_enum probes |
 | `CHTTP_ENUM_MAX_PATHS` | `200` | Cap on paths per directory_enum call |
 | `CHTTP_ENUM_TIMEOUT` | `10` | Per-path timeout (seconds) |
+| `CHTTP_PARAM_TEST_MAX_VALUES` | `20` | Cap on values per parameter_test |
+| `CHTTP_PARAM_TEST_CONCURRENCY` | `4` | Max concurrent parameter_test probes |
 | `CHTTP_USER_AGENT` | Hirara UA | Default User-Agent |
 | `CHTTP_PORT` | `8800` | Compose host port |
 

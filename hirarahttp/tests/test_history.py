@@ -61,3 +61,4 @@ def test_entry_shapes():
     full = entry_to_dict(e, include_body=True)
     assert full["body"] == "hi"
     assert full["request_headers"]["Host"] == "example.com"
+    assert full["request_body"] is None

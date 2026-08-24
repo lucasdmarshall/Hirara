@@ -61,6 +61,10 @@ class HttpConfig:
     enum_max_paths: int = 200
     enum_timeout: float = 10.0
 
+    # parameter_test: value cap and concurrency.
+    param_test_max_values: int = 20
+    param_test_concurrency: int = 4
+
     @classmethod
     def from_env(cls) -> "HttpConfig":
         return cls(
@@ -84,6 +88,12 @@ class HttpConfig:
             enum_concurrency=_env_int("CHTTP_ENUM_CONCURRENCY", cls.enum_concurrency),
             enum_max_paths=_env_int("CHTTP_ENUM_MAX_PATHS", cls.enum_max_paths),
             enum_timeout=_env_float("CHTTP_ENUM_TIMEOUT", cls.enum_timeout),
+            param_test_max_values=_env_int(
+                "CHTTP_PARAM_TEST_MAX_VALUES", cls.param_test_max_values
+            ),
+            param_test_concurrency=_env_int(
+                "CHTTP_PARAM_TEST_CONCURRENCY", cls.param_test_concurrency
+            ),
         )
 
 

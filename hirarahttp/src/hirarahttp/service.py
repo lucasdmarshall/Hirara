@@ -164,3 +164,108 @@ async def directory_enum_endpoint(request: DirectoryEnumBody) -> dict:
         concurrency=request.concurrency,
         include_not_found=request.include_not_found,
     )
+
+
+class RequestReplayBody(BaseModel):
+    """JSON body for request_replay."""
+
+    id: str
+    url: str | None = None
+    method: str | None = None
+    headers: dict[str, str] | None = None
+    body: str | None = None
+    merge_headers: bool = True
+    timeout: float | None = None
+    follow_redirects: bool = True
+    max_redirects: int | None = None
+    max_bytes: int | None = None
+
+
+@app.post("/request_replay")
+async def request_replay_endpoint(request: RequestReplayBody) -> dict:
+    return await _toolset.request_replay(
+        id=request.id,
+        url=request.url,
+        method=request.method,
+        headers=request.headers,
+        body=request.body,
+        merge_headers=request.merge_headers,
+        timeout=request.timeout,
+        follow_redirects=request.follow_redirects,
+        max_redirects=request.max_redirects,
+        max_bytes=request.max_bytes,
+    )
+
+
+class ParameterTestBody(BaseModel):
+    """JSON body for parameter_test."""
+
+    location: str
+    name: str
+    values: list[str] | str
+    id: str | None = None
+    url: str | None = None
+    method: str | None = None
+    headers: dict[str, str] | None = None
+    body: str | None = None
+    timeout: float | None = None
+    follow_redirects: bool = True
+    max_redirects: int | None = None
+    max_bytes: int | None = None
+    concurrency: int | None = None
+    include_body: bool = False
+    body_preview_chars: int = 200
+
+
+@app.post("/parameter_test")
+async def parameter_test_endpoint(request: ParameterTestBody) -> dict:
+    return await _toolset.parameter_test(
+        location=request.location,
+        name=request.name,
+        values=request.values,
+        id=request.id,
+        url=request.url,
+        method=request.method,
+        headers=request.headers,
+        body=request.body,
+        timeout=request.timeout,
+        follow_redirects=request.follow_redirects,
+        max_redirects=request.max_redirects,
+        max_bytes=request.max_bytes,
+        concurrency=request.concurrency,
+        include_body=request.include_body,
+        body_preview_chars=request.body_preview_chars,
+    )
+
+
+class ResponseCompareBody(BaseModel):
+    """JSON body for response_compare."""
+
+    left_id: str | None = None
+    right_id: str | None = None
+    left_status: int | None = None
+    right_status: int | None = None
+    left_headers: dict[str, str] | None = None
+    right_headers: dict[str, str] | None = None
+    left_body: str | None = None
+    right_body: str | None = None
+    compare_headers: bool = True
+    compare_body: bool = True
+    ignore_headers: list[str] | str | None = None
+
+
+@app.post("/response_compare")
+async def response_compare_endpoint(request: ResponseCompareBody) -> dict:
+    return await _toolset.response_compare(
+        left_id=request.left_id,
+        right_id=request.right_id,
+        left_status=request.left_status,
+        right_status=request.right_status,
+        left_headers=request.left_headers,
+        right_headers=request.right_headers,
+        left_body=request.left_body,
+        right_body=request.right_body,
+        compare_headers=request.compare_headers,
+        compare_body=request.compare_body,
+        ignore_headers=request.ignore_headers,
+    )

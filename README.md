@@ -58,6 +58,9 @@ to be inspected.
 | **`inspect_cookies`** | ✅ shipped | Parse Cookie / Set-Cookie — [`hirarahttp/`](hirarahttp/) |
 | **`inspect_response`** | ✅ shipped | Summarize status and body structure — [`hirarahttp/`](hirarahttp/) |
 | **`directory_enum`** | ✅ shipped | Probe a base URL for existing paths — [`hirarahttp/`](hirarahttp/) |
+| **`request_replay`** | ✅ shipped | Re-issue a recorded HTTP request — [`hirarahttp/`](hirarahttp/) |
+| **`parameter_test`** | ✅ shipped | Vary one parameter across values — [`hirarahttp/`](hirarahttp/) |
+| **`response_compare`** | ✅ shipped | Diff two HTTP responses — [`hirarahttp/`](hirarahttp/) |
 | **`file_read`** | ✅ shipped | Read a local file (text or base64) — [`hirarafs/`](hirarafs/) |
 | **`file_write`** | ✅ shipped | Write / create / append a local file — [`hirarafs/`](hirarafs/) |
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode — [`hirarautil/`](hirarautil/) |
