@@ -62,6 +62,8 @@ to be inspected.
 | **`file_write`** | ✅ shipped | Write / create / append a local file — [`hirarafs/`](hirarafs/) |
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode — [`hirarautil/`](hirarautil/) |
 | **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) — [`hirarautil/`](hirarautil/) |
+| **`jwt_inspect`** | ✅ shipped | Inspect JWT header / claim keys / expiry — [`hirarautil/`](hirarautil/) |
+| **`jwt_decode`** | ✅ shipped | Decode JWT header + payload (optional HS* verify) — [`hirarautil/`](hirarautil/) |
 | **`database_query`** | ✅ shipped | Run SQL on SQLite (read-only by default) — [`hiraradb/`](hiraradb/) |
 | **`database_schema`** | ✅ shipped | List tables / columns on SQLite — [`hiraradb/`](hiraradb/) |
 | **`application_logs`** | ✅ shipped | Tail / head / grep application logs — [`hiraraops/`](hiraraops/) |

@@ -76,6 +76,8 @@ TOOLS: dict[str, ToolRoute] = {
     "file_write": ToolRoute("file_write", "hirarafs", "/file_write"),
     "decode": ToolRoute("decode", "hirarautil", "/decode"),
     "hash": ToolRoute("hash", "hirarautil", "/hash"),
+    "jwt_inspect": ToolRoute("jwt_inspect", "hirarautil", "/jwt_inspect"),
+    "jwt_decode": ToolRoute("jwt_decode", "hirarautil", "/jwt_decode"),
     "database_query": ToolRoute("database_query", "hiraradb", "/database_query"),
     "database_schema": ToolRoute(
         "database_schema", "hiraradb", "/database_schema"

@@ -82,6 +82,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `http_request` · `http_history` · `inspect_*` · `directory_enum` | HTTP |
 | `file_read(path, …)` · `file_write(path, content, …)` | filesystem (hub/local path) |
 | `decode(input, format=…)` · `hash(input, algorithms=…)` | encodings / digests |
+| `jwt_inspect(…)` · `jwt_decode(…)` | JWT header / payload |
 | `database_query(sql, …)` · `database_schema(…)` | SQLite query / schema |
 | `application_logs(…)` · `process_list(…)` · `environment_read(…)` | logs / processes / env |
 | `call(name, arguments)` | any tool, raw |

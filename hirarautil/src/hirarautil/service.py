@@ -35,6 +35,22 @@ class HashRequest(BaseModel):
     output_format: str | None = None
 
 
+class JwtInspectRequest(BaseModel):
+    """JSON body for jwt_inspect."""
+
+    input: str
+    include_claims: bool = False
+
+
+class JwtDecodeRequest(BaseModel):
+    """JSON body for jwt_decode."""
+
+    input: str
+    verify: bool = False
+    secret: str | None = None
+    include_signature: bool = False
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -57,4 +73,22 @@ async def hash_endpoint(request: HashRequest) -> dict:
         algorithms=request.algorithms,
         encoding=request.encoding,
         output_format=request.output_format,
+    )
+
+
+@app.post("/jwt_inspect")
+async def jwt_inspect_endpoint(request: JwtInspectRequest) -> dict:
+    return await _toolset.jwt_inspect(
+        input=request.input,
+        include_claims=request.include_claims,
+    )
+
+
+@app.post("/jwt_decode")
+async def jwt_decode_endpoint(request: JwtDecodeRequest) -> dict:
+    return await _toolset.jwt_decode(
+        input=request.input,
+        verify=request.verify,
+        secret=request.secret,
+        include_signature=request.include_signature,
     )

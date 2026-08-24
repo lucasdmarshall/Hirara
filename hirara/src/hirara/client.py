@@ -582,6 +582,37 @@ class Client:
             args["output_format"] = output_format
         return self.call("hash", args)
 
+    def jwt_inspect(
+        self,
+        input: str,
+        *,
+        include_claims: bool = False,
+        **extra,
+    ) -> dict:
+        return self.call(
+            "jwt_inspect",
+            {"input": input, "include_claims": include_claims, **extra},
+        )
+
+    def jwt_decode(
+        self,
+        input: str,
+        *,
+        verify: bool = False,
+        secret: str | None = None,
+        include_signature: bool = False,
+        **extra,
+    ) -> dict:
+        args = {
+            "input": input,
+            "verify": verify,
+            "include_signature": include_signature,
+            **extra,
+        }
+        if secret is not None:
+            args["secret"] = secret
+        return self.call("jwt_decode", args)
+
     def database_query(
         self,
         sql: str,
@@ -774,6 +805,8 @@ file_read = _delegate("file_read")
 file_write = _delegate("file_write")
 decode = _delegate("decode")
 hash = _delegate("hash")
+jwt_inspect = _delegate("jwt_inspect")
+jwt_decode = _delegate("jwt_decode")
 database_query = _delegate("database_query")
 database_schema = _delegate("database_schema")
 application_logs = _delegate("application_logs")
@@ -818,6 +851,8 @@ __all__ = [
     "file_write",
     "decode",
     "hash",
+    "jwt_inspect",
+    "jwt_decode",
     "database_query",
     "database_schema",
     "application_logs",

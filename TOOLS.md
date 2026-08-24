@@ -30,8 +30,8 @@ progress in this repo (hub + SDK + packages).
 | 23 | `application_logs` | ✅ shipped | `hiraraops` |
 | 24 | `process_list` | ✅ shipped | `hiraraops` |
 | 25 | `environment_read` | ✅ shipped | `hiraraops` |
-| 26 | `jwt_inspect` | 📋 planned | `hirarautil` |
-| 27 | `jwt_decode` | 📋 planned | `hirarautil` |
+| 26 | `jwt_inspect` | ✅ shipped | `hirarautil` |
+| 27 | `jwt_decode` | ✅ shipped | `hirarautil` |
 | 28 | `request_replay` | 📋 planned | `hirarahttp` |
 | 29 | `parameter_test` | 📋 planned | `hirarahttp` |
 | 30 | `response_compare` | 📋 planned | `hirarahttp` |
@@ -53,11 +53,11 @@ progress in this repo (hub + SDK + packages).
 
 **`dns_lookup`**, **`port_scan`**, **`service_enum`** (`hiraranet/`),
 **`browser_*`** (`hirarabrowser/`), the `hirarahttp` cluster,
-**`file_read` / `file_write`** (`hirarafs/`), **`decode` / `hash`**
-(`hirarautil/`), **`database_query` / `database_schema`** (`hiraradb/`),
-and **`application_logs` / `process_list` / `environment_read`**
-(`hiraraops/`) are shipped.
-Next up: `jwt_inspect` / `jwt_decode` (`hirarautil`).
+**`file_read` / `file_write`** (`hirarafs/`), **`decode` / `hash` /
+`jwt_inspect` / `jwt_decode`** (`hirarautil/`), **`database_query` /
+`database_schema`** (`hiraradb/`), and **`application_logs` / `process_list` /
+`environment_read`** (`hiraraops/`) are shipped.
+Next up: `request_replay` / `parameter_test` / `response_compare` (`hirarahttp`).
 
 ## Engineering conventions (all tools)
 

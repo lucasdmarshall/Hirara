@@ -1,4 +1,4 @@
-"""MCP front end — decode encodings and compute digests.
+"""MCP front end — decode, hash, and JWT helpers.
 
     python -m hirarautil.mcp_server
 """
@@ -16,7 +16,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted utility tools, no API keys. Use decode for base64/hex/url/"
-        "html/unicode_escape, and hash for md5/sha*/blake2 digests."
+        "html/unicode_escape, hash for md5/sha*/blake2 digests, jwt_inspect for "
+        "JWT structure/time claims, and jwt_decode for header/payload JSON "
+        "(optional HS* verify)."
     ),
 )
 
@@ -67,6 +69,52 @@ async def hash_tool(
         algorithms=algorithms,
         encoding=encoding,
         output_format=output_format,
+    )
+
+
+@server.tool(
+    name="jwt_inspect",
+    description=(
+        "Inspect a JWT: alg/typ/kid, claim keys, and exp/iat/nbf status. "
+        "Optional include_claims for full payload."
+    ),
+)
+async def jwt_inspect_tool(input: str, include_claims: bool = False) -> dict:
+    """Inspect a JWT without verifying the signature.
+
+    Args:
+        input: JWT string (optional Bearer prefix).
+        include_claims: Include full payload claims.
+    """
+    return await _toolset.jwt_inspect(input=input, include_claims=include_claims)
+
+
+@server.tool(
+    name="jwt_decode",
+    description=(
+        "Decode JWT header and payload. Optional HS256/HS384/HS512 verify "
+        "with secret when verify=true."
+    ),
+)
+async def jwt_decode_tool(
+    input: str,
+    verify: bool = False,
+    secret: str | None = None,
+    include_signature: bool = False,
+) -> dict:
+    """Decode a JWT to JSON.
+
+    Args:
+        input: JWT string (optional Bearer prefix).
+        verify: Verify HMAC signature when true.
+        secret: HMAC secret (required when verify=true).
+        include_signature: Include raw signature segment.
+    """
+    return await _toolset.jwt_decode(
+        input=input,
+        verify=verify,
+        secret=secret,
+        include_signature=include_signature,
     )
 
 

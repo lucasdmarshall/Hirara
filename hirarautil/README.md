@@ -2,7 +2,7 @@
 
 # Hirarautil
 
-**Self-hosted utility tools for AI agents — decode common encodings.**
+**Self-hosted utility tools for AI agents — encodings, digests, and JWTs.**
 
 Part of [Hirara](https://github.com/lucasdmarshall/Hirara).
 
@@ -16,7 +16,8 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara).
 |---|---|---|
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode_escape |
 | **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) |
-| `jwt_inspect` / `jwt_decode` | 📋 planned | JWT header/payload helpers |
+| **`jwt_inspect`** | ✅ shipped | Inspect JWT header, claim keys, and time claims |
+| **`jwt_decode`** | ✅ shipped | Decode JWT header + payload (optional HS* verify) |
 
 ---
 
@@ -54,19 +55,14 @@ curl -X POST localhost:9000/hash -H 'content-type: application/json' \
   -d '{"input":"hello","algorithms":"sha256"}'
 ```
 
-```json
-{
-  "input": "hello",
-  "input_encoding": "utf-8",
-  "input_chars": 5,
-  "input_bytes": 5,
-  "algorithms": ["sha256"],
-  "digests": {"sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"},
-  "digest": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
-  "algorithm": "sha256",
-  "output_format": "hex",
-  "error": null
-}
+**JWT:**
+
+```bash
+curl -X POST localhost:9000/jwt_inspect -H 'content-type: application/json' \
+  -d '{"input":"<jwt>","include_claims":true}'
+
+curl -X POST localhost:9000/jwt_decode -H 'content-type: application/json' \
+  -d '{"input":"<jwt>","verify":true,"secret":"your-hmac-secret"}'
 ```
 
 MCP: `python -m hirarautil.mcp_server`
