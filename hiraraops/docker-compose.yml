@@ -17,6 +17,8 @@ services:
       - COPS_DEFAULT_LINES=${COPS_DEFAULT_LINES:-100}
       - COPS_MAX_LINES=${COPS_MAX_LINES:-5000}
       - COPS_MAX_BYTES=${COPS_MAX_BYTES:-2000000}
+      - COPS_MAX_PROCESSES=${COPS_MAX_PROCESSES:-500}
+      - COPS_ALLOW_PROCESS_LIST=${COPS_ALLOW_PROCESS_LIST:-true}
     volumes:
       - ${COPS_LOGS:-./logs}:/logs:ro
     ports:

@@ -83,6 +83,7 @@ TOOLS: dict[str, ToolRoute] = {
     "application_logs": ToolRoute(
         "application_logs", "hiraraops", "/application_logs"
     ),
+    "process_list": ToolRoute("process_list", "hiraraops", "/process_list"),
 }
 
 

@@ -1,4 +1,4 @@
-"""MCP front end — read application logs from allowlisted paths.
+"""MCP front end — logs and process listing.
 
     python -m hiraraops.mcp_server
 """
@@ -16,8 +16,8 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted ops tools, no API keys. Use application_logs to tail or "
-        "head a log file (optional regex/level filters). Paths must be under "
-        "COPS_ROOTS when configured."
+        "head a log file, and process_list to inspect running processes from "
+        "/proc."
     ),
 )
 
@@ -59,6 +59,38 @@ async def application_logs_tool(
         pattern=pattern,
         level=level,
         max_bytes=max_bytes,
+    )
+
+
+@server.tool(
+    name="process_list",
+    description=(
+        "List running processes (pid, name, state, user, cmdline). Optional "
+        "pattern, user, pid, and max_processes."
+    ),
+)
+async def process_list_tool(
+    pattern: str | None = None,
+    user: str | None = None,
+    pid: int | None = None,
+    max_processes: int | None = None,
+    include_cmdline: bool = True,
+) -> dict:
+    """List running processes.
+
+    Args:
+        pattern: Regex on name/cmdline.
+        user: Username or uid filter.
+        pid: Single process id.
+        max_processes: Cap on results.
+        include_cmdline: Include cmdline (default true).
+    """
+    return await _toolset.process_list(
+        pattern=pattern,
+        user=user,
+        pid=pid,
+        max_processes=max_processes,
+        include_cmdline=include_cmdline,
     )
 
 

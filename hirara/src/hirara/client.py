@@ -663,6 +663,27 @@ class Client:
             args["max_bytes"] = max_bytes
         return self.call("application_logs", args)
 
+    def process_list(
+        self,
+        *,
+        pattern: str | None = None,
+        user: str | None = None,
+        pid: int | None = None,
+        max_processes: int | None = None,
+        include_cmdline: bool = True,
+        **extra,
+    ) -> dict:
+        args = {"include_cmdline": include_cmdline, **extra}
+        if pattern is not None:
+            args["pattern"] = pattern
+        if user is not None:
+            args["user"] = user
+        if pid is not None:
+            args["pid"] = pid
+        if max_processes is not None:
+            args["max_processes"] = max_processes
+        return self.call("process_list", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -732,6 +753,7 @@ hash = _delegate("hash")
 database_query = _delegate("database_query")
 database_schema = _delegate("database_schema")
 application_logs = _delegate("application_logs")
+process_list = _delegate("process_list")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -774,4 +796,5 @@ __all__ = [
     "database_query",
     "database_schema",
     "application_logs",
+    "process_list",
 ]

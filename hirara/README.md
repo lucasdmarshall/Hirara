@@ -83,7 +83,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `file_read(path, …)` · `file_write(path, content, …)` | filesystem (hub/local path) |
 | `decode(input, format=…)` · `hash(input, algorithms=…)` | encodings / digests |
 | `database_query(sql, …)` · `database_schema(…)` | SQLite query / schema |
-| `application_logs(…)` | log tail / grep |
+| `application_logs(…)` · `process_list(…)` | logs / processes |
 | `call(name, arguments)` | any tool, raw |
 
 File tools like PDF/OCR accept `path=` (local, auto-base64), `url=`, or `base64=`.

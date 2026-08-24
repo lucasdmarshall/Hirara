@@ -51,6 +51,7 @@ from .client import (
     database_query,
     database_schema,
     application_logs,
+    process_list,
     tools,
     web_fetch,
     web_search,
@@ -93,6 +94,7 @@ __all__ = [
     "database_query",
     "database_schema",
     "application_logs",
+    "process_list",
 ]
 
 __version__ = "0.2.0"

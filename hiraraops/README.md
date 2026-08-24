@@ -16,7 +16,7 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths gated by
 | Tool | Status | What it does |
 |---|---|---|
 | **`application_logs`** | ✅ shipped | Tail / head / grep a log file |
-| `process_list` | 📋 planned | List running processes |
+| **`process_list`** | ✅ shipped | List running processes (`/proc`) |
 | `environment_read` | 📋 planned | Read process environment |
 
 ---
@@ -40,6 +40,13 @@ curl -X POST localhost:9200/application_logs -H 'content-type: application/json'
   -d '{"source":"app","pattern":"timeout","lines":20}'
 ```
 
+**Processes:**
+
+```bash
+curl -X POST localhost:9200/process_list -H 'content-type: application/json' \
+  -d '{"pattern":"python","max_processes":20}'
+```
+
 MCP: `python -m hiraraops.mcp_server`
 
 Docker:
@@ -60,6 +67,9 @@ COPS_LOGS=/var/log COPS_LOG_SOURCES=app=/logs/app.log docker compose up -d --bui
 | `COPS_DEFAULT_LINES` | `100` | Default `lines` |
 | `COPS_MAX_LINES` | `5000` | Cap on `lines` |
 | `COPS_MAX_BYTES` | `2000000` | Cap on bytes read per call |
+| `COPS_MAX_PROCESSES` | `500` | Cap on processes returned |
+| `COPS_ALLOW_PROCESS_LIST` | `true` | When false, `process_list` returns an error |
+| `COPS_PROC_ROOT` | `/proc` | Proc filesystem root (tests / containers) |
 | `COPS_PORT` | `9200` | Compose host port |
 
 ---

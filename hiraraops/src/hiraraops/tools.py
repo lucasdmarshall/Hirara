@@ -1,6 +1,6 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``application_logs`` (``process_list`` / ``environment_read`` later).
+Tools: ``application_logs``, ``process_list``.
 """
 
 from __future__ import annotations
@@ -9,7 +9,10 @@ import logging
 from dataclasses import dataclass
 
 from .config import OpsConfig
-from .logs import LogsError, application_logs as read_logs, result_to_dict
+from .logs import LogsError, application_logs as read_logs
+from .logs import result_to_dict as logs_result_to_dict
+from .processes import ProcessError, process_list as list_processes
+from .processes import result_to_dict as process_result_to_dict
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +65,45 @@ APPLICATION_LOGS_SCHEMA = {
 }
 
 
-def _envelope(**overrides) -> dict:
+PROCESS_LIST_SCHEMA = {
+    "name": "process_list",
+    "description": (
+        "List running processes from /proc (Linux). Returns pid, name, state, "
+        "ppid, uid, user, and cmdline. Filter with pattern (regex on name/"
+        "cmdline), user, or a single pid. Capped by max_processes."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "pattern": {
+                "type": "string",
+                "description": "Optional regex matched against name and cmdline.",
+            },
+            "user": {
+                "type": "string",
+                "description": "Optional username or numeric uid filter.",
+            },
+            "pid": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "If set, only return this process.",
+            },
+            "max_processes": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Cap on processes returned.",
+            },
+            "include_cmdline": {
+                "type": "boolean",
+                "description": "Include cmdline (default true).",
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
+def _logs_envelope(**overrides) -> dict:
     envelope = {
         "source": None,
         "path": None,
@@ -82,6 +123,20 @@ def _envelope(**overrides) -> dict:
     return envelope
 
 
+def _process_envelope(**overrides) -> dict:
+    envelope = {
+        "processes": [],
+        "process_count": 0,
+        "scanned": 0,
+        "truncated": False,
+        "pattern": None,
+        "user": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """Ops tools sharing one config."""
@@ -93,18 +148,20 @@ class Toolset:
         return cls(config=OpsConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [APPLICATION_LOGS_SCHEMA]
+        return [APPLICATION_LOGS_SCHEMA, PROCESS_LIST_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["application_logs"],
+            "tools": ["application_logs", "process_list"],
             "sources": sorted(self.config.resolved_sources()),
             "roots": list(self.config.roots),
             "allow_any_path": self.config.allow_any_path,
             "default_lines": self.config.default_lines,
             "max_lines": self.config.max_lines,
+            "allow_process_list": self.config.allow_process_list,
+            "max_processes": self.config.max_processes,
         }
 
     async def application_logs(
@@ -132,23 +189,56 @@ class Toolset:
                 max_bytes=max_bytes,
                 config=self.config,
             )
-            return result_to_dict(result)
+            return logs_result_to_dict(result)
         except LogsError as exc:
-            return _envelope(
+            return _logs_envelope(
                 path=path, source=source, from_end=from_end, error=str(exc)
             )
         except Exception as exc:  # noqa: BLE001
             log.exception("application_logs failed")
-            return _envelope(
+            return _logs_envelope(
                 path=path,
                 source=source,
                 from_end=from_end,
                 error=f"application_logs failed: {exc}",
             )
 
+    async def process_list(
+        self,
+        *,
+        pattern: str | None = None,
+        user: str | None = None,
+        pid: int | None = None,
+        max_processes: int | None = None,
+        include_cmdline: bool = True,
+    ) -> dict:
+        import asyncio
+
+        try:
+            result = await asyncio.to_thread(
+                list_processes,
+                pattern=pattern,
+                user=user,
+                pid=pid,
+                max_processes=max_processes,
+                include_cmdline=include_cmdline,
+                config=self.config,
+            )
+            return process_result_to_dict(result)
+        except ProcessError as exc:
+            return _process_envelope(pattern=pattern, user=user, error=str(exc))
+        except Exception as exc:  # noqa: BLE001
+            log.exception("process_list failed")
+            return _process_envelope(
+                pattern=pattern,
+                user=user,
+                error=f"process_list failed: {exc}",
+            )
+
 
 __all__ = [
     "APPLICATION_LOGS_SCHEMA",
+    "PROCESS_LIST_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -156,7 +246,7 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("application_logs",)
+TOOL_NAMES = ("application_logs", "process_list")
 _local_toolset: "Toolset | None" = None
 
 
@@ -171,6 +261,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     args = arguments or {}
     if name == "application_logs":
         return await _backend().application_logs(**args)
+    if name == "process_list":
+        return await _backend().process_list(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

@@ -61,6 +61,11 @@ class OpsConfig:
     # Cap on bytes read from a log file per call.
     max_bytes: int = 2_000_000
 
+    # process_list: /proc root, max returned processes, kill switch.
+    proc_root: str = "/proc"
+    max_processes: int = 500
+    allow_process_list: bool = True
+
     def resolved_sources(self) -> dict[str, str]:
         return dict(self.log_sources or {})
 
@@ -73,6 +78,12 @@ class OpsConfig:
             default_lines=_env_int("COPS_DEFAULT_LINES", cls.default_lines),
             max_lines=_env_int("COPS_MAX_LINES", cls.max_lines),
             max_bytes=_env_int("COPS_MAX_BYTES", cls.max_bytes),
+            proc_root=(os.getenv("COPS_PROC_ROOT") or cls.proc_root).strip()
+            or cls.proc_root,
+            max_processes=_env_int("COPS_MAX_PROCESSES", cls.max_processes),
+            allow_process_list=_env_bool(
+                "COPS_ALLOW_PROCESS_LIST", cls.allow_process_list
+            ),
         )
 
 

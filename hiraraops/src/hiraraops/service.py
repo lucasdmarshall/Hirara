@@ -31,6 +31,16 @@ class ApplicationLogsRequest(BaseModel):
     max_bytes: int | None = None
 
 
+class ProcessListRequest(BaseModel):
+    """JSON body for process_list."""
+
+    pattern: str | None = None
+    user: str | None = None
+    pid: int | None = None
+    max_processes: int | None = None
+    include_cmdline: bool = True
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -51,4 +61,15 @@ async def application_logs_endpoint(request: ApplicationLogsRequest) -> dict:
         pattern=request.pattern,
         level=request.level,
         max_bytes=request.max_bytes,
+    )
+
+
+@app.post("/process_list")
+async def process_list_endpoint(request: ProcessListRequest) -> dict:
+    return await _toolset.process_list(
+        pattern=request.pattern,
+        user=request.user,
+        pid=request.pid,
+        max_processes=request.max_processes,
+        include_cmdline=request.include_cmdline,
     )
