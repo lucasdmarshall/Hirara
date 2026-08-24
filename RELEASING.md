@@ -18,6 +18,7 @@ never sees a long-lived secret.
 | `hiraranet`    | `hiraranet/`    | `hiraranet`   | `hiraranet/pyproject.toml`  |
 | `hirarabrowser`| `hirarabrowser/`| `hirarabrowser`| `hirarabrowser/pyproject.toml`|
 | `hirarahttp`   | `hirarahttp/`   | `hirarahttp`  | `hirarahttp/pyproject.toml` |
+| `hirarafs`     | `hirarafs/`     | `hirarafs`    | `hirarafs/pyproject.toml`   |
 | `hirara` (SDK) | `hirara/`       | `hirara`      | `hirara/pyproject.toml`     |
 
 Each package is versioned **independently**. A git tag only *triggers* a
@@ -49,6 +50,7 @@ below match the ones the workflow sends.
 | `hiraranet`    | `pypi-net`       |
 | `hirarabrowser`| `pypi-browser`   |
 | `hirarahttp`   | `pypi-http`      |
+| `hirarafs`     | `pypi-fs`        |
 | `hirara`       | `pypi-sdk`       |
 
 ### On PyPI (https://pypi.org)
@@ -56,7 +58,7 @@ below match the ones the workflow sends.
 - **`hirara`** already exists (you own it). Open it → **Manage → Publishing →
   Add a new publisher**: Owner `lucasdmarshall`, Repository `Hirara`, Workflow
   `pypi-publish.yml`, Environment `pypi-sdk`.
-- **`hirara-core`, `hirara-web`, `hirarapdf`, `hirarareader`, `hiraranet`, `hirarabrowser`, `hirarahttp`** do not exist yet.
+- **`hirara-core`, `hirara-web`, `hirarapdf`, `hirarareader`, `hiraranet`, `hirarabrowser`, `hirarahttp`, `hirarafs`** do not exist yet.
   Go to **Your account → Publishing** (https://pypi.org/manage/account/publishing/)
   — that page has the extra **PyPI Project Name** field, which is what makes it a
   *pending* publisher. Add one per name with its Environment from the table.

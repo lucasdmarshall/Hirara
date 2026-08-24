@@ -21,7 +21,7 @@ progress in this repo (hub + SDK + packages).
 | 14 | `inspect_response` | ✅ shipped | `hirarahttp` |
 | 15 | `directory_enum` | ✅ shipped | `hirarahttp` |
 | 16 | `python_exec` | ✅ shipped (as `execute_code`) | `hiraracode` — alias / rename TBD |
-| 17 | `file_read` | 📋 planned | `hirarafs` |
+| 17 | `file_read` | ✅ shipped | `hirarafs` |
 | 18 | `file_write` | 📋 planned | `hirarafs` |
 | 19 | `decode` | 📋 planned | `hirarautil` |
 | 20 | `hash` | 📋 planned | `hirarautil` |
@@ -52,8 +52,9 @@ progress in this repo (hub + SDK + packages).
 ## Current focus
 
 **`dns_lookup`**, **`port_scan`**, **`service_enum`** (`hiraranet/`),
-**`browser_*`** (`hirarabrowser/`), and the `hirarahttp` cluster (`http_request` through `directory_enum`) are shipped.
-Next up: `file_read` (`hirarafs`).
+**`browser_*`** (`hirarabrowser/`), the `hirarahttp` cluster, and **`file_read`**
+(`hirarafs/`) are shipped.
+Next up: `file_write` (`hirarafs`).
 
 ## Engineering conventions (all tools)
 

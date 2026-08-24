@@ -20,6 +20,7 @@ _URLS = {
     "hiraranet": "http://hiraranet",
     "hirarabrowser": "http://hirarabrowser",
     "hirarahttp": "http://hirarahttp",
+    "hirarafs": "http://hirarafs",
 }
 
 # Which services are "up" in a given test, and what their /schemas returns.
@@ -110,4 +111,5 @@ def test_every_tool_has_a_route():
         "browser_open", "browser_click", "browser_type", "browser_screenshot",
         "http_request", "http_history", "inspect_headers", "inspect_cookies",
         "inspect_response", "directory_enum",
+        "file_read",
     }

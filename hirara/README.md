@@ -78,9 +78,13 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `ocr_read(...)` · `form_extract(...)` | OCR / forms |
 | `office_read(...)` | Word / PowerPoint / Excel |
 | `execute_code(language, code, …)` | sandboxed code |
+| `dns_lookup` · `port_scan` · `service_enum` | network |
+| `http_request` · `http_history` · `inspect_*` · `directory_enum` | HTTP |
+| `file_read(path, …)` | filesystem (hub/local path) |
 | `call(name, arguments)` | any tool, raw |
 
-File tools accept `path=` (local, auto-base64), `url=`, or `base64=`.
+File tools like PDF/OCR accept `path=` (local, auto-base64), `url=`, or `base64=`.
+`file_read` passes `path=` through to the backend (reads the hub or local process filesystem).
 
 ---
 

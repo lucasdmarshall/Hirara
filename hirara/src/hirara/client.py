@@ -513,6 +513,22 @@ class Client:
             args["concurrency"] = concurrency
         return self.call("directory_enum", args)
 
+    def file_read(
+        self,
+        path: str,
+        *,
+        encoding: str | None = None,
+        max_bytes: int | None = None,
+        offset: int = 0,
+        **extra,
+    ) -> dict:
+        args = {"path": path, "offset": offset, **extra}
+        if encoding is not None:
+            args["encoding"] = encoding
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        return self.call("file_read", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -575,6 +591,7 @@ inspect_headers = _delegate("inspect_headers")
 inspect_cookies = _delegate("inspect_cookies")
 inspect_response = _delegate("inspect_response")
 directory_enum = _delegate("directory_enum")
+file_read = _delegate("file_read")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -610,4 +627,5 @@ __all__ = [
     "inspect_cookies",
     "inspect_response",
     "directory_enum",
+    "file_read",
 ]
