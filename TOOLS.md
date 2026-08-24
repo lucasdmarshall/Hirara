@@ -19,7 +19,7 @@ progress in this repo (hub + SDK + packages).
 | 12 | `inspect_headers` | ✅ shipped | `hirarahttp` |
 | 13 | `inspect_cookies` | ✅ shipped | `hirarahttp` |
 | 14 | `inspect_response` | ✅ shipped | `hirarahttp` |
-| 15 | `directory_enum` | 📋 planned | `hiraranet` / `hirarahttp` |
+| 15 | `directory_enum` | ✅ shipped | `hirarahttp` |
 | 16 | `python_exec` | ✅ shipped (as `execute_code`) | `hiraracode` — alias / rename TBD |
 | 17 | `file_read` | 📋 planned | `hirarafs` |
 | 18 | `file_write` | 📋 planned | `hirarafs` |
@@ -40,9 +40,9 @@ progress in this repo (hub + SDK + packages).
 
 | Package | Tools |
 |---|---|
-| **`hiraranet`** | `dns_lookup`, `port_scan`, `service_enum`, `directory_enum` |
+| **`hiraranet`** | `dns_lookup`, `port_scan`, `service_enum` |
 | **`hirarabrowser`** | `browser_open`, `browser_click`, `browser_type`, `browser_screenshot` |
-| **`hirarahttp`** | `http_request`, `http_history`, `inspect_*`, `request_replay`, `parameter_test`, `response_compare` |
+| **`hirarahttp`** | `http_request`, `http_history`, `inspect_*`, `directory_enum`, `request_replay`, `parameter_test`, `response_compare` |
 | **`hirarautil`** | `decode`, `hash`, `jwt_inspect`, `jwt_decode` |
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
@@ -52,9 +52,8 @@ progress in this repo (hub + SDK + packages).
 ## Current focus
 
 **`dns_lookup`**, **`port_scan`**, **`service_enum`** (`hiraranet/`),
-**`browser_*`** (`hirarabrowser/`), and the `hirarahttp` inspect cluster
-(`http_request`, `http_history`, `inspect_headers`, `inspect_cookies`,
-`inspect_response`) are shipped. Next up: `directory_enum`.
+**`browser_*`** (`hirarabrowser/`), and the `hirarahttp` cluster (`http_request` through `directory_enum`) are shipped.
+Next up: `file_read` (`hirarafs`).
 
 ## Engineering conventions (all tools)
 

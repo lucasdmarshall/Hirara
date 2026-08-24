@@ -4,7 +4,7 @@ Both front ends (HTTP service and MCP server) call into here, so the two can
 never drift apart in behaviour — only in transport.
 
 Tools: ``http_request``, ``http_history``, ``inspect_headers``,
-``inspect_cookies``, ``inspect_response``.
+``inspect_cookies``, ``inspect_response``, ``directory_enum``.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 
 from .config import HttpConfig
+from .enum_dir import directory_enum, enum_result_to_dict
 from .history import HistoryStore, entry_to_dict, entry_to_summary
 from .inspect import (
     inspect_cookies_from_entry,
@@ -249,6 +250,58 @@ INSPECT_RESPONSE_SCHEMA = {
 }
 
 
+DIRECTORY_ENUM_SCHEMA = {
+    "name": "directory_enum",
+    "description": (
+        "Probe a base URL for existing paths. HEAD (default) or GET each "
+        "relative path through Hirara's SSRF perimeter; does not follow "
+        "redirects (Location is returned). Omit paths to use a built-in "
+        "common-path list. Results hide 404/410 unless include_not_found=true. "
+        "found lists statuses other than 404/410."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "url": {
+                "type": "string",
+                "description": "Base http(s) URL (e.g. https://example.com/).",
+            },
+            "paths": {
+                "description": (
+                    "Relative paths to probe. Array of strings or a "
+                    "comma/newline-separated string. Omit for the default list."
+                ),
+                "oneOf": [
+                    {"type": "array", "items": {"type": "string"}},
+                    {"type": "string"},
+                ],
+            },
+            "method": {
+                "type": "string",
+                "enum": ["HEAD", "GET", "OPTIONS"],
+                "description": "HTTP method (default HEAD).",
+            },
+            "timeout": {
+                "type": "number",
+                "minimum": 0.1,
+                "description": "Per-path timeout in seconds.",
+            },
+            "concurrency": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Max concurrent probes (server-capped).",
+            },
+            "include_not_found": {
+                "type": "boolean",
+                "description": "Include 404/410 rows in results (default false).",
+            },
+        },
+        "required": ["url"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _request_envelope(**overrides) -> dict:
     envelope = {
         "request_id": None,
@@ -349,6 +402,23 @@ def _inspect_response_envelope(**overrides) -> dict:
     return envelope
 
 
+def _directory_enum_envelope(**overrides) -> dict:
+    envelope = {
+        "url": None,
+        "method": None,
+        "paths": [],
+        "results": [],
+        "found": [],
+        "found_count": 0,
+        "probed": 0,
+        "truncated": False,
+        "duration_ms": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """HTTP tools sharing one config + history store."""
@@ -374,6 +444,7 @@ class Toolset:
             INSPECT_HEADERS_SCHEMA,
             INSPECT_COOKIES_SCHEMA,
             INSPECT_RESPONSE_SCHEMA,
+            DIRECTORY_ENUM_SCHEMA,
         ]
 
     def health(self) -> dict:
@@ -386,6 +457,7 @@ class Toolset:
                 "inspect_headers",
                 "inspect_cookies",
                 "inspect_response",
+                "directory_enum",
             ],
             "max_bytes": self.config.max_bytes,
             "max_redirects": self.config.max_redirects,
@@ -617,6 +689,35 @@ class Toolset:
                 error=f"inspect_response failed: {exc}",
             )
 
+    async def directory_enum(
+        self,
+        *,
+        url: str,
+        paths: list[str] | str | None = None,
+        method: str = "HEAD",
+        timeout: float | None = None,
+        concurrency: int | None = None,
+        include_not_found: bool = False,
+    ) -> dict:
+        try:
+            result = await directory_enum(
+                url,
+                paths=paths,
+                method=method,
+                timeout=timeout,
+                concurrency=concurrency,
+                include_not_found=include_not_found,
+                config=self.config,
+            )
+            return enum_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("directory_enum failed")
+            return _directory_enum_envelope(
+                url=url,
+                method=method,
+                error=f"directory_enum failed: {exc}",
+            )
+
 
 __all__ = [
     "HTTP_REQUEST_SCHEMA",
@@ -624,6 +725,7 @@ __all__ = [
     "INSPECT_HEADERS_SCHEMA",
     "INSPECT_COOKIES_SCHEMA",
     "INSPECT_RESPONSE_SCHEMA",
+    "DIRECTORY_ENUM_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -637,6 +739,7 @@ TOOL_NAMES = (
     "inspect_headers",
     "inspect_cookies",
     "inspect_response",
+    "directory_enum",
 )
 _local_toolset: "Toolset | None" = None
 
@@ -660,6 +763,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().inspect_cookies(**args)
     if name == "inspect_response":
         return await _backend().inspect_response(**args)
+    if name == "directory_enum":
+        return await _backend().directory_enum(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

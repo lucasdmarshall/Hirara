@@ -20,6 +20,7 @@ redirect hop) goes through [`hirara-core`](../hirara-core/) resolve-then-pin.
 | **`inspect_headers`** | ✅ shipped | Structured view of request/response headers |
 | **`inspect_cookies`** | ✅ shipped | Parse Cookie / Set-Cookie (flags, path, domain) |
 | **`inspect_response`** | ✅ shipped | Status class, body kind, JSON keys, HTML title |
+| **`directory_enum`** | ✅ shipped | Probe a base URL for existing paths |
 | `request_replay` / `parameter_test` / `response_compare` | 📋 planned | Replay and compare |
 
 ---
@@ -94,6 +95,13 @@ curl -X POST localhost:8800/inspect_response -H 'content-type: application/json'
   -d '{"id":"<request_id>"}'
 ```
 
+**Directory enum** (omit `paths` for the default list):
+
+```bash
+curl -X POST localhost:8800/directory_enum -H 'content-type: application/json' \
+  -d '{"url":"https://example.com/","paths":["robots.txt","admin","api"]}'
+```
+
 MCP:
 
 ```bash
@@ -120,6 +128,9 @@ docker compose up -d --build
 | `CHTTP_ALLOW_PRIVATE_IPS` | `true` (lib) / `false` (image) | Permit RFC1918 / loopback |
 | `CHTTP_HISTORY_SIZE` | `100` | Max recorded `http_request` entries |
 | `CHTTP_HISTORY_BODY_CHARS` | `32768` | Cap on body chars kept per entry |
+| `CHTTP_ENUM_CONCURRENCY` | `8` | Max concurrent directory_enum probes |
+| `CHTTP_ENUM_MAX_PATHS` | `200` | Cap on paths per directory_enum call |
+| `CHTTP_ENUM_TIMEOUT` | `10` | Per-path timeout (seconds) |
 | `CHTTP_USER_AGENT` | Hirara UA | Default User-Agent |
 | `CHTTP_PORT` | `8800` | Compose host port |
 

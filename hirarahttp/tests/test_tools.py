@@ -8,6 +8,7 @@ import pytest
 from hirarahttp.config import HttpConfig
 from hirarahttp.history import HistoryStore
 from hirarahttp.tools import (
+    DIRECTORY_ENUM_SCHEMA,
     HTTP_HISTORY_SCHEMA,
     HTTP_REQUEST_SCHEMA,
     INSPECT_COOKIES_SCHEMA,
@@ -37,6 +38,10 @@ def test_schema_ready():
     assert INSPECT_RESPONSE_SCHEMA["name"] == "inspect_response"
     rprops = INSPECT_RESPONSE_SCHEMA["input_schema"]["properties"]
     assert {"id", "include_body", "preview_chars"} <= set(rprops)
+
+    assert DIRECTORY_ENUM_SCHEMA["name"] == "directory_enum"
+    dprops = DIRECTORY_ENUM_SCHEMA["input_schema"]["properties"]
+    assert {"url", "paths", "method", "include_not_found"} <= set(dprops)
 
 
 @pytest.mark.asyncio
@@ -256,6 +261,37 @@ async def test_history_unknown_id():
     assert r["error"] and "unknown" in r["error"]
 
 
+@pytest.mark.asyncio
+async def test_toolset_directory_enum(monkeypatch):
+    import socket
+
+    def resolver(host, port, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url).endswith("/robots.txt"):
+            return httpx.Response(200, headers={"content-type": "text/plain"})
+        return httpx.Response(404)
+
+    async def _wrapped(url, **kwargs):
+        from hirarahttp.enum_dir import directory_enum as real
+
+        kwargs.setdefault("resolver", resolver)
+        kwargs.setdefault("transport", httpx.MockTransport(handler))
+        return await real(url, **kwargs)
+
+    monkeypatch.setattr("hirarahttp.tools.directory_enum", _wrapped)
+
+    ts = Toolset(config=HttpConfig())
+    r = await ts.directory_enum(
+        url="https://example.com/",
+        paths=["robots.txt", "nope"],
+    )
+    assert r["error"] is None
+    assert r["found_count"] == 1
+    assert r["found"][0]["path"] == "robots.txt"
+
+
 def test_health():
     ts = Toolset(config=HttpConfig())
     h = ts.health()
@@ -266,5 +302,6 @@ def test_health():
         "inspect_headers",
         "inspect_cookies",
         "inspect_response",
+        "directory_enum",
     ]
     assert h["history_count"] == 0

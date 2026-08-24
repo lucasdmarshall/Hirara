@@ -67,6 +67,7 @@ TOOLS: dict[str, ToolRoute] = {
     "inspect_response": ToolRoute(
         "inspect_response", "hirarahttp", "/inspect_response"
     ),
+    "directory_enum": ToolRoute("directory_enum", "hirarahttp", "/directory_enum"),
 }
 
 

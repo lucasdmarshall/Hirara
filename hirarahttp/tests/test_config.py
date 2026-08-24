@@ -11,6 +11,9 @@ def test_defaults():
     assert cfg.allow_private_ips is True
     assert cfg.history_size == 100
     assert cfg.history_body_chars == 32_768
+    assert cfg.enum_concurrency == 8
+    assert cfg.enum_max_paths == 200
+    assert cfg.enum_timeout == 10.0
 
 
 def test_from_env(monkeypatch):
@@ -20,6 +23,9 @@ def test_from_env(monkeypatch):
     monkeypatch.setenv("CHTTP_ALLOW_PRIVATE_IPS", "false")
     monkeypatch.setenv("CHTTP_HISTORY_SIZE", "25")
     monkeypatch.setenv("CHTTP_HISTORY_BODY_CHARS", "500")
+    monkeypatch.setenv("CHTTP_ENUM_CONCURRENCY", "4")
+    monkeypatch.setenv("CHTTP_ENUM_MAX_PATHS", "50")
+    monkeypatch.setenv("CHTTP_ENUM_TIMEOUT", "3.5")
     cfg = HttpConfig.from_env()
     assert cfg.timeout == 12.0
     assert cfg.max_bytes == 1000
@@ -27,3 +33,6 @@ def test_from_env(monkeypatch):
     assert cfg.allow_private_ips is False
     assert cfg.history_size == 25
     assert cfg.history_body_chars == 500
+    assert cfg.enum_concurrency == 4
+    assert cfg.enum_max_paths == 50
+    assert cfg.enum_timeout == 3.5

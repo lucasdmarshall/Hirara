@@ -488,6 +488,31 @@ class Client:
             args["body_encoding"] = body_encoding
         return self.call("inspect_response", args)
 
+    def directory_enum(
+        self,
+        url: str,
+        *,
+        paths: list[str] | str | None = None,
+        method: str = "HEAD",
+        timeout: float | None = None,
+        concurrency: int | None = None,
+        include_not_found: bool = False,
+        **extra,
+    ) -> dict:
+        args = {
+            "url": url,
+            "method": method,
+            "include_not_found": include_not_found,
+            **extra,
+        }
+        if paths is not None:
+            args["paths"] = paths
+        if timeout is not None:
+            args["timeout"] = timeout
+        if concurrency is not None:
+            args["concurrency"] = concurrency
+        return self.call("directory_enum", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -549,6 +574,7 @@ http_history = _delegate("http_history")
 inspect_headers = _delegate("inspect_headers")
 inspect_cookies = _delegate("inspect_cookies")
 inspect_response = _delegate("inspect_response")
+directory_enum = _delegate("directory_enum")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -583,4 +609,5 @@ __all__ = [
     "inspect_headers",
     "inspect_cookies",
     "inspect_response",
+    "directory_enum",
 ]

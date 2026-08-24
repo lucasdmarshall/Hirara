@@ -1,10 +1,18 @@
 """HiraraHttp — self-hosted HTTP tools for AI agents.
 
-Ships ``http_request``, ``http_history``, ``inspect_headers``,
-``inspect_cookies``, and ``inspect_response``.
+Ships ``http_request``, ``http_history``, inspect tools, and
+``directory_enum``.
 """
 
 from .config import HttpConfig
+from .enum_dir import (
+    DEFAULT_PATHS,
+    EnumError,
+    EnumResult,
+    PathHit,
+    directory_enum,
+    enum_result_to_dict,
+)
 from .history import HistoryEntry, HistoryStore, entry_to_dict, entry_to_summary
 from .inspect import (
     CookieRecord,
@@ -25,6 +33,7 @@ from .inspect import (
 )
 from .request import RequestError, RequestResult, http_request, result_to_dict
 from .tools import (
+    DIRECTORY_ENUM_SCHEMA,
     HTTP_HISTORY_SCHEMA,
     HTTP_REQUEST_SCHEMA,
     INSPECT_COOKIES_SCHEMA,
@@ -37,6 +46,8 @@ from .tools import (
 )
 
 __all__ = [
+    "DEFAULT_PATHS",
+    "DIRECTORY_ENUM_SCHEMA",
     "HTTP_HISTORY_SCHEMA",
     "HTTP_REQUEST_SCHEMA",
     "INSPECT_COOKIES_SCHEMA",
@@ -45,6 +56,8 @@ __all__ = [
     "TOOL_NAMES",
     "CookieRecord",
     "CookieView",
+    "EnumError",
+    "EnumResult",
     "HeaderView",
     "HistoryEntry",
     "HistoryStore",
@@ -52,12 +65,15 @@ __all__ = [
     "InspectCookiesResult",
     "InspectHeadersResult",
     "InspectResponseResult",
+    "PathHit",
     "RequestError",
     "RequestResult",
     "Toolset",
     "call_tool",
+    "directory_enum",
     "entry_to_dict",
     "entry_to_summary",
+    "enum_result_to_dict",
     "http_request",
     "inspect_cookies_from_entry",
     "inspect_cookies_from_maps",

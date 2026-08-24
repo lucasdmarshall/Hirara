@@ -24,7 +24,7 @@ can see private/reserved answers without re-implementing the deny list.
 | **`dns_lookup`** | ✅ shipped | Resolve A/AAAA/MX/TXT/… ; annotate private IPs |
 | **`port_scan`** | ✅ shipped | TCP-connect scan ports on a host |
 | **`service_enum`** | ✅ shipped | Banner / probe → service + product on each port |
-| `directory_enum` | 📋 planned | See [TOOLS.md](../TOOLS.md) |
+| `directory_enum` | ✅ shipped in [`hirarahttp`](../hirarahttp/) | HTTP path probe |
 
 `dns_lookup` **only queries DNS**. It never opens a connection to the
 addresses it returns.

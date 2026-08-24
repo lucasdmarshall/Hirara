@@ -22,9 +22,8 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
-        "HTTP request, http_history to list recent calls, inspect_headers "
-        "and inspect_cookies for structured views, and inspect_response to "
-        "summarize status and body kind from a request_id or raw payload. "
+        "HTTP request, http_history, inspect_headers, inspect_cookies, "
+        "inspect_response, and directory_enum to probe paths on a base URL. "
         "URLs and redirect hops go through Hirara's SSRF perimeter."
     ),
 )
@@ -188,6 +187,41 @@ async def inspect_response_tool(
         body=body,
         headers=headers,
         body_encoding=body_encoding,
+    )
+
+
+@server.tool(
+    name="directory_enum",
+    description=(
+        "Probe a base URL for existing paths. HEAD/GET each relative path "
+        "without following redirects. Omit paths for a built-in common list."
+    ),
+)
+async def directory_enum_tool(
+    url: str,
+    paths: list[str] | str | None = None,
+    method: str = "HEAD",
+    timeout: float | None = None,
+    concurrency: int | None = None,
+    include_not_found: bool = False,
+) -> dict:
+    """Probe paths under a base URL.
+
+    Args:
+        url: Base http(s) URL.
+        paths: Relative paths, or omit for defaults.
+        method: HEAD, GET, or OPTIONS.
+        timeout: Per-path timeout seconds.
+        concurrency: Max concurrent probes.
+        include_not_found: Include 404/410 in results.
+    """
+    return await _toolset.directory_enum(
+        url=url,
+        paths=paths,
+        method=method,
+        timeout=timeout,
+        concurrency=concurrency,
+        include_not_found=include_not_found,
     )
 
 

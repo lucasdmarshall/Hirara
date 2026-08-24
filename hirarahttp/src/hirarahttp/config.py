@@ -56,6 +56,11 @@ class HttpConfig:
     # Cap on body chars retained per history entry (0 = drop bodies).
     history_body_chars: int = 32_768
 
+    # directory_enum: concurrency, path cap, per-path timeout.
+    enum_concurrency: int = 8
+    enum_max_paths: int = 200
+    enum_timeout: float = 10.0
+
     @classmethod
     def from_env(cls) -> "HttpConfig":
         return cls(
@@ -76,6 +81,9 @@ class HttpConfig:
             history_body_chars=_env_int(
                 "CHTTP_HISTORY_BODY_CHARS", cls.history_body_chars
             ),
+            enum_concurrency=_env_int("CHTTP_ENUM_CONCURRENCY", cls.enum_concurrency),
+            enum_max_paths=_env_int("CHTTP_ENUM_MAX_PATHS", cls.enum_max_paths),
+            enum_timeout=_env_float("CHTTP_ENUM_TIMEOUT", cls.enum_timeout),
         )
 
 

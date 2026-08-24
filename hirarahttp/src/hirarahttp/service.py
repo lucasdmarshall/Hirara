@@ -141,3 +141,26 @@ async def inspect_response_endpoint(request: InspectResponseBody) -> dict:
         headers=request.headers,
         body_encoding=request.body_encoding,
     )
+
+
+class DirectoryEnumBody(BaseModel):
+    """JSON body for directory_enum."""
+
+    url: str
+    paths: list[str] | str | None = None
+    method: str = "HEAD"
+    timeout: float | None = None
+    concurrency: int | None = None
+    include_not_found: bool = False
+
+
+@app.post("/directory_enum")
+async def directory_enum_endpoint(request: DirectoryEnumBody) -> dict:
+    return await _toolset.directory_enum(
+        url=request.url,
+        paths=request.paths,
+        method=request.method,
+        timeout=request.timeout,
+        concurrency=request.concurrency,
+        include_not_found=request.include_not_found,
+    )

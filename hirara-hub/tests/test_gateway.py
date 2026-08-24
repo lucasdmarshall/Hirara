@@ -109,5 +109,5 @@ def test_every_tool_has_a_route():
         "dns_lookup", "port_scan", "service_enum",
         "browser_open", "browser_click", "browser_type", "browser_screenshot",
         "http_request", "http_history", "inspect_headers", "inspect_cookies",
-        "inspect_response",
+        "inspect_response", "directory_enum",
     }
