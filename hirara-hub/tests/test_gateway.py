@@ -113,5 +113,5 @@ def test_every_tool_has_a_route():
         "http_request", "http_history", "inspect_headers", "inspect_cookies",
         "inspect_response", "directory_enum",
         "file_read", "file_write",
-        "decode",
+        "decode", "hash",
     }

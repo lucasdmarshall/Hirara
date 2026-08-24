@@ -15,7 +15,7 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara).
 | Tool | Status | What it does |
 |---|---|---|
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode_escape |
-| `hash` | 📋 planned | Digest strings or bytes |
+| **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) |
 | `jwt_inspect` / `jwt_decode` | 📋 planned | JWT header/payload helpers |
 
 ---
@@ -43,6 +43,28 @@ curl -X POST localhost:9000/decode -H 'content-type: application/json' \
   "input_chars": 8,
   "output_bytes": 5,
   "truncated": false,
+  "error": null
+}
+```
+
+**Hash:**
+
+```bash
+curl -X POST localhost:9000/hash -H 'content-type: application/json' \
+  -d '{"input":"hello","algorithms":"sha256"}'
+```
+
+```json
+{
+  "input": "hello",
+  "input_encoding": "utf-8",
+  "input_chars": 5,
+  "input_bytes": 5,
+  "algorithms": ["sha256"],
+  "digests": {"sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"},
+  "digest": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+  "algorithm": "sha256",
+  "output_format": "hex",
   "error": null
 }
 ```

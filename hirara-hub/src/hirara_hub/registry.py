@@ -73,6 +73,7 @@ TOOLS: dict[str, ToolRoute] = {
     "file_read": ToolRoute("file_read", "hirarafs", "/file_read"),
     "file_write": ToolRoute("file_write", "hirarafs", "/file_write"),
     "decode": ToolRoute("decode", "hirarautil", "/decode"),
+    "hash": ToolRoute("hash", "hirarautil", "/hash"),
 }
 
 

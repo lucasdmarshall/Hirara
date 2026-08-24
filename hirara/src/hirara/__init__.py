@@ -47,6 +47,7 @@ from .client import (
     file_read,
     file_write,
     decode,
+    hash,
     tools,
     web_fetch,
     web_search,
@@ -85,6 +86,7 @@ __all__ = [
     "file_read",
     "file_write",
     "decode",
+    "hash",
 ]
 
 __version__ = "0.2.0"

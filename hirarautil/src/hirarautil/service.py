@@ -26,6 +26,15 @@ class DecodeRequest(BaseModel):
     format: str = "auto"
 
 
+class HashRequest(BaseModel):
+    """JSON body for hash."""
+
+    input: str
+    algorithms: list[str] | str | None = None
+    encoding: str | None = None
+    output_format: str | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -39,3 +48,13 @@ async def schemas() -> dict:
 @app.post("/decode")
 async def decode_endpoint(request: DecodeRequest) -> dict:
     return await _toolset.decode(input=request.input, format=request.format)
+
+
+@app.post("/hash")
+async def hash_endpoint(request: HashRequest) -> dict:
+    return await _toolset.hash(
+        input=request.input,
+        algorithms=request.algorithms,
+        encoding=request.encoding,
+        output_format=request.output_format,
+    )

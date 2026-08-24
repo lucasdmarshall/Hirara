@@ -24,7 +24,7 @@ progress in this repo (hub + SDK + packages).
 | 17 | `file_read` | ✅ shipped | `hirarafs` |
 | 18 | `file_write` | ✅ shipped | `hirarafs` |
 | 19 | `decode` | ✅ shipped | `hirarautil` |
-| 20 | `hash` | 📋 planned | `hirarautil` |
+| 20 | `hash` | ✅ shipped | `hirarautil` |
 | 21 | `database_query` | 📋 planned | `hiraradb` |
 | 22 | `database_schema` | 📋 planned | `hiraradb` |
 | 23 | `application_logs` | 📋 planned | `hiraraops` |
@@ -53,9 +53,9 @@ progress in this repo (hub + SDK + packages).
 
 **`dns_lookup`**, **`port_scan`**, **`service_enum`** (`hiraranet/`),
 **`browser_*`** (`hirarabrowser/`), the `hirarahttp` cluster,
-**`file_read` / `file_write`** (`hirarafs/`), and **`decode`** (`hirarautil/`)
-are shipped.
-Next up: `hash` (`hirarautil`).
+**`file_read` / `file_write`** (`hirarafs/`), and **`decode` / `hash`**
+(`hirarautil/`) are shipped.
+Next up: `database_query` (`hiraradb`).
 
 ## Engineering conventions (all tools)
 

@@ -564,6 +564,24 @@ class Client:
     ) -> dict:
         return self.call("decode", {"input": input, "format": format, **extra})
 
+    def hash(
+        self,
+        input: str,
+        *,
+        algorithms: list[str] | str | None = None,
+        encoding: str | None = None,
+        output_format: str | None = None,
+        **extra,
+    ) -> dict:
+        args = {"input": input, **extra}
+        if algorithms is not None:
+            args["algorithms"] = algorithms
+        if encoding is not None:
+            args["encoding"] = encoding
+        if output_format is not None:
+            args["output_format"] = output_format
+        return self.call("hash", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -629,6 +647,7 @@ directory_enum = _delegate("directory_enum")
 file_read = _delegate("file_read")
 file_write = _delegate("file_write")
 decode = _delegate("decode")
+hash = _delegate("hash")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -667,4 +686,5 @@ __all__ = [
     "file_read",
     "file_write",
     "decode",
+    "hash",
 ]
