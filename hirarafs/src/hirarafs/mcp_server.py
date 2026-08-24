@@ -1,4 +1,4 @@
-"""MCP front end — agents read files from allowlisted paths.
+"""MCP front end — agents read/write files on allowlisted paths.
 
 Run over stdio for Claude Code / Claude Desktop / Cursor::
 
@@ -21,9 +21,9 @@ server = MCPServer(
     name="hirarafs",
     version="0.1.0",
     instructions=(
-        "Self-hosted filesystem tools, no API keys. Use file_read to read a "
-        "file from an allowlisted path. Content is utf-8 text when possible, "
-        "otherwise base64. Paths outside CFS_ROOTS are rejected."
+        "Self-hosted filesystem tools, no API keys. Use file_read / file_write "
+        "on allowlisted paths. Content is utf-8 text when possible, otherwise "
+        "base64. Paths outside CFS_ROOTS are rejected."
     ),
 )
 
@@ -57,6 +57,45 @@ async def file_read_tool(
         encoding=encoding,
         max_bytes=max_bytes,
         offset=offset,
+    )
+
+
+@server.tool(
+    name="file_write",
+    description=(
+        "Write content to a local file under configured roots. utf-8 text by "
+        "default, or base64 for binary. Optional append, create_parents, "
+        "overwrite."
+    ),
+)
+async def file_write_tool(
+    path: str,
+    content: str,
+    encoding: str | None = None,
+    append: bool = False,
+    create_parents: bool = False,
+    overwrite: bool = True,
+    max_bytes: int | None = None,
+) -> dict:
+    """Write a file on the local filesystem.
+
+    Args:
+        path: Absolute or relative path to write.
+        content: Text or base64 contents.
+        encoding: utf-8, ascii, latin-1, or base64.
+        append: Append instead of replace.
+        create_parents: Create missing parent directories.
+        overwrite: When false, refuse to replace an existing file.
+        max_bytes: Cap on encoded content size.
+    """
+    return await _toolset.file_write(
+        path=path,
+        content=content,
+        encoding=encoding,
+        append=append,
+        create_parents=create_parents,
+        overwrite=overwrite,
+        max_bytes=max_bytes,
     )
 
 

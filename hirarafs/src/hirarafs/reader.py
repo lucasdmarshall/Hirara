@@ -9,9 +9,9 @@ from __future__ import annotations
 import base64
 import mimetypes
 from dataclasses import dataclass
-from pathlib import Path
 
 from .config import FsConfig
+from .paths import PathError, resolve_existing_file
 
 _TEXT_ENCODINGS = frozenset({"utf-8", "utf8", "ascii", "latin-1", "latin1", "cp1252"})
 _BINARY_ENCODINGS = frozenset({"base64", "b64"})
@@ -64,53 +64,12 @@ def _normalize_encoding(raw: str | None, default: str) -> str:
     return value
 
 
-def _parse_roots(config: FsConfig) -> list[Path]:
-    roots: list[Path] = []
-    for item in config.roots:
-        cleaned = (item or "").strip()
-        if not cleaned:
-            continue
-        roots.append(Path(cleaned).expanduser().resolve())
-    return roots
-
-
-def _under_root(resolved: Path, roots: list[Path]) -> bool:
-    for root in roots:
-        try:
-            resolved.relative_to(root)
-            return True
-        except ValueError:
-            continue
-    return False
-
-
-def resolve_path(path: str, *, config: FsConfig) -> Path:
+def resolve_path(path: str, *, config: FsConfig):
     """Expand, resolve, and gate ``path`` against configured roots."""
-    cleaned = (path or "").strip()
-    if not cleaned:
-        raise ReadError("path is required")
-
-    roots = _parse_roots(config)
-    if not roots and not config.allow_any_path:
-        raise ReadError(
-            "no filesystem roots configured (set CFS_ROOTS or CFS_ALLOW_ANY_PATH)"
-        )
-
-    candidate = Path(cleaned).expanduser()
     try:
-        resolved = candidate.resolve(strict=True)
-    except FileNotFoundError as exc:
-        raise ReadError(f"file not found: {cleaned}") from exc
-    except OSError as exc:
-        raise ReadError(f"cannot resolve path: {exc}") from exc
-
-    if not resolved.is_file():
-        raise ReadError(f"not a regular file: {resolved}")
-
-    if roots and not _under_root(resolved, roots):
-        raise ReadError(f"path is outside allowed roots: {resolved}")
-
-    return resolved
+        return resolve_existing_file(path, config=config)
+    except PathError as exc:
+        raise ReadError(str(exc)) from exc
 
 
 def file_read(

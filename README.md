@@ -59,6 +59,7 @@ to be inspected.
 | **`inspect_response`** | ✅ shipped | Summarize status and body structure — [`hirarahttp/`](hirarahttp/) |
 | **`directory_enum`** | ✅ shipped | Probe a base URL for existing paths — [`hirarahttp/`](hirarahttp/) |
 | **`file_read`** | ✅ shipped | Read a local file (text or base64) — [`hirarafs/`](hirarafs/) |
+| **`file_write`** | ✅ shipped | Write / create / append a local file — [`hirarafs/`](hirarafs/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

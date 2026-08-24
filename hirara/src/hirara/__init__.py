@@ -45,6 +45,7 @@ from .client import (
     inspect_response,
     directory_enum,
     file_read,
+    file_write,
     tools,
     web_fetch,
     web_search,
@@ -81,6 +82,7 @@ __all__ = [
     "inspect_response",
     "directory_enum",
     "file_read",
+    "file_write",
 ]
 
 __version__ = "0.2.0"

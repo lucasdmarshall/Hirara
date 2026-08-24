@@ -2,7 +2,7 @@
 
 # Hirarafs
 
-**Self-hosted filesystem tools for AI agents — read files from allowlisted paths.**
+**Self-hosted filesystem tools for AI agents — read and write allowlisted paths.**
 
 Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths are gated by
 `CFS_ROOTS`; the Docker image only serves files under `/data`.
@@ -16,7 +16,7 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths are gated by
 | Tool | Status | What it does |
 |---|---|---|
 | **`file_read`** | ✅ shipped | Read a file → text or base64 |
-| `file_write` | 📋 planned | Write / create a file |
+| **`file_write`** | ✅ shipped | Write / create / append a file |
 
 ---
 
@@ -51,6 +51,26 @@ curl -X POST localhost:8900/file_read -H 'content-type: application/json' \
 }
 ```
 
+**Write** a file:
+
+```bash
+curl -X POST localhost:8900/file_write -H 'content-type: application/json' \
+  -d '{"path":"/tmp/hello.txt","content":"hello\n"}'
+```
+
+```json
+{
+  "path": "/tmp/hello.txt",
+  "resolved_path": "/tmp/hello.txt",
+  "bytes_written": 6,
+  "size": 6,
+  "encoding": "utf-8",
+  "created": true,
+  "appended": false,
+  "error": null
+}
+```
+
 Binary / explicit base64:
 
 ```bash
@@ -77,11 +97,13 @@ CFS_DATA=/path/to/workspace docker compose up -d --build
 | Variable | Default | Notes |
 |---|---|---|
 | `CFS_MAX_BYTES` | `2000000` | Cap on bytes returned per read |
+| `CFS_MAX_WRITE_BYTES` | `2000000` | Cap on bytes accepted per write |
 | `CFS_ROOTS` | _(empty)_ / `/data` (image) | Comma/colon-separated allowlisted roots |
 | `CFS_ALLOW_ANY_PATH` | `true` (lib) / `false` (image) | Allow any path when roots are empty |
-| `CFS_DEFAULT_ENCODING` | `auto` | `auto`, `utf-8`, `ascii`, `latin-1`, or `base64` |
+| `CFS_ALLOW_WRITE` | `true` | When false, `file_write` returns an error |
+| `CFS_DEFAULT_ENCODING` | `auto` | Read default: `auto`, `utf-8`, `ascii`, `latin-1`, or `base64` |
 | `CFS_PORT` | `8900` | Compose host port |
-| `CFS_DATA` | `./data` | Host dir mounted read-only at `/data` |
+| `CFS_DATA` | `./data` | Host dir mounted at `/data` |
 
 ---
 

@@ -13,11 +13,13 @@ services:
     restart: unless-stopped
     environment:
       - CFS_MAX_BYTES=${CFS_MAX_BYTES:-2000000}
+      - CFS_MAX_WRITE_BYTES=${CFS_MAX_WRITE_BYTES:-2000000}
       - CFS_ROOTS=${CFS_ROOTS:-/data}
       - CFS_ALLOW_ANY_PATH=${CFS_ALLOW_ANY_PATH:-false}
+      - CFS_ALLOW_WRITE=${CFS_ALLOW_WRITE:-true}
       - CFS_DEFAULT_ENCODING=${CFS_DEFAULT_ENCODING:-auto}
     volumes:
-      - ${CFS_DATA:-./data}:/data:ro
+      - ${CFS_DATA:-./data}:/data
     ports:
       - "127.0.0.1:${CFS_PORT:-8900}:8900"
     networks:

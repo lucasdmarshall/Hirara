@@ -33,6 +33,18 @@ class FileReadRequest(BaseModel):
     offset: int = 0
 
 
+class FileWriteRequest(BaseModel):
+    """JSON body for file_write."""
+
+    path: str
+    content: str
+    encoding: str | None = None
+    append: bool = False
+    create_parents: bool = False
+    overwrite: bool = True
+    max_bytes: int | None = None
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -53,4 +65,17 @@ async def file_read_endpoint(request: FileReadRequest) -> dict:
         encoding=request.encoding,
         max_bytes=request.max_bytes,
         offset=request.offset,
+    )
+
+
+@app.post("/file_write")
+async def file_write_endpoint(request: FileWriteRequest) -> dict:
+    return await _toolset.file_write(
+        path=request.path,
+        content=request.content,
+        encoding=request.encoding,
+        append=request.append,
+        create_parents=request.create_parents,
+        overwrite=request.overwrite,
+        max_bytes=request.max_bytes,
     )

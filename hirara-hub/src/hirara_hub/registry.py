@@ -70,6 +70,7 @@ TOOLS: dict[str, ToolRoute] = {
     ),
     "directory_enum": ToolRoute("directory_enum", "hirarahttp", "/directory_enum"),
     "file_read": ToolRoute("file_read", "hirarafs", "/file_read"),
+    "file_write": ToolRoute("file_write", "hirarafs", "/file_write"),
 }
 
 

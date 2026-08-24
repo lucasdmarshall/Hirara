@@ -1,7 +1,7 @@
 [project]
 name = "hirarafs"
 version = "0.1.0"
-description = "Self-hosted filesystem tools for AI agents — file_read first, over HTTP and MCP"
+description = "Self-hosted filesystem tools for AI agents — file_read / file_write over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

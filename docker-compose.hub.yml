@@ -80,7 +80,7 @@ services:
   hirarafs:
     build: { context: ., dockerfile: hirarafs/Dockerfile }
     restart: unless-stopped
-    volumes: [fs-data:/data:ro]
+    volumes: [fs-data:/data]
     networks: [hirara]
 
   # hirarastt (Whisper STT) is still experimental and heavy (downloads a

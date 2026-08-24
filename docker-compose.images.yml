@@ -78,7 +78,7 @@ services:
   hirarafs:
     image: ghcr.io/lucasdmarshall/hirara-fs:${HIRARA_TAG:-latest}
     restart: unless-stopped
-    volumes: [fs-data:/data:ro]
+    volumes: [fs-data:/data]
     networks: [hirara]
 
   hub:

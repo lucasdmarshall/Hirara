@@ -529,6 +529,32 @@ class Client:
             args["max_bytes"] = max_bytes
         return self.call("file_read", args)
 
+    def file_write(
+        self,
+        path: str,
+        content: str,
+        *,
+        encoding: str | None = None,
+        append: bool = False,
+        create_parents: bool = False,
+        overwrite: bool = True,
+        max_bytes: int | None = None,
+        **extra,
+    ) -> dict:
+        args = {
+            "path": path,
+            "content": content,
+            "append": append,
+            "create_parents": create_parents,
+            "overwrite": overwrite,
+            **extra,
+        }
+        if encoding is not None:
+            args["encoding"] = encoding
+        if max_bytes is not None:
+            args["max_bytes"] = max_bytes
+        return self.call("file_write", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -592,6 +618,7 @@ inspect_cookies = _delegate("inspect_cookies")
 inspect_response = _delegate("inspect_response")
 directory_enum = _delegate("directory_enum")
 file_read = _delegate("file_read")
+file_write = _delegate("file_write")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -628,4 +655,5 @@ __all__ = [
     "inspect_response",
     "directory_enum",
     "file_read",
+    "file_write",
 ]
