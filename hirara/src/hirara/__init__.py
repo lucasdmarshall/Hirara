@@ -48,6 +48,7 @@ from .client import (
     file_write,
     decode,
     hash,
+    database_query,
     tools,
     web_fetch,
     web_search,
@@ -87,6 +88,7 @@ __all__ = [
     "file_write",
     "decode",
     "hash",
+    "database_query",
 ]
 
 __version__ = "0.2.0"

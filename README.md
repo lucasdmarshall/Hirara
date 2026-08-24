@@ -62,6 +62,7 @@ to be inspected.
 | **`file_write`** | ✅ shipped | Write / create / append a local file — [`hirarafs/`](hirarafs/) |
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode — [`hirarautil/`](hirarautil/) |
 | **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) — [`hirarautil/`](hirarautil/) |
+| **`database_query`** | ✅ shipped | Run SQL on SQLite (read-only by default) — [`hiraradb/`](hiraradb/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

@@ -57,6 +57,7 @@ jobs:
           - { name: hirarahttp, path: hirarahttp, environment: pypi-http }
           - { name: hirarafs, path: hirarafs, environment: pypi-fs }
           - { name: hirarautil, path: hirarautil, environment: pypi-util }
+          - { name: hiraradb, path: hiraradb, environment: pypi-db }
           - { name: hirara, path: hirara, environment: pypi-sdk }
     steps:
       - uses: actions/checkout@v4

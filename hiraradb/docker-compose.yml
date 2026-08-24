@@ -1,0 +1,42 @@
+# HiraraDb — self-hosted SQLite query tools for agents (HTTP + MCP).
+#
+# v1: database_query. Bound to loopback. Mount DB files under /data.
+
+name: hiraradb
+
+services:
+  hiraradb:
+    build:
+      context: ..
+      dockerfile: hiraradb/Dockerfile
+    restart: unless-stopped
+    environment:
+      - CDB_PATH=${CDB_PATH:-/data/app.db}
+      - CDB_DATABASES=${CDB_DATABASES:-}
+      - CDB_READONLY=${CDB_READONLY:-true}
+      - CDB_ROOTS=${CDB_ROOTS:-/data}
+      - CDB_ALLOW_ANY_PATH=${CDB_ALLOW_ANY_PATH:-false}
+      - CDB_MAX_ROWS=${CDB_MAX_ROWS:-1000}
+      - CDB_MAX_SQL_CHARS=${CDB_MAX_SQL_CHARS:-100000}
+      - CDB_TIMEOUT=${CDB_TIMEOUT:-30}
+    volumes:
+      - ${CDB_DATA:-./data}:/data:ro
+    ports:
+      - "127.0.0.1:${CDB_PORT:-9100}:9100"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9100/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge

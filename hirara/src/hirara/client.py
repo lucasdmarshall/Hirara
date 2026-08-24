@@ -582,6 +582,30 @@ class Client:
             args["output_format"] = output_format
         return self.call("hash", args)
 
+    def database_query(
+        self,
+        sql: str,
+        *,
+        params: list | dict | None = None,
+        database: str | None = None,
+        path: str | None = None,
+        max_rows: int | None = None,
+        readonly: bool | None = None,
+        **extra,
+    ) -> dict:
+        args = {"sql": sql, **extra}
+        if params is not None:
+            args["params"] = params
+        if database is not None:
+            args["database"] = database
+        if path is not None:
+            args["path"] = path
+        if max_rows is not None:
+            args["max_rows"] = max_rows
+        if readonly is not None:
+            args["readonly"] = readonly
+        return self.call("database_query", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -648,6 +672,7 @@ file_read = _delegate("file_read")
 file_write = _delegate("file_write")
 decode = _delegate("decode")
 hash = _delegate("hash")
+database_query = _delegate("database_query")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -687,4 +712,5 @@ __all__ = [
     "file_write",
     "decode",
     "hash",
+    "database_query",
 ]

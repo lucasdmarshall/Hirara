@@ -22,6 +22,7 @@ _URLS = {
     "hirarahttp": "http://hirarahttp",
     "hirarafs": "http://hirarafs",
     "hirarautil": "http://hirarautil",
+    "hiraradb": "http://hiraradb",
 }
 
 # Which services are "up" in a given test, and what their /schemas returns.
@@ -114,4 +115,5 @@ def test_every_tool_has_a_route():
         "inspect_response", "directory_enum",
         "file_read", "file_write",
         "decode", "hash",
+        "database_query",
     }
