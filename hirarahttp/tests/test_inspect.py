@@ -8,6 +8,7 @@ from hirarahttp.inspect import (
     inspect_headers_from_entry,
     inspect_headers_from_maps,
     inspect_headers_result_to_dict,
+    inspect_response_from_parts,
     parse_cookie_header,
     parse_set_cookie,
     split_set_cookie,
@@ -124,3 +125,49 @@ def test_inspect_cookies_from_maps():
     assert cookie.name == "sess"
     assert cookie.secure is True
     assert cookie.flags_missing == []
+
+
+def test_inspect_response_json():
+    result = inspect_response_from_parts(
+        status=200,
+        reason="OK",
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        body='{"a":1,"b":[2,3]}',
+        include_body=True,
+    )
+    assert result.error is None
+    assert result.ok is True
+    assert result.status_class == "2xx"
+    assert result.body_kind == "json"
+    assert result.json_type == "object"
+    assert result.json_keys == ["a", "b"]
+    assert result.json == {"a": 1, "b": [2, 3]}
+    assert result.charset == "utf-8"
+    assert result.body is not None
+
+
+def test_inspect_response_html_title():
+    result = inspect_response_from_parts(
+        status=404,
+        headers={"Content-Type": "text/html"},
+        body="<html><head><title> Not Found </title></head></html>",
+        include_body=False,
+        preview_chars=20,
+    )
+    assert result.ok is False
+    assert result.status_class == "4xx"
+    assert result.body_kind == "html"
+    assert result.html_title == "Not Found"
+    assert result.body is None
+    assert result.preview == "<html><head><title> "
+
+
+def test_inspect_response_json_error():
+    result = inspect_response_from_parts(
+        status=200,
+        headers={"Content-Type": "application/json"},
+        body="{not json",
+    )
+    assert result.body_kind == "json"
+    assert result.json_error
+    assert result.json is None

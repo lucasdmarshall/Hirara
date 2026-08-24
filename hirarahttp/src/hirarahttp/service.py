@@ -116,3 +116,28 @@ async def inspect_cookies_endpoint(request: InspectCookiesBody) -> dict:
         which=request.which,
         headers=request.headers,
     )
+
+
+class InspectResponseBody(BaseModel):
+    """JSON body for inspect_response."""
+
+    id: str | None = None
+    include_body: bool = False
+    preview_chars: int = 512
+    status: int | None = None
+    body: str | None = None
+    headers: dict[str, str] | None = None
+    body_encoding: str | None = None
+
+
+@app.post("/inspect_response")
+async def inspect_response_endpoint(request: InspectResponseBody) -> dict:
+    return await _toolset.inspect_response(
+        id=request.id,
+        include_body=request.include_body,
+        preview_chars=request.preview_chars,
+        status=request.status,
+        body=request.body,
+        headers=request.headers,
+        body_encoding=request.body_encoding,
+    )

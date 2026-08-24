@@ -4,7 +4,7 @@ Both front ends (HTTP service and MCP server) call into here, so the two can
 never drift apart in behaviour — only in transport.
 
 Tools: ``http_request``, ``http_history``, ``inspect_headers``,
-``inspect_cookies``.
+``inspect_cookies``, ``inspect_response``.
 """
 
 from __future__ import annotations
@@ -21,6 +21,9 @@ from .inspect import (
     inspect_headers_from_entry,
     inspect_headers_from_maps,
     inspect_headers_result_to_dict,
+    inspect_response_from_entry,
+    inspect_response_from_parts,
+    inspect_response_result_to_dict,
 )
 from .request import http_request, result_to_dict
 
@@ -197,6 +200,55 @@ INSPECT_COOKIES_SCHEMA = {
 }
 
 
+INSPECT_RESPONSE_SCHEMA = {
+    "name": "inspect_response",
+    "description": (
+        "Summarize an HTTP response from a recorded http_request (pass id) "
+        "or from raw status/body/headers. Returns status class, content-type, "
+        "body_kind (json/html/xml/text/binary/empty), JSON keys/length when "
+        "the body is JSON, an HTML title when present, and a short preview. "
+        "Pass include_body=true for the full body (and parsed json)."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "string",
+                "description": "History request_id from http_request / http_history.",
+            },
+            "include_body": {
+                "type": "boolean",
+                "description": "Include full body (and parsed json) in the result.",
+            },
+            "preview_chars": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8000,
+                "description": "Preview length (default 512).",
+            },
+            "status": {
+                "type": "integer",
+                "description": "HTTP status when id is omitted.",
+            },
+            "body": {
+                "type": "string",
+                "description": "Response body when id is omitted.",
+            },
+            "headers": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": "Response headers when id is omitted.",
+            },
+            "body_encoding": {
+                "type": "string",
+                "description": "utf-8 or base64 when passing a raw body.",
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
 def _request_envelope(**overrides) -> dict:
     envelope = {
         "request_id": None,
@@ -261,6 +313,42 @@ def _inspect_cookies_envelope(**overrides) -> dict:
     return envelope
 
 
+def _inspect_response_envelope(**overrides) -> dict:
+    envelope = {
+        "request_id": None,
+        "url": None,
+        "final_url": None,
+        "method": None,
+        "status": None,
+        "reason": None,
+        "status_class": None,
+        "ok": None,
+        "content_type": None,
+        "charset": None,
+        "location": None,
+        "body_kind": None,
+        "body_chars": None,
+        "bytes_downloaded": None,
+        "truncated": False,
+        "body_stored": True,
+        "body_encoding": None,
+        "json_type": None,
+        "json_keys": None,
+        "json_length": None,
+        "json_error": None,
+        "json": None,
+        "html_title": None,
+        "preview": None,
+        "body": None,
+        "redirects": [],
+        "redirect_count": 0,
+        "elapsed_ms": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 @dataclass
 class Toolset:
     """HTTP tools sharing one config + history store."""
@@ -285,6 +373,7 @@ class Toolset:
             HTTP_HISTORY_SCHEMA,
             INSPECT_HEADERS_SCHEMA,
             INSPECT_COOKIES_SCHEMA,
+            INSPECT_RESPONSE_SCHEMA,
         ]
 
     def health(self) -> dict:
@@ -296,6 +385,7 @@ class Toolset:
                 "http_history",
                 "inspect_headers",
                 "inspect_cookies",
+                "inspect_response",
             ],
             "max_bytes": self.config.max_bytes,
             "max_redirects": self.config.max_redirects,
@@ -481,12 +571,59 @@ class Toolset:
                 error=f"inspect_cookies failed: {exc}",
             )
 
+    async def inspect_response(
+        self,
+        *,
+        id: str | None = None,
+        include_body: bool = False,
+        preview_chars: int = 512,
+        status: int | None = None,
+        body: str | None = None,
+        headers: dict[str, str] | None = None,
+        body_encoding: str | None = None,
+    ) -> dict:
+        try:
+            sid = (id or "").strip() if id is not None else ""
+            if sid:
+                assert self.history is not None
+                entry = self.history.get(sid)
+                if entry is None:
+                    return _inspect_response_envelope(
+                        error=f"unknown history id: {id}",
+                    )
+                result = inspect_response_from_entry(
+                    entry,
+                    include_body=include_body,
+                    preview_chars=preview_chars,
+                )
+                return inspect_response_result_to_dict(result)
+
+            if status is None and body is None and not headers:
+                return _inspect_response_envelope(
+                    error="id or status/body/headers is required",
+                )
+            result = inspect_response_from_parts(
+                status=status,
+                headers=headers,
+                body=body,
+                body_encoding=body_encoding,
+                include_body=include_body,
+                preview_chars=preview_chars,
+            )
+            return inspect_response_result_to_dict(result)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("inspect_response failed")
+            return _inspect_response_envelope(
+                error=f"inspect_response failed: {exc}",
+            )
+
 
 __all__ = [
     "HTTP_REQUEST_SCHEMA",
     "HTTP_HISTORY_SCHEMA",
     "INSPECT_HEADERS_SCHEMA",
     "INSPECT_COOKIES_SCHEMA",
+    "INSPECT_RESPONSE_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -499,6 +636,7 @@ TOOL_NAMES = (
     "http_history",
     "inspect_headers",
     "inspect_cookies",
+    "inspect_response",
 )
 _local_toolset: "Toolset | None" = None
 
@@ -520,6 +658,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
         return await _backend().inspect_headers(**args)
     if name == "inspect_cookies":
         return await _backend().inspect_cookies(**args)
+    if name == "inspect_response":
+        return await _backend().inspect_response(**args)
     raise KeyError(f"unknown tool: {name}")
 
 

@@ -64,6 +64,9 @@ TOOLS: dict[str, ToolRoute] = {
     "inspect_cookies": ToolRoute(
         "inspect_cookies", "hirarahttp", "/inspect_cookies"
     ),
+    "inspect_response": ToolRoute(
+        "inspect_response", "hirarahttp", "/inspect_response"
+    ),
 }
 
 

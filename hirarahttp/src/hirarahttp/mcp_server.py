@@ -23,8 +23,8 @@ server = MCPServer(
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
         "HTTP request, http_history to list recent calls, inspect_headers "
-        "to analyze headers, and inspect_cookies to parse Cookie / "
-        "Set-Cookie from a request_id or raw map. "
+        "and inspect_cookies for structured views, and inspect_response to "
+        "summarize status and body kind from a request_id or raw payload. "
         "URLs and redirect hops go through Hirara's SSRF perimeter."
     ),
 )
@@ -150,6 +150,45 @@ async def inspect_cookies_tool(
         headers: Raw header map when id is omitted.
     """
     return await _toolset.inspect_cookies(id=id, which=which, headers=headers)
+
+
+@server.tool(
+    name="inspect_response",
+    description=(
+        "Summarize an HTTP response from a recorded request (id) or raw "
+        "status/body/headers. Returns status class, body_kind, JSON keys, "
+        "HTML title, and a preview. Pass include_body=true for the full body."
+    ),
+)
+async def inspect_response_tool(
+    id: str | None = None,
+    include_body: bool = False,
+    preview_chars: int = 512,
+    status: int | None = None,
+    body: str | None = None,
+    headers: dict[str, str] | None = None,
+    body_encoding: str | None = None,
+) -> dict:
+    """Summarize status and body structure.
+
+    Args:
+        id: History request_id.
+        include_body: Include full body and parsed json.
+        preview_chars: Preview length.
+        status: Raw status when id is omitted.
+        body: Raw body when id is omitted.
+        headers: Raw response headers when id is omitted.
+        body_encoding: utf-8 or base64 for a raw body.
+    """
+    return await _toolset.inspect_response(
+        id=id,
+        include_body=include_body,
+        preview_chars=preview_chars,
+        status=status,
+        body=body,
+        headers=headers,
+        body_encoding=body_encoding,
+    )
 
 
 def main() -> None:

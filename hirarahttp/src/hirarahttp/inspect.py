@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -544,14 +545,265 @@ def inspect_cookies_result_to_dict(result: InspectCookiesResult) -> dict[str, An
     }
 
 
+# --- response body / status -------------------------------------------------
+
+_TITLE_RE = re.compile(
+    r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL
+)
+_JSON_MAX_KEYS = 50
+_DEFAULT_PREVIEW = 512
+_MAX_PREVIEW = 8000
+
+
+def status_class_for(code: int | None) -> str | None:
+    if code is None:
+        return None
+    bucket = int(code) // 100
+    return {1: "1xx", 2: "2xx", 3: "3xx", 4: "4xx", 5: "5xx"}.get(bucket, "unknown")
+
+
+def _charset_from_content_type(content_type: str | None) -> str | None:
+    if not content_type:
+        return None
+    ct = content_type.lower()
+    if "charset=" not in ct:
+        return None
+    return ct.split("charset=", 1)[1].split(";")[0].strip().strip("\"'") or None
+
+
+def _media_type(content_type: str | None) -> str | None:
+    if not content_type:
+        return None
+    return content_type.split(";", 1)[0].strip().lower() or None
+
+
+def classify_body_kind(
+    *,
+    content_type: str | None,
+    body: str | None,
+    body_encoding: str | None,
+) -> str:
+    if body_encoding == "base64":
+        return "binary"
+    if body is None or body == "":
+        return "empty"
+    media = _media_type(content_type) or ""
+    stripped = body.lstrip()
+    if media.endswith("+json") or media in {"application/json", "text/json"}:
+        return "json"
+    if "html" in media:
+        return "html"
+    if "xml" in media or media.endswith("+xml"):
+        return "xml"
+    if media.startswith("text/") or media in {
+        "application/javascript",
+        "application/x-www-form-urlencoded",
+    }:
+        return "text"
+    if stripped[:1] in "{[":
+        return "json"
+    if stripped[:1] == "<":
+        lower = stripped[:64].lower()
+        if "html" in lower or lower.startswith("<!doctype"):
+            return "html"
+        return "xml"
+    if media:
+        return "unknown"
+    return "text"
+
+
+def _json_shape(value: Any) -> tuple[str, list[str] | None, int | None]:
+    if value is None:
+        return "null", None, None
+    if isinstance(value, bool):
+        return "boolean", None, None
+    if isinstance(value, (int, float)):
+        return "number", None, None
+    if isinstance(value, str):
+        return "string", None, len(value)
+    if isinstance(value, list):
+        return "array", None, len(value)
+    if isinstance(value, dict):
+        keys = [str(k) for k in list(value.keys())[:_JSON_MAX_KEYS]]
+        return "object", keys, len(value)
+    return type(value).__name__, None, None
+
+
+@dataclass
+class InspectResponseResult:
+    request_id: str | None = None
+    url: str | None = None
+    final_url: str | None = None
+    method: str | None = None
+    status: int | None = None
+    reason: str | None = None
+    status_class: str | None = None
+    ok: bool | None = None
+    content_type: str | None = None
+    charset: str | None = None
+    location: str | None = None
+    body_kind: str | None = None
+    body_chars: int | None = None
+    bytes_downloaded: int | None = None
+    truncated: bool = False
+    body_stored: bool = True
+    body_encoding: str | None = None
+    json_type: str | None = None
+    json_keys: list[str] | None = None
+    json_length: int | None = None
+    json_error: str | None = None
+    json: Any = None
+    html_title: str | None = None
+    preview: str | None = None
+    body: str | None = None
+    redirects: list[str] = field(default_factory=list)
+    redirect_count: int = 0
+    elapsed_ms: int | None = None
+    error: str | None = None
+
+
+def inspect_response_from_parts(
+    *,
+    status: int | None = None,
+    reason: str | None = None,
+    headers: dict[str, str] | None = None,
+    body: str | None = None,
+    body_encoding: str | None = None,
+    truncated: bool = False,
+    body_stored: bool = True,
+    bytes_downloaded: int | None = None,
+    include_body: bool = False,
+    preview_chars: int = _DEFAULT_PREVIEW,
+    request_id: str | None = None,
+    url: str | None = None,
+    final_url: str | None = None,
+    method: str | None = None,
+    redirects: list[str] | None = None,
+    elapsed_ms: int | None = None,
+) -> InspectResponseResult:
+    by_name = {k.lower(): v for k, v in (headers or {}).items() if isinstance(k, str) and isinstance(v, str)}
+    content_type = by_name.get("content-type")
+    preview_n = max(0, min(int(preview_chars), _MAX_PREVIEW))
+    kind = classify_body_kind(
+        content_type=content_type, body=body, body_encoding=body_encoding
+    )
+    result = InspectResponseResult(
+        request_id=request_id,
+        url=url,
+        final_url=final_url,
+        method=method,
+        status=status,
+        reason=reason,
+        status_class=status_class_for(status),
+        ok=None if status is None else 200 <= int(status) < 300,
+        content_type=content_type,
+        charset=_charset_from_content_type(content_type),
+        location=by_name.get("location"),
+        body_kind=kind,
+        body_chars=len(body) if isinstance(body, str) else None,
+        bytes_downloaded=bytes_downloaded,
+        truncated=truncated,
+        body_stored=body_stored,
+        body_encoding=body_encoding,
+        redirects=list(redirects or []),
+        redirect_count=len(redirects or []),
+        elapsed_ms=elapsed_ms,
+    )
+    if kind == "json" and isinstance(body, str) and body_encoding != "base64":
+        try:
+            parsed = json.loads(body)
+            jtype, keys, length = _json_shape(parsed)
+            result.json_type = jtype
+            result.json_keys = keys
+            result.json_length = length
+            if include_body:
+                result.json = parsed
+        except json.JSONDecodeError as exc:
+            result.json_error = str(exc)
+    if kind == "html" and isinstance(body, str):
+        match = _TITLE_RE.search(body)
+        if match:
+            title = re.sub(r"\s+", " ", match.group(1)).strip()
+            result.html_title = title[:200] or None
+    if isinstance(body, str) and preview_n and body_encoding != "base64":
+        result.preview = body[:preview_n]
+    elif isinstance(body, str) and preview_n and body_encoding == "base64":
+        result.preview = body[:preview_n]
+    if include_body:
+        result.body = body
+    return result
+
+
+def inspect_response_from_entry(
+    entry: HistoryEntry,
+    *,
+    include_body: bool = False,
+    preview_chars: int = _DEFAULT_PREVIEW,
+) -> InspectResponseResult:
+    return inspect_response_from_parts(
+        status=entry.status,
+        reason=entry.reason,
+        headers=entry.response_headers,
+        body=entry.body,
+        body_encoding=entry.body_encoding,
+        truncated=entry.truncated,
+        body_stored=entry.body_stored,
+        bytes_downloaded=entry.bytes_downloaded,
+        include_body=include_body,
+        preview_chars=preview_chars,
+        request_id=entry.id,
+        url=entry.url,
+        final_url=entry.final_url,
+        method=entry.method,
+        redirects=entry.redirects,
+        elapsed_ms=entry.elapsed_ms,
+    )
+
+
+def inspect_response_result_to_dict(result: InspectResponseResult) -> dict[str, Any]:
+    return {
+        "request_id": result.request_id,
+        "url": result.url,
+        "final_url": result.final_url,
+        "method": result.method,
+        "status": result.status,
+        "reason": result.reason,
+        "status_class": result.status_class,
+        "ok": result.ok,
+        "content_type": result.content_type,
+        "charset": result.charset,
+        "location": result.location,
+        "body_kind": result.body_kind,
+        "body_chars": result.body_chars,
+        "bytes_downloaded": result.bytes_downloaded,
+        "truncated": result.truncated,
+        "body_stored": result.body_stored,
+        "body_encoding": result.body_encoding,
+        "json_type": result.json_type,
+        "json_keys": list(result.json_keys) if result.json_keys is not None else None,
+        "json_length": result.json_length,
+        "json_error": result.json_error,
+        "json": result.json,
+        "html_title": result.html_title,
+        "preview": result.preview,
+        "body": result.body,
+        "redirects": list(result.redirects),
+        "redirect_count": result.redirect_count,
+        "elapsed_ms": result.elapsed_ms,
+        "error": result.error,
+    }
+
+
 __all__ = [
     "CookieRecord",
     "CookieView",
     "HeaderView",
     "InspectCookiesResult",
     "InspectHeadersResult",
+    "InspectResponseResult",
     "build_cookie_view_from_headers",
     "build_header_view",
+    "classify_body_kind",
     "cookie_record_to_dict",
     "cookie_view_to_dict",
     "header_view_to_dict",
@@ -561,7 +813,11 @@ __all__ = [
     "inspect_headers_from_entry",
     "inspect_headers_from_maps",
     "inspect_headers_result_to_dict",
+    "inspect_response_from_entry",
+    "inspect_response_from_parts",
+    "inspect_response_result_to_dict",
     "parse_cookie_header",
     "parse_set_cookie",
     "split_set_cookie",
+    "status_class_for",
 ]

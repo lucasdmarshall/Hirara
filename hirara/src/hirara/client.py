@@ -463,6 +463,31 @@ class Client:
             args["headers"] = headers
         return self.call("inspect_cookies", args)
 
+    def inspect_response(
+        self,
+        *,
+        id: str | None = None,
+        include_body: bool = False,
+        preview_chars: int = 512,
+        status: int | None = None,
+        body: str | None = None,
+        headers: dict[str, str] | None = None,
+        body_encoding: str | None = None,
+        **extra,
+    ) -> dict:
+        args = {"include_body": include_body, "preview_chars": preview_chars, **extra}
+        if id is not None:
+            args["id"] = id
+        if status is not None:
+            args["status"] = status
+        if body is not None:
+            args["body"] = body
+        if headers is not None:
+            args["headers"] = headers
+        if body_encoding is not None:
+            args["body_encoding"] = body_encoding
+        return self.call("inspect_response", args)
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -523,6 +548,7 @@ http_request = _delegate("http_request")
 http_history = _delegate("http_history")
 inspect_headers = _delegate("inspect_headers")
 inspect_cookies = _delegate("inspect_cookies")
+inspect_response = _delegate("inspect_response")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -556,4 +582,5 @@ __all__ = [
     "http_history",
     "inspect_headers",
     "inspect_cookies",
+    "inspect_response",
 ]
