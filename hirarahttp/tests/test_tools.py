@@ -10,6 +10,7 @@ from hirarahttp.history import HistoryStore
 from hirarahttp.tools import (
     HTTP_HISTORY_SCHEMA,
     HTTP_REQUEST_SCHEMA,
+    INSPECT_COOKIES_SCHEMA,
     INSPECT_HEADERS_SCHEMA,
     Toolset,
 )
@@ -27,6 +28,10 @@ def test_schema_ready():
     assert INSPECT_HEADERS_SCHEMA["name"] == "inspect_headers"
     iprops = INSPECT_HEADERS_SCHEMA["input_schema"]["properties"]
     assert {"id", "which", "headers"} <= set(iprops)
+
+    assert INSPECT_COOKIES_SCHEMA["name"] == "inspect_cookies"
+    cprops = INSPECT_COOKIES_SCHEMA["input_schema"]["properties"]
+    assert {"id", "which", "headers"} <= set(cprops)
 
 
 @pytest.mark.asyncio
@@ -129,6 +134,59 @@ async def test_inspect_headers_raw_map():
 
 
 @pytest.mark.asyncio
+async def test_inspect_cookies_from_history(monkeypatch):
+    import socket
+
+    def resolver(host, port, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))]
+
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            200,
+            headers={
+                "content-type": "text/plain",
+                "set-cookie": "sid=abc; Path=/; HttpOnly; Secure; SameSite=Lax",
+            },
+            content=b"ok",
+        )
+    )
+
+    async def _wrapped(url, **kwargs):
+        from hirarahttp.request import http_request as real
+
+        kwargs.setdefault("resolver", resolver)
+        kwargs.setdefault("transport", transport)
+        return await real(url, **kwargs)
+
+    monkeypatch.setattr("hirarahttp.tools.http_request", _wrapped)
+
+    ts = Toolset(
+        config=HttpConfig(history_size=10),
+        history=HistoryStore(max_entries=10, max_body_chars=1000),
+    )
+    r = await ts.http_request(url="https://example.com/")
+    view = await ts.inspect_cookies(id=r["request_id"], which="response")
+    assert view["error"] is None
+    assert view["response"]["names"] == ["sid"]
+    cookie = view["response"]["cookies"][0]
+    assert cookie["httponly"] is True
+    assert cookie["secure"] is True
+    assert cookie["samesite"] == "Lax"
+    assert cookie["flags_missing"] == []
+
+
+@pytest.mark.asyncio
+async def test_inspect_cookies_raw_map():
+    ts = Toolset(config=HttpConfig())
+    view = await ts.inspect_cookies(
+        headers={"Cookie": "theme=dark; lang=en"},
+        which="request",
+    )
+    assert view["error"] is None
+    assert view["request"]["names"] == ["theme", "lang"]
+
+
+@pytest.mark.asyncio
 async def test_history_unknown_id():
     ts = Toolset(config=HttpConfig())
     r = await ts.http_history(id="nope")
@@ -139,5 +197,10 @@ def test_health():
     ts = Toolset(config=HttpConfig())
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["http_request", "http_history", "inspect_headers"]
+    assert h["tools"] == [
+        "http_request",
+        "http_history",
+        "inspect_headers",
+        "inspect_cookies",
+    ]
     assert h["history_count"] == 0

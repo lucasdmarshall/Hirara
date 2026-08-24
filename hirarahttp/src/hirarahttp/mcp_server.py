@@ -22,8 +22,9 @@ server = MCPServer(
     version="0.1.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
-        "HTTP request, http_history to list recent calls, and inspect_headers "
-        "to analyze request/response headers from a request_id or raw map. "
+        "HTTP request, http_history to list recent calls, inspect_headers "
+        "to analyze headers, and inspect_cookies to parse Cookie / "
+        "Set-Cookie from a request_id or raw map. "
         "URLs and redirect hops go through Hirara's SSRF perimeter."
     ),
 )
@@ -126,6 +127,29 @@ async def inspect_headers_tool(
         headers: Raw header map when id is omitted.
     """
     return await _toolset.inspect_headers(id=id, which=which, headers=headers)
+
+
+@server.tool(
+    name="inspect_cookies",
+    description=(
+        "Parse Cookie / Set-Cookie from a recorded request (id) or a raw "
+        "headers object. Returns name/value plus Set-Cookie attributes and "
+        "flags_missing (Secure, HttpOnly, SameSite)."
+    ),
+)
+async def inspect_cookies_tool(
+    id: str | None = None,
+    which: str = "response",
+    headers: dict[str, str] | None = None,
+) -> dict:
+    """Parse request or response cookies.
+
+    Args:
+        id: History request_id.
+        which: request / response / both.
+        headers: Raw header map when id is omitted.
+    """
+    return await _toolset.inspect_cookies(id=id, which=which, headers=headers)
 
 
 def main() -> None:

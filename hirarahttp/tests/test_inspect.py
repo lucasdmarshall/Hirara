@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from hirarahttp.history import HistoryEntry
 from hirarahttp.inspect import (
+    inspect_cookies_from_maps,
     inspect_headers_from_entry,
     inspect_headers_from_maps,
     inspect_headers_result_to_dict,
+    parse_cookie_header,
+    parse_set_cookie,
+    split_set_cookie,
 )
 
 
@@ -62,3 +66,61 @@ def test_both_from_entry():
 def test_bad_which():
     result = inspect_headers_from_maps(which="sideways")
     assert result.error and "which" in result.error
+
+
+def test_parse_cookie_header():
+    cookies = parse_cookie_header("session=abc; theme=dark")
+    assert [c.name for c in cookies] == ["session", "theme"]
+    assert cookies[0].value == "abc"
+
+
+def test_parse_set_cookie_flags():
+    rec = parse_set_cookie(
+        "session=tok; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600"
+    )
+    assert rec is not None
+    assert rec.name == "session"
+    assert rec.value == "tok"
+    assert rec.path == "/"
+    assert rec.secure is True
+    assert rec.httponly is True
+    assert rec.samesite == "Lax"
+    assert rec.max_age == 3600
+    assert rec.session is False
+    assert rec.flags_missing == []
+
+
+def test_set_cookie_flags_missing():
+    rec = parse_set_cookie("id=1; Path=/app")
+    assert rec is not None
+    assert rec.session is True
+    assert rec.flags_missing == ["Secure", "HttpOnly", "SameSite"]
+
+
+def test_split_set_cookie_keeps_expires_comma():
+    raw = (
+        "sid=abc; Expires=Wed, 21 Oct 2015 07:28:00 GMT; Path=/, "
+        "theme=dark; Path=/"
+    )
+    parts = split_set_cookie(raw)
+    assert len(parts) == 2
+    assert parts[0].startswith("sid=")
+    assert "Wed, 21 Oct" in parts[0]
+    assert parts[1].startswith("theme=")
+
+
+def test_inspect_cookies_from_maps():
+    result = inspect_cookies_from_maps(
+        request_headers={"Cookie": "a=1; b=2"},
+        response_headers={
+            "Set-Cookie": "sess=x; Path=/; Secure; HttpOnly; SameSite=Strict"
+        },
+        which="both",
+    )
+    assert result.error is None
+    assert result.request is not None and result.request.names == ["a", "b"]
+    assert result.response is not None
+    cookie = result.response.cookies[0]
+    assert cookie.name == "sess"
+    assert cookie.secure is True
+    assert cookie.flags_missing == []

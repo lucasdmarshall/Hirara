@@ -18,7 +18,8 @@ redirect hop) goes through [`hirara-core`](../hirara-core/) resolve-then-pin.
 | **`http_request`** | ✅ shipped | Send method/headers/body → status, headers, body |
 | **`http_history`** | ✅ shipped | List / fetch recent requests from this process |
 | **`inspect_headers`** | ✅ shipped | Structured view of request/response headers |
-| `inspect_cookies` / `inspect_response` | 📋 planned | Cookies / body structure |
+| **`inspect_cookies`** | ✅ shipped | Parse Cookie / Set-Cookie (flags, path, domain) |
+| `inspect_response` | 📋 planned | Body / status structure |
 | `request_replay` / `parameter_test` / `response_compare` | 📋 planned | Replay and compare |
 
 ---
@@ -77,6 +78,13 @@ curl -X POST localhost:8800/http_history -H 'content-type: application/json' \
 ```bash
 curl -X POST localhost:8800/inspect_headers -H 'content-type: application/json' \
   -d '{"id":"<request_id>","which":"both"}'
+```
+
+**Inspect cookies** (Cookie / Set-Cookie):
+
+```bash
+curl -X POST localhost:8800/inspect_cookies -H 'content-type: application/json' \
+  -d '{"id":"<request_id>","which":"response"}'
 ```
 
 MCP:

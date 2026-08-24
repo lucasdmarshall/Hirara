@@ -55,6 +55,7 @@ to be inspected.
 | **`http_request`** | ✅ shipped | Raw HTTP request (status/headers/body) — [`hirarahttp/`](hirarahttp/) |
 | **`http_history`** | ✅ shipped | List recent `http_request` calls — [`hirarahttp/`](hirarahttp/) |
 | **`inspect_headers`** | ✅ shipped | Structured header inspection — [`hirarahttp/`](hirarahttp/) |
+| **`inspect_cookies`** | ✅ shipped | Parse Cookie / Set-Cookie — [`hirarahttp/`](hirarahttp/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through
