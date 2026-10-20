@@ -29,7 +29,14 @@ _URLS = {
 # Which services are "up" in a given test, and what their /schemas returns.
 _SCHEMAS = {
     "hirarareader": {"tools": [{"name": "office_read"}]},
-    "hirarapdf": {"tools": [{"name": "pdf_read"}, {"name": "pdf_info"}, {"name": "pdf_create"}]},
+    "hirarapdf": {
+        "tools": [
+            {"name": "pdf_read"},
+            {"name": "pdf_info"},
+            {"name": "pdf_create"},
+            {"name": "html_to_pdf"},
+        ]
+    },
 }
 
 
@@ -60,7 +67,7 @@ async def test_schemas_aggregates_only_reachable_backends():
     g = _gateway()
     result = await g.schemas()
     names = {t["name"] for t in result["tools"]}
-    assert names == {"office_read", "pdf_read", "pdf_info", "pdf_create"}
+    assert names == {"office_read", "pdf_read", "pdf_info", "pdf_create", "html_to_pdf"}
     # backends that returned 503 are reported unavailable, never advertised
     assert "hiraraocr" in result["unavailable"]
     assert "websearch" in result["unavailable"]
@@ -108,7 +115,7 @@ async def test_health_reports_per_backend():
 def test_every_tool_has_a_route():
     # registry sanity: the 10 shipped tools are all routed
     assert set(TOOLS) >= {
-        "web_search", "web_fetch", "pdf_read", "pdf_info", "pdf_create",
+        "web_search", "web_fetch", "pdf_read", "pdf_info", "pdf_create", "html_to_pdf",
         "execute_code", "ocr_read", "form_extract", "office_read",
         "dns_lookup", "port_scan", "service_enum",
         "browser_open", "browser_click", "browser_type", "browser_screenshot",

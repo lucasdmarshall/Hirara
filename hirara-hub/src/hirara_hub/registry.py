@@ -47,6 +47,7 @@ TOOLS: dict[str, ToolRoute] = {
     "pdf_read": ToolRoute("pdf_read", "hirarapdf", "/pdf_read"),
     "pdf_info": ToolRoute("pdf_info", "hirarapdf", "/pdf_info"),
     "pdf_create": ToolRoute("pdf_create", "hirarapdf", "/pdf_create"),
+    "html_to_pdf": ToolRoute("html_to_pdf", "hirarapdf", "/html_to_pdf"),
     "execute_code": ToolRoute("execute_code", "hiraracode", "/execute_code"),
     "ocr_read": ToolRoute("ocr_read", "hiraraocr", "/ocr_read"),
     "form_extract": ToolRoute("form_extract", "hiraraocr", "/form_extract"),

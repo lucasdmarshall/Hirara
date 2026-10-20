@@ -74,7 +74,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | Method | Tool |
 |---|---|
 | `web_search(query, …)` · `web_fetch(url, …)` | web |
-| `pdf_read(...)` · `pdf_info(...)` · `pdf_create(content, …)` | PDF |
+| `pdf_read(...)` · `pdf_info(...)` · `pdf_create(content, …)` · `html_to_pdf(html, …)` | PDF |
 | `ocr_read(...)` · `form_extract(...)` | OCR / forms |
 | `office_read(...)` | Word / PowerPoint / Excel |
 | `execute_code(language, code, …)` | sandboxed code |

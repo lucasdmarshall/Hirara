@@ -23,9 +23,10 @@ server = MCPServer(
     instructions=(
         "Self-hosted PDF tools, no API keys. pdf_read extracts a PDF's text; "
         "pdf_info inspects its structure (pages, metadata, outline, form "
-        "fields); pdf_create builds a PDF from Markdown or plain text. Prefer "
-        "a local pdf_path when the file is already on disk; use pdf_base64 "
-        "only for small files."
+        "fields); pdf_create builds a PDF from Markdown, plain text, or HTML; "
+        "html_to_pdf renders HTML and CSS (with embedded images) for designed "
+        "documents such as resumes. Prefer a local pdf_path when the file is "
+        "already on disk; use pdf_base64 only for small files."
     ),
 )
 
@@ -132,6 +133,49 @@ async def pdf_create_tool(
     return _toolset.create(
         content=content,
         format=format,
+        title=title,
+        author=author,
+        subject=subject,
+        page_size=page_size,
+        output_path=output_path,
+    )
+
+
+@server.tool(
+    name="html_to_pdf",
+    description=(
+        "Render HTML and CSS to a PDF, including images. Use for resumes, "
+        "CVs, and other designed documents. Pass html, optional css, and "
+        "images as filename-to-base64 (PNG/JPEG/GIF). Remote URLs are blocked. "
+        "Returns pdf_base64."
+    ),
+)
+async def html_to_pdf_tool(
+    html: str,
+    css: str | None = None,
+    images: dict[str, str] | None = None,
+    title: str | None = None,
+    author: str | None = None,
+    subject: str | None = None,
+    page_size: str | None = None,
+    output_path: str | None = None,
+) -> dict:
+    """Build a PDF from HTML and CSS.
+
+    Args:
+        html: HTML fragment or full document.
+        css: Optional stylesheet.
+        images: Filename to base64 PNG, JPEG, or GIF.
+        title: PDF title metadata.
+        author: PDF author metadata.
+        subject: PDF subject metadata.
+        page_size: A4, LETTER, LEGAL, A3, or A5.
+        output_path: Write the PDF here (if local paths are enabled).
+    """
+    return _toolset.html_to_pdf(
+        html=html,
+        css=css,
+        images=images,
         title=title,
         author=author,
         subject=subject,

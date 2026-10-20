@@ -224,6 +224,36 @@ class Client:
     def pdf_create(self, content: str, *, format: str = "markdown", **extra) -> dict:
         return self.call("pdf_create", {"content": content, "format": format, **extra})
 
+    def html_to_pdf(
+        self,
+        html: str,
+        *,
+        css: str | None = None,
+        images: dict[str, str] | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        subject: str | None = None,
+        page_size: str | None = None,
+        output_path: str | None = None,
+        **extra,
+    ) -> dict:
+        args = {"html": html, **extra}
+        if css is not None:
+            args["css"] = css
+        if images is not None:
+            args["images"] = images
+        if title is not None:
+            args["title"] = title
+        if author is not None:
+            args["author"] = author
+        if subject is not None:
+            args["subject"] = subject
+        if page_size is not None:
+            args["page_size"] = page_size
+        if output_path is not None:
+            args["output_path"] = output_path
+        return self.call("html_to_pdf", args)
+
     def execute_code(self, language: str, code: str, **extra) -> dict:
         return self.call("execute_code", {"language": language, "code": code, **extra})
 
@@ -911,6 +941,7 @@ web_fetch = _delegate("web_fetch")
 pdf_read = _delegate("pdf_read")
 pdf_info = _delegate("pdf_info")
 pdf_create = _delegate("pdf_create")
+html_to_pdf = _delegate("html_to_pdf")
 execute_code = _delegate("execute_code")
 ocr_read = _delegate("ocr_read")
 form_extract = _delegate("form_extract")
@@ -960,6 +991,7 @@ __all__ = [
     "pdf_read",
     "pdf_info",
     "pdf_create",
+    "html_to_pdf",
     "execute_code",
     "ocr_read",
     "form_extract",

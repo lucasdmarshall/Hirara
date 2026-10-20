@@ -17,13 +17,14 @@ hub's shared SSRF guard, [`hirara-core`](../hirara-core/).
 
 ---
 
-## Three tools
+## Four tools
 
 | Tool | Role | What it does |
 |---|---|---|
 | **`pdf_read`** | reader | Full text + per-page text + metadata out of a PDF |
 | **`pdf_info`** | parser | Structure only — page count, metadata, outline, form fields, page sizes |
 | **`pdf_create`** | maker | A real, paginating PDF from Markdown, plain text, or HTML |
+| **`html_to_pdf`** | designer | HTML + CSS to PDF, with images you embed (resumes, CVs) |
 
 `pdf_info` is the cheap "what is this file" call — use it to decide *whether* or
 *how* to read a large or unfamiliar PDF before paying to extract every page.
@@ -112,6 +113,21 @@ curl -X POST localhost:8200/pdf_create -H 'content-type: application/json' \
   -d '{"format":"html","content":"<h1>Invoice</h1><table><tr><td>A</td><td>1</td></tr></table>","title":"Invoice"}'
 ```
 
+## HTML to PDF
+
+`html_to_pdf` is the document designer: an agent writes HTML and CSS and gets
+a PDF back. Use it for resumes, CVs, and one-page layouts. Images are PNG,
+JPEG, or GIF, passed as base64 in `images` (referenced by filename) or as a
+`data:image` URI. Remote `http(s)` and `file` URLs in the HTML are rejected.
+
+CSS that works is document styling: fonts, color, margins, borders, tables.
+JavaScript, flexbox, and grid do not apply.
+
+```bash
+curl -X POST localhost:8200/html_to_pdf -H 'content-type: application/json' \
+  -d '{"html":"<h1>Ada Lovelace</h1><p class=\"role\">Mathematician</p><img src=\"photo.png\" width=\"80\" height=\"80\"/>","css":"h1{color:#1a365d} .role{color:#444}","images":{"photo.png":"<base64>"},"title":"CV"}'
+```
+
 ---
 
 ## Security
@@ -154,6 +170,7 @@ failure. Every response carries the same keys whether it succeeded or failed.
 | `POST /pdf_info` | Structure only. Same sources |
 | `POST /pdf_info/upload` | Same, multipart file upload |
 | `POST /pdf_create` | Build a PDF. `content`, `format`, `title`, `author`, `subject`, `page_size`, `output_path` |
+| `POST /html_to_pdf` | HTML + CSS to PDF. `html`, `css`, `images`, `title`, `author`, `subject`, `page_size`, `output_path` |
 | `GET /schemas` | Tool definitions, ready for an LLM `tools` array |
 | `GET /health` | Liveness + effective config |
 
@@ -171,7 +188,9 @@ All via environment variable.
 | `CPDF_URL_TIMEOUT` | `30` | Seconds for a URL fetch |
 | `CPDF_ALLOW_LOCAL_PATH` | `true` (lib) / `false` (image) | `pdf_path` read + `output_path` write |
 | `CPDF_PAGE_SIZE` | `A4` | Default page size for `pdf_create` |
-| `CPDF_MAX_CREATE_CHARS` | `500000` | Cap on `pdf_create` input length |
+| `CPDF_MAX_CREATE_CHARS` | `500000` | Cap on `pdf_create` / `html_to_pdf` input length |
+| `CPDF_MAX_HTML_IMAGES` | `24` | Cap on images in one `html_to_pdf` call |
+| `CPDF_MAX_HTML_IMAGE_BYTES` | `8000000` | Cap on decoded image bytes per call |
 
 ---
 

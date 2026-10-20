@@ -117,3 +117,30 @@ async def pdf_create(request: CreateRequest) -> dict:
         page_size=request.page_size,
         output_path=request.output_path,
     )
+
+
+class HtmlToPdfRequest(BaseModel):
+    """JSON body for html_to_pdf."""
+
+    html: str
+    css: str | None = None
+    images: dict[str, str] | None = None
+    title: str | None = None
+    author: str | None = None
+    subject: str | None = None
+    page_size: str | None = None
+    output_path: str | None = None
+
+
+@app.post("/html_to_pdf")
+async def html_to_pdf(request: HtmlToPdfRequest) -> dict:
+    return _toolset.html_to_pdf(
+        html=request.html,
+        css=request.css,
+        images=request.images,
+        title=request.title,
+        author=request.author,
+        subject=request.subject,
+        page_size=request.page_size,
+        output_path=request.output_path,
+    )

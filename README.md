@@ -41,6 +41,7 @@ to be inspected.
 | **`pdf_read`** | ✅ shipped | Extract a PDF's text + metadata — [`hirarapdf/`](hirarapdf/) |
 | **`pdf_info`** | ✅ shipped | Parse a PDF's structure: pages, outline, form fields — [`hirarapdf/`](hirarapdf/) |
 | **`pdf_create`** | ✅ shipped | Build a PDF from Markdown, plain text, or HTML — [`hirarapdf/`](hirarapdf/) |
+| **`html_to_pdf`** | ✅ shipped | HTML + CSS to PDF, with embedded images (resumes, CVs) — [`hirarapdf/`](hirarapdf/) |
 | **`execute_code`** | ✅ shipped | Run code in a throwaway Docker sandbox — [`hiraracode/`](hiraracode/) |
 | **`ocr_read`** | ✅ shipped | OCR an image or scanned PDF → markdown — [`hiraraocr/`](hiraraocr/) |
 | **`form_extract`** | ✅ shipped | Fields + line-item table from an invoice/receipt — [`hiraraocr/`](hiraraocr/) |
@@ -149,6 +150,7 @@ import hirara
 
 hirara.pdf_read(path="report.pdf")               # runs right here
 hirara.pdf_create("# Title\n\nBody", format="markdown")
+hirara.html_to_pdf("<h1>Ada Lovelace</h1><p>Mathematician</p>", css="h1{color:#1a365d}")
 hirara.office_read(path="deck.pptx")["markdown"]
 hirara.web_fetch("https://example.com")
 ```

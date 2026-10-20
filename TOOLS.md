@@ -35,6 +35,7 @@ progress in this repo (hub + SDK + packages).
 | 28 | `request_replay` | ✅ shipped | `hirarahttp` |
 | 29 | `parameter_test` | ✅ shipped | `hirarahttp` |
 | 30 | `response_compare` | ✅ shipped | `hirarahttp` |
+| 31 | `html_to_pdf` | ✅ shipped | `hirarapdf` — HTML + CSS + images |
 
 ## Package clusters
 
@@ -47,7 +48,7 @@ progress in this repo (hub + SDK + packages).
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
 | **`hiraraops`** | `application_logs`, `process_list`, `environment_read` |
-| Existing | `web_*`, `execute_code` / `python_exec`, PDF, OCR, Office, STT |
+| Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT |
 
 ## Current focus
 
@@ -58,8 +59,7 @@ progress in this repo (hub + SDK + packages).
 `database_schema`** (`hiraradb/`), **`application_logs` / `process_list` /
 `environment_read`** (`hiraraops/`), and the full **`hirarahttp`** cluster
 (including **`request_replay` / `parameter_test` / `response_compare`**) are
-shipped.
-Roadmap table above is complete for the current target surface.
+shipped, plus **`html_to_pdf`** (`hirarapdf/`).
 
 ## Engineering conventions (all tools)
 

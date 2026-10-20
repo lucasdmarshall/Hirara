@@ -7,12 +7,14 @@ Three tools, matching the three things people mean by "a PDF tool":
 
 * ``pdf_read``   — the reader: text + metadata out of a PDF.
 * ``pdf_info``   — the parser: structure (pages, outline, form fields) cheaply.
-* ``pdf_create`` — the maker: a PDF out of Markdown or plain text.
+* ``pdf_create`` — the maker: a PDF out of Markdown, plain text, or HTML.
+* ``html_to_pdf`` — HTML + CSS (and embedded images) to PDF.
 """
 
 from __future__ import annotations
 
 import base64
+import io
 import logging
 import os
 from dataclasses import dataclass
@@ -22,6 +24,7 @@ from urllib.parse import urlparse
 from hirara_core import BlockedURL, DownloadError, safe_download
 
 from .config import PdfConfig
+from .htmlpdf import build_html_pdf
 from .maker import MakeError, build_pdf
 from .reader import ReaderError, inspect_pdf, read_pdf
 
@@ -138,6 +141,60 @@ PDF_CREATE_SCHEMA = {
 }
 
 
+HTML_TO_PDF_SCHEMA = {
+    "name": "html_to_pdf",
+    "description": (
+        "Turn HTML and CSS you write into a PDF, including images. Use this "
+        "for designed documents — resumes, CVs, letters, one-pagers — where "
+        "Markdown is not enough.\n\n"
+        "html is a fragment or a full document. css is an optional stylesheet "
+        "(type, color, margins, borders, tables). images is an object of "
+        "filename to base64 (PNG, JPEG, or GIF) referenced as "
+        '<img src="photo.png"> or CSS url(photo.png). data:image URIs in the '
+        "HTML also work.\n\n"
+        "Remote http(s) and file URLs are rejected. Layout is document CSS "
+        "(xhtml2pdf): no JavaScript, flexbox, or grid. page_size is A4, "
+        "LETTER, LEGAL, A3, or A5. Returns pdf_base64, or writes output_path "
+        "when local paths are enabled."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "html": {
+                "type": "string",
+                "description": "HTML fragment or full document to render.",
+            },
+            "css": {
+                "type": "string",
+                "description": "Optional CSS applied to the document.",
+            },
+            "images": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+                "description": (
+                    "Filename to base64 image. Reference the filename from "
+                    "img src or CSS url()."
+                ),
+            },
+            "title": {"type": "string", "description": "PDF title metadata."},
+            "author": {"type": "string", "description": "PDF author metadata."},
+            "subject": {"type": "string", "description": "PDF subject metadata."},
+            "page_size": {
+                "type": "string",
+                "enum": ["A4", "LETTER", "LEGAL", "A3", "A5"],
+                "description": "Page size (default A4).",
+            },
+            "output_path": {
+                "type": "string",
+                "description": "Write the PDF here (server must allow local paths).",
+            },
+        },
+        "required": ["html"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _read_envelope(**overrides) -> dict:
     envelope = {
         "text": None,
@@ -169,6 +226,20 @@ def _info_envelope(**overrides) -> dict:
     return envelope
 
 
+def _html_envelope(**overrides) -> dict:
+    envelope = {
+        "pdf_base64": None,
+        "bytes": None,
+        "page_count": None,
+        "page_size": None,
+        "image_count": 0,
+        "output_path": None,
+        "error": None,
+    }
+    envelope.update(overrides)
+    return envelope
+
+
 def _create_envelope(**overrides) -> dict:
     envelope = {
         "pdf_base64": None,
@@ -192,7 +263,12 @@ class Toolset:
         return cls(config=PdfConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [PDF_READ_SCHEMA, PDF_INFO_SCHEMA, PDF_CREATE_SCHEMA]
+        return [
+            PDF_READ_SCHEMA,
+            PDF_INFO_SCHEMA,
+            PDF_CREATE_SCHEMA,
+            HTML_TO_PDF_SCHEMA,
+        ]
 
     def health(self) -> dict:
         return {
@@ -407,8 +483,90 @@ class Toolset:
             log.exception("pdf_create failed")
             return _create_envelope(error=f"pdf_create failed: {exc}", page_size=page)
 
+    # --- html_to_pdf ---
+
+    def html_to_pdf(
+        self,
+        *,
+        html: str,
+        css: str | None = None,
+        images: dict[str, str] | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        subject: str | None = None,
+        page_size: str | None = None,
+        output_path: str | None = None,
+    ) -> dict:
+        page = (page_size or self.config.default_page_size).upper()
+        image_count = len(images) if isinstance(images, dict) else 0
+        try:
+            if html is not None and len(html) > self.config.max_create_chars:
+                raise MakeError(
+                    f"html exceeds CPDF_MAX_CREATE_CHARS "
+                    f"({self.config.max_create_chars} chars)"
+                )
+            if css is not None and len(css) > self.config.max_create_chars:
+                raise MakeError(
+                    f"css exceeds CPDF_MAX_CREATE_CHARS "
+                    f"({self.config.max_create_chars} chars)"
+                )
+            data = build_html_pdf(
+                html,
+                css=css,
+                images=images,
+                title=title,
+                author=author,
+                subject=subject,
+                page_size=page,
+                max_images=self.config.max_html_images,
+                max_image_bytes=self.config.max_html_image_bytes,
+            )
+            written: str | None = None
+            if output_path:
+                if not self.config.allow_local_path:
+                    raise MakeError(
+                        "output_path is disabled on this server. It lets a caller "
+                        "write anywhere on the host. Use the returned pdf_base64, "
+                        "or set CPDF_ALLOW_LOCAL_PATH=true if this server is "
+                        "trusted/local."
+                    )
+                dest = Path(output_path).expanduser()
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(data)
+                written = str(dest)
+            page_count = _pdf_page_count(data)
+            return _html_envelope(
+                pdf_base64=base64.b64encode(data).decode("ascii"),
+                bytes=len(data),
+                page_count=page_count,
+                page_size=page,
+                image_count=image_count,
+                output_path=written,
+            )
+        except MakeError as exc:
+            return _html_envelope(
+                error=str(exc), page_size=page, image_count=image_count
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.exception("html_to_pdf failed")
+            return _html_envelope(
+                error=f"html_to_pdf failed: {exc}",
+                page_size=page,
+                image_count=image_count,
+            )
+
+
+def _pdf_page_count(data: bytes) -> int | None:
+    try:
+        from pypdf import PdfReader
+
+        return len(PdfReader(io.BytesIO(data)).pages)
+    except Exception:  # noqa: BLE001
+        return None
+
 
 __all__ = [
+    "HTML_TO_PDF_SCHEMA",
     "PDF_CREATE_SCHEMA",
     "PDF_INFO_SCHEMA",
     "PDF_READ_SCHEMA",
@@ -426,8 +584,13 @@ __all__ = [
 # networked call can never drift apart in behaviour.
 import inspect as _inspect
 
-TOOL_NAMES = ("pdf_read", "pdf_info", "pdf_create")
-_LOCAL_METHODS = {"pdf_read": "read", "pdf_info": "info", "pdf_create": "create"}
+TOOL_NAMES = ("pdf_read", "pdf_info", "pdf_create", "html_to_pdf")
+_LOCAL_METHODS = {
+    "pdf_read": "read",
+    "pdf_info": "info",
+    "pdf_create": "create",
+    "html_to_pdf": "html_to_pdf",
+}
 _local_toolset: "Toolset | None" = None
 
 

@@ -66,8 +66,12 @@ class PdfConfig:
     # Default page size for pdf_create when the caller does not name one.
     default_page_size: str = "A4"
 
-    # Cap on the length of source content accepted by pdf_create.
+    # Cap on the length of source content accepted by pdf_create / html_to_pdf.
     max_create_chars: int = 500_000
+
+    # html_to_pdf image map: count and total decoded bytes.
+    max_html_images: int = 24
+    max_html_image_bytes: int = 8_000_000
 
     @classmethod
     def from_env(cls) -> "PdfConfig":
@@ -82,4 +86,8 @@ class PdfConfig:
             allow_local_path=_env_bool("CPDF_ALLOW_LOCAL_PATH", cls.allow_local_path),
             default_page_size=page,
             max_create_chars=_env_int("CPDF_MAX_CREATE_CHARS", cls.max_create_chars),
+            max_html_images=_env_int("CPDF_MAX_HTML_IMAGES", cls.max_html_images),
+            max_html_image_bytes=_env_int(
+                "CPDF_MAX_HTML_IMAGE_BYTES", cls.max_html_image_bytes
+            ),
         )
