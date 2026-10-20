@@ -48,7 +48,29 @@ progress in this repo (hub + SDK + packages).
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
 | **`hiraraops`** | `application_logs`, `process_list`, `environment_read` |
-| Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT |
+| **`hiraraaudio`** (planned) | `audio_info`, `audio_convert`, `audio_trim`, `audio_concat`, `audio_resample`, `audio_mix`, `audio_normalize`, `audio_detect_silence`, `audio_measure_loudness`, `audio_waveform`, `audio_speak`, `audio_text_to_phonemes` |
+| Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT (`transcribe`) |
+
+## Upcoming
+
+Next cluster: **`hiraraaudio`**. Speech-to-text stays on the existing
+`transcribe` tool (`hirarastt`). These are file and synthesis tools, not a
+replacement for that.
+
+| # | Tool | Status | Implementation |
+|---|---|---|---|
+| 32 | `audio_info` | 📋 upcoming | FFprobe |
+| 33 | `audio_convert` | 📋 upcoming | FFmpeg |
+| 34 | `audio_trim` | 📋 upcoming | FFmpeg |
+| 35 | `audio_concat` | 📋 upcoming | FFmpeg |
+| 36 | `audio_resample` | 📋 upcoming | FFmpeg |
+| 37 | `audio_mix` | 📋 upcoming | FFmpeg |
+| 38 | `audio_normalize` | 📋 upcoming | FFmpeg |
+| 39 | `audio_detect_silence` | 📋 upcoming | FFmpeg filters |
+| 40 | `audio_measure_loudness` | 📋 upcoming | FFmpeg filters |
+| 41 | `audio_waveform` | 📋 upcoming | FFmpeg or direct signal processing |
+| 42 | `audio_speak` | 📋 upcoming | eSpeak NG |
+| 43 | `audio_text_to_phonemes` | 📋 upcoming | eSpeak NG |
 
 ## Current focus
 
@@ -60,6 +82,7 @@ progress in this repo (hub + SDK + packages).
 `environment_read`** (`hiraraops/`), and the full **`hirarahttp`** cluster
 (including **`request_replay` / `parameter_test` / `response_compare`**) are
 shipped, plus **`html_to_pdf`** (`hirarapdf/`).
+Next up: the `hiraraaudio` cluster above.
 
 ## Engineering conventions (all tools)
 
