@@ -1,0 +1,11 @@
+# Runtime — pin ranges; install with: pip install -e ".[service,mcp]"
+# System packages: graphviz (diagram_render).
+
+numpy>=1.26
+matplotlib>=3.8
+openpyxl>=3.1
+httpx>=0.28
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+mcp>=2.0
