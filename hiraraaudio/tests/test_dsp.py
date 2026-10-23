@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+
 import numpy as np
+import pytest
 
 from conftest import write_wav
-from hiraraaudio import dsp
+from hiraraaudio import dsp, media
 from hiraraaudio.config import AudioConfig
+from hiraraaudio.errors import AudioError
 from hiraraaudio.media import DecodeStats, decode
 from hiraraaudio.tools import Toolset
 
@@ -72,7 +76,28 @@ def test_hum_needs_prominent_harmonics():
     assert dsp.detect_hum(spec)["mains_hz"] == 50
 
 
-async def test_url_source_goes_through_the_guard(media):
+async def test_url_source_goes_through_the_guard():
     ts = Toolset(AudioConfig(allow_url_fetch=True))
     r = await ts.audio_info(audio_url="http://127.0.0.1/a.wav")
     assert r["error"].startswith("audio_url blocked")
+
+
+async def test_playlists_cannot_reach_the_network(toolset):
+    """A caller-supplied HLS or concat playlist must not make ffmpeg fetch URLs."""
+    for name, body in (
+        ("x.m3u8", "#EXTM3U\n#EXTINF:5,\nhttp://169.254.169.254/latest/a.wav\n#EXT-X-ENDLIST\n"),
+        ("x.ffconcat", "ffconcat version 1.0\nfile 'http://169.254.169.254/a.wav'\n"),
+    ):
+        r = await toolset.audio_profile(audio_base64=base64.b64encode(body.encode()).decode(),
+                                        filename=name)
+        assert r["error"], name
+        assert r["timeline"] == []
+
+
+
+def test_decode_timeout_kills_a_slow_process(tmp_path, monkeypatch):
+    path = write_wav(tmp_path / "t.wav", np.zeros(44100 * 3))
+    # -re makes ffmpeg read at real time, so 3 s of audio cannot finish in 0.5 s.
+    monkeypatch.setattr(media, "LOCAL_ONLY", ["-re", *media.LOCAL_ONLY])
+    with pytest.raises(AudioError, match="timed out"):
+        decode(path, AudioConfig(timeout=0.5))

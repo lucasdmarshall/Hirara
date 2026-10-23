@@ -29,6 +29,7 @@ from hirara_core import BlockedURL, resolve_target
 from . import dsp, tones
 from .config import AudioConfig
 from .errors import AudioError
+from .media import LOCAL_ONLY
 
 BLOCK = 1600  # 100 ms at 16 kHz
 MAX_EVENTS = 1000
@@ -297,7 +298,7 @@ class WatchManager:
         args = [cfg.ffmpeg, "-v", "error", "-nostdin"] if not is_url else [cfg.ffmpeg, "-v", "error"]
         if watch.settings.realtime and not is_url:
             args.append("-re")
-        args += ["-i", "pipe:0" if is_url else watch.source,
+        args += [*LOCAL_ONLY, "-i", "pipe:0" if is_url else watch.source,
                  "-vn", "-ac", "1", "-ar", str(dsp.ANALYSIS_RATE), "-f", "f32le", "-"]
         errlog = tempfile.TemporaryFile()
         try:

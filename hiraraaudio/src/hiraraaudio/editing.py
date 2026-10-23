@@ -16,7 +16,7 @@ import numpy as np
 from . import dsp
 from .config import AudioConfig
 from .errors import AudioError
-from .media import StreamEncoder, decode_chunks, run, encode_args
+from .media import LOCAL_ONLY, StreamEncoder, decode_chunks, encode_args, run
 
 
 # --- audio_split ----------------------------------------------------------------
@@ -74,7 +74,7 @@ def write_segments(path: Path, segments: list[dict], out_dir: Path, stem: str, f
         target = out_dir / f"{stem}_{seg['index']:03d}.{fmt}"
         run(
             [config.ffmpeg, "-nostdin", "-v", "error", "-y", "-ss", f"{seg['start']:.3f}",
-             "-i", str(path), "-t", f"{seg['duration']:.3f}", "-vn", *encode_args(fmt),
+             *LOCAL_ONLY, "-i", str(path), "-t", f"{seg['duration']:.3f}", "-vn", *encode_args(fmt),
              str(target)],
             config,
         )

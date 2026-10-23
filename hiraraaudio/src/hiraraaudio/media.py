@@ -11,6 +11,7 @@ import json
 import re
 import subprocess
 import tempfile
+import threading
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -73,6 +74,13 @@ def _float(value) -> float | None:
     return out if np.isfinite(out) else None
 
 
+# Inputs come from callers. A "file" can be an HLS or concat playlist whose
+# entries are URLs, and ffmpeg would fetch them, sidestepping the SSRF guard.
+# Every ffmpeg / ffprobe input is therefore limited to local reads and our own
+# stdin pipe; remote input is fetched by sources.py through the guard instead.
+LOCAL_ONLY = ["-protocol_whitelist", "file,pipe,fd"]
+
+
 def _missing(binary: str) -> AudioError:
     return AudioError(
         f"{binary} is not installed or not on PATH. Install FFmpeg "
@@ -112,6 +120,7 @@ def probe(path: str | Path, config: AudioConfig) -> MediaInfo:
         [
             config.ffprobe,
             "-v", "error",
+            *LOCAL_ONLY,
             "-print_format", "json",
             "-show_format",
             "-show_streams",
@@ -195,7 +204,7 @@ def decode_chunks(
     args = [config.ffmpeg, "-nostdin", "-v", "error"]
     if start:
         args += ["-ss", f"{max(0.0, start):.3f}"]
-    args += ["-i", str(path), "-vn", "-sn", "-dn", "-t", f"{limit:.3f}"]
+    args += [*LOCAL_ONLY, "-i", str(path), "-vn", "-sn", "-dn", "-t", f"{limit:.3f}"]
     if channels:
         args += ["-ac", str(channels)]
     if sample_rate:
@@ -218,13 +227,18 @@ def decode_chunks(
         raise _missing(config.ffmpeg) from exc
 
     deadline = time.monotonic() + config.timeout
+    # A blocking read cannot notice a deadline, so a timer kills a stuck
+    # process; the read then sees EOF and the check below reports it.
+    killer = threading.Timer(config.timeout, proc.kill)
+    killer.daemon = True
+    killer.start()
     produced = 0
     try:
         assert proc.stdout is not None
         while True:
+            buf = _read_exact(proc.stdout, bytes_per_chunk)
             if time.monotonic() > deadline:
                 raise AudioError(f"ffmpeg timed out after {config.timeout:.0f}s")
-            buf = _read_exact(proc.stdout, bytes_per_chunk)
             if not buf:
                 break
             usable = len(buf) - len(buf) % (n_channels * 4)
@@ -246,6 +260,7 @@ def decode_chunks(
             # this span. A short file that ends naturally is not "truncated".
             stats.truncated = duration is None or duration > config.max_duration
     finally:
+        killer.cancel()
         if proc.poll() is None:
             proc.kill()
             proc.wait()
@@ -324,7 +339,7 @@ def loudness(
         args += ["-ss", f"{start:.3f}"]
     limit = config.max_duration if duration is None else min(duration, config.max_duration)
     args += [
-        "-i", str(path), "-vn", "-t", f"{limit:.3f}",
+        *LOCAL_ONLY, "-i", str(path), "-vn", "-t", f"{limit:.3f}",
         "-af", "loudnorm=print_format=json", "-f", "null", "-",
     ]
     _, stderr = run(args, config)
@@ -344,7 +359,7 @@ def loudnorm_measure_raw(path: str | Path, config: AudioConfig, target: str) -> 
     """First loudnorm pass with the given target, raw measured values."""
     _, stderr = run(
         [
-            config.ffmpeg, "-nostdin", "-hide_banner", "-i", str(path), "-vn",
+            config.ffmpeg, "-nostdin", "-hide_banner", *LOCAL_ONLY, "-i", str(path), "-vn",
             "-af", f"{target}:print_format=json", "-f", "null", "-",
         ],
         config,
@@ -405,7 +420,7 @@ def encode_array(
     run(
         [
             config.ffmpeg, "-nostdin", "-v", "error", "-y",
-            "-f", "f32le", "-ar", str(sample_rate), "-ac", str(channels), "-i", "-",
+            "-f", "f32le", "-ar", str(sample_rate), "-ac", str(channels), *LOCAL_ONLY, "-i", "-",
             *encode_args(fmt), "-f", _muxer(fmt), str(out_path),
         ],
         config,
@@ -420,7 +435,7 @@ def _muxer(fmt: str) -> str:
 def transcode(src: str | Path, out_path: str | Path, fmt: str, config: AudioConfig,
               *, filters: str | None = None, sample_rate: int | None = None) -> str:
     """Re-encode ``src`` (optionally through an audio filter chain)."""
-    args = [config.ffmpeg, "-nostdin", "-hide_banner", "-y", "-i", str(src), "-vn"]
+    args = [config.ffmpeg, "-nostdin", "-hide_banner", "-y", *LOCAL_ONLY, "-i", str(src), "-vn"]
     if filters:
         args += ["-af", filters]
     if sample_rate:
@@ -439,7 +454,7 @@ class StreamEncoder:
         self._config = config
         args = [
             config.ffmpeg, "-nostdin", "-v", "error", "-y",
-            "-f", "f32le", "-ar", str(sample_rate), "-ac", str(channels), "-i", "-",
+            "-f", "f32le", "-ar", str(sample_rate), "-ac", str(channels), *LOCAL_ONLY, "-i", "-",
             *encode_args(fmt), "-f", _muxer(fmt), str(out_path),
         ]
         try:
@@ -476,7 +491,7 @@ class StreamEncoder:
 def pcm_md5(path: str | Path, config: AudioConfig) -> str | None:
     """MD5 of the decoded PCM, for "same samples, different container" checks."""
     out, _ = run(
-        [config.ffmpeg, "-nostdin", "-v", "error", "-i", str(path), "-vn",
+        [config.ffmpeg, "-nostdin", "-v", "error", *LOCAL_ONLY, "-i", str(path), "-vn",
          "-map", "0:a:0", "-f", "md5", "-"],
         config,
     )
@@ -486,6 +501,7 @@ def pcm_md5(path: str | Path, config: AudioConfig) -> str | None:
 
 __all__ = [
     "DecodeStats",
+    "LOCAL_ONLY",
     "Loudness",
     "MediaInfo",
     "OUTPUT_FORMATS",
