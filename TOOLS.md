@@ -48,29 +48,46 @@ progress in this repo (hub + SDK + packages).
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
 | **`hiraraops`** | `application_logs`, `process_list`, `environment_read` |
-| **`hiraraaudio`** (planned) | `audio_info`, `audio_convert`, `audio_trim`, `audio_concat`, `audio_resample`, `audio_mix`, `audio_normalize`, `audio_detect_silence`, `audio_measure_loudness`, `audio_waveform`, `audio_speak`, `audio_text_to_phonemes` |
+| **`hiraraaudio`** (planned) | `audio_info`, `audio_profile`, `audio_check`, `audio_fix`, `audio_compare`, `audio_find`, `audio_fingerprint`, `audio_split`, `audio_tighten`, `audio_spectrogram`, `audio_tones`, `audio_speak`, `audio_sonify`, `audio_watch` |
 | Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT (`transcribe`) |
 
 ## Upcoming
 
 Next cluster: **`hiraraaudio`**. Speech-to-text stays on the existing
-`transcribe` tool (`hirarastt`). These are file and synthesis tools, not a
-replacement for that.
+`transcribe` tool (`hirarastt`).
 
-| # | Tool | Status | Implementation |
+An agent cannot hear, and it can already run `ffmpeg` through `execute_code`.
+So these are not FFmpeg wrappers. Each tool does something a bare library call
+does not give an agent:
+
+- **Describe** audio in a form an agent can reason about: a short timeline or
+  a labelled image, not thousands of samples.
+- **Judge** audio against a delivery spec and say what to fix.
+- **Verify** an edit, since the agent cannot listen to its own result.
+- **Plan, act, then re-check** edits that need analysis to get right.
+- **Hold state** across calls, such as watching a live stream.
+
+Lightweight by design: FFmpeg, NumPy and signal processing only. No ML
+models, no model downloads, CPU only. eSpeak NG is the one optional system
+binary (for `audio_speak`). Trimming, converting, concatenating and
+resampling stay internal building blocks rather than separate tools.
+
+| # | Tool | Status | What it gives an agent |
 |---|---|---|---|
-| 32 | `audio_info` | 📋 upcoming | FFprobe |
-| 33 | `audio_convert` | 📋 upcoming | FFmpeg |
-| 34 | `audio_trim` | 📋 upcoming | FFmpeg |
-| 35 | `audio_concat` | 📋 upcoming | FFmpeg |
-| 36 | `audio_resample` | 📋 upcoming | FFmpeg |
-| 37 | `audio_mix` | 📋 upcoming | FFmpeg |
-| 38 | `audio_normalize` | 📋 upcoming | FFmpeg |
-| 39 | `audio_detect_silence` | 📋 upcoming | FFmpeg filters |
-| 40 | `audio_measure_loudness` | 📋 upcoming | FFmpeg filters |
-| 41 | `audio_waveform` | 📋 upcoming | FFmpeg or direct signal processing |
-| 42 | `audio_speak` | 📋 upcoming | eSpeak NG |
-| 43 | `audio_text_to_phonemes` | 📋 upcoming | eSpeak NG |
+| 32 | `audio_info` | 📋 upcoming | Container, codec, duration, channels, tags and chapters (FFprobe) |
+| 33 | `audio_profile` | 📋 upcoming | A short timeline of speech, music, noise and silence, plus loudness, clipping and hum events |
+| 34 | `audio_check` | 📋 upcoming | Pass/fail against a preset (`podcast`, `broadcast` EBU R128, `audiobook` ACX, `music_streaming`, `stt_ready`), with the fix for each failure |
+| 35 | `audio_fix` | 📋 upcoming | Applies `audio_check`'s fixes (loudness, true peak, DC, hum, rumble), then re-checks the result |
+| 36 | `audio_compare` | 📋 upcoming | Two files: same content or not, time offset, and which spans were removed, added or changed |
+| 37 | `audio_find` | 📋 upcoming | Every place a reference clip (jingle, ad, intro) occurs in a long recording |
+| 38 | `audio_fingerprint` | 📋 upcoming | Duplicate and containment matches across many files |
+| 39 | `audio_split` | 📋 upcoming | Cut points at natural pauses within length bounds, never mid-word (e.g. chunks for `transcribe`) |
+| 40 | `audio_tighten` | 📋 upcoming | Shortens long silences with click-free cuts, with a dry-run plan and a re-check |
+| 41 | `audio_spectrogram` | 📋 upcoming | A labelled spectrogram PNG for vision models, plus a text note of steady tones |
+| 42 | `audio_tones` | 📋 upcoming | DTMF digits, beeps, test tones and 50/60 Hz mains hum |
+| 43 | `audio_speak` | 📋 upcoming | Lightweight text-to-speech in many languages (eSpeak NG) |
+| 44 | `audio_sonify` | 📋 upcoming | Turns a data series into sound, for accessibility |
+| 45 | `audio_watch` | 📋 upcoming | Monitors a live stream in the background and reports dead air, level spikes, clipping, tones and dropouts |
 
 ## Current focus
 
