@@ -244,3 +244,29 @@ def test_real_backends_report_missing_arguments(tool, missing):
     result = backends.call(tool, {})
     assert result["error"].startswith(f"{tool}: missing")
     assert f"'{missing}'" in result["error"]
+
+
+# --- SDK / hub alignment -----------------------------------------------------
+
+def test_transcribe_from_path_sends_audio_base64_and_filename(tmp_path):
+    f = tmp_path / "memo.m4a"
+    f.write_bytes(b"audio")
+    c = _client()
+    c.transcribe(path=str(f), language="en")
+    assert _last["name"] == "transcribe"
+    assert _last["arguments"] == {
+        "audio_base64": base64.b64encode(b"audio").decode(),
+        "filename": "memo.m4a",
+        "language": "en",
+    }
+
+
+def test_every_hub_tool_has_an_sdk_method_and_module_function():
+    """A tool the hub routes but the SDK lacks is unreachable as hirara.<tool>()."""
+    registry = pytest.importorskip("hirara_hub.registry")
+    import hirara
+
+    for name in registry.TOOLS:
+        assert callable(getattr(Client, name, None)), f"Client.{name} is missing"
+        assert callable(getattr(hirara, name, None)), f"hirara.{name} is missing"
+        assert name in hirara.__all__, f"{name} is not exported from hirara"

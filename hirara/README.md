@@ -77,6 +77,7 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `pdf_read(...)` · `pdf_info(...)` · `pdf_create(content, …)` · `html_to_pdf(html, …)` | PDF |
 | `ocr_read(...)` · `form_extract(...)` | OCR / forms |
 | `office_read(...)` | Word / PowerPoint / Excel |
+| `transcribe(...)` | speech to text |
 | `execute_code(language, code, …)` | sandboxed code |
 | `dns_lookup` · `port_scan` · `service_enum` | network |
 | `http_request` · `http_history` · `inspect_*` · `directory_enum` | HTTP |

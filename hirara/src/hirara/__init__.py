@@ -14,7 +14,8 @@ Two ways to run a tool, same call surface:
 
 By default (`local="auto"`) a tool runs in-process when its package is
 installed, and otherwise falls through to the hub — so tools that need a service
-(`execute_code`, `web_search` against your own SearXNG) keep working via the hub.
+(`web_search` against your own SearXNG, `execute_code` without local Docker)
+keep working via the hub.
 """
 
 from .client import (
@@ -60,6 +61,7 @@ from .client import (
     process_list,
     environment_read,
     tools,
+    transcribe,
     web_fetch,
     web_search,
 )
@@ -82,6 +84,7 @@ __all__ = [
     "ocr_read",
     "form_extract",
     "office_read",
+    "transcribe",
     "dns_lookup",
     "port_scan",
     "service_enum",

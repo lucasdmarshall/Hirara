@@ -269,6 +269,13 @@ class Client:
             args["filename"] = os.path.basename(path)
         return self.call("office_read", args)
 
+    def transcribe(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        args = {**self._source("audio", path, url, base64), **extra}
+        # The original name helps the backend pick a decoder for base64 audio.
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call("transcribe", args)
+
     def dns_lookup(
         self,
         name: str,
@@ -946,6 +953,7 @@ execute_code = _delegate("execute_code")
 ocr_read = _delegate("ocr_read")
 form_extract = _delegate("form_extract")
 office_read = _delegate("office_read")
+transcribe = _delegate("transcribe")
 dns_lookup = _delegate("dns_lookup")
 port_scan = _delegate("port_scan")
 service_enum = _delegate("service_enum")
@@ -996,6 +1004,7 @@ __all__ = [
     "ocr_read",
     "form_extract",
     "office_read",
+    "transcribe",
     "dns_lookup",
     "port_scan",
     "service_enum",
