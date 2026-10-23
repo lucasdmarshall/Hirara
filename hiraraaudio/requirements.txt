@@ -1,0 +1,9 @@
+# Runtime — pin ranges; install with: pip install -e ".[service,mcp]"
+# System packages: ffmpeg (required), espeak-ng (for audio_speak).
+
+numpy>=1.26
+httpx>=0.28
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+mcp>=2.0

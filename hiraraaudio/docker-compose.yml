@@ -1,0 +1,48 @@
+# HiraraAudio — lightweight audio tools for agents (HTTP + MCP). No models.
+#
+# Bound to loopback: put your own auth in front before exposing this. Files to
+# analyse go in the `data` volume (or bind-mount a host folder at /data) and
+# are named by their /data/... path.
+
+name: hiraraaudio
+
+services:
+  hiraraaudio:
+    build:
+      # Context is the repo root so the build can reach the shared
+      # hirara-core package (a sibling of this tool's directory).
+      context: ..
+      dockerfile: hiraraaudio/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HA_ALLOW_LOCAL_PATH=${HA_ALLOW_LOCAL_PATH:-true}
+      - HA_ALLOW_OUTPUT_PATH=${HA_ALLOW_OUTPUT_PATH:-true}
+      # audio_url fetches through hirara-core's SSRF guard (resolve-then-pin,
+      # redirect re-validation, streamed byte cap). Off by default.
+      - HA_ALLOW_URL_FETCH=${HA_ALLOW_URL_FETCH:-false}
+      - HA_MAX_BYTES=${HA_MAX_BYTES:-209715200}
+      - HA_MAX_WATCHERS=${HA_MAX_WATCHERS:-4}
+    volumes:
+      - data:/data
+    ports:
+      - "127.0.0.1:${HA_PORT:-9300}:9300"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9300/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  data:
