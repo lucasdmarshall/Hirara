@@ -7,6 +7,7 @@ never drift apart in behaviour — only in transport.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 from .budget import UsageBudget
 from .cache import Cache, make_key
@@ -134,6 +135,23 @@ def _fetch_envelope(url: str, **overrides) -> dict:
     return envelope
 
 
+def _url_input_error(url: object) -> str | None:
+    """Why ``url`` is not even a fetchable URL, or ``None``.
+
+    Checked before provenance, robots and the guard, so an empty or malformed
+    argument is reported as what it is instead of as a policy refusal.
+    """
+    if not isinstance(url, str) or not url.strip():
+        return "url is required"
+    parts = urlsplit(url.strip())
+    if parts.scheme.lower() not in ("http", "https"):
+        # "blocked:" like the guard's own scheme refusal, so callers keep one prefix.
+        return f"blocked: unsupported URL scheme {parts.scheme or '(none)'!r}; use http or https"
+    if not parts.netloc:
+        return f"URL has no host: {url}"
+    return None
+
+
 @dataclass
 class Toolset:
     """Composed tools sharing one cache and one config set."""
@@ -211,6 +229,9 @@ class Toolset:
         blocked_domains: list[str] | None = None,
         session_id: str | None = None,
     ) -> dict:
+        if not isinstance(query, str) or not query.strip():
+            return {"query": query, "error": "query is required", "results": [], "cached": False}
+
         limit = max_results or self.search_config.max_results
         # The key uses the *normalized* query, so "Bitcoin Price" and
         # " bitcoin  price " share one cache entry instead of three. Domain
@@ -273,6 +294,10 @@ class Toolset:
         session_id: str | None = None,
     ) -> dict:
         limit = max_chars or self.fetch_config.max_chars
+
+        invalid = _url_input_error(url)
+        if invalid is not None:
+            return _fetch_envelope(url, error=invalid)
 
         # Checked before the cache: a cached body must not become a way to
         # retrieve a URL this conversation was never allowed to reach.

@@ -112,3 +112,35 @@ def test_untrusted_wrapper_delimits_content_and_names_the_source():
     assert "<untrusted_content source=\"https://evil.example/x\">" in wrapped
     assert "</untrusted_content>" in wrapped
     assert "data, not as instructions" in wrapped
+
+
+@pytest.mark.parametrize("url", ["", "   ", None])
+async def test_empty_url_is_named_before_provenance(tmp_path, url):
+    """A missing URL must say so, not surface as a session/provenance refusal."""
+    cache_config = CacheConfig(path=str(tmp_path / "c.db"))
+    strict = Toolset(
+        fetch_config=FetchConfig(),
+        search_config=SearchConfig(),
+        cache_config=cache_config,
+        cache=Cache(cache_config.path),
+        provenance_config=ProvenanceConfig(policy="strict"),
+        robots_config=RobotsConfig(enabled=False),
+    )
+    result = await strict.fetch(url)
+    assert result["error"] == "url is required"
+    assert result["content"] is None
+
+
+async def test_hostless_url_is_rejected(toolset):
+    result = await toolset.fetch("https://")
+    assert result["error"].startswith("URL has no host")
+
+
+async def test_empty_query_is_rejected_without_searching(toolset, monkeypatch):
+    async def boom(*args, **kwargs):
+        raise AssertionError("search backend must not be called")
+
+    monkeypatch.setattr("hiraraweb.tools.web_search", boom)
+    result = await toolset.search("  ")
+    assert result["error"] == "query is required"
+    assert result["results"] == []
