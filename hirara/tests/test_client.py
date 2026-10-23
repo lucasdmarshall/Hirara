@@ -188,3 +188,59 @@ def test_local_tools_listing_includes_backends():
     c = Client(local=True)
     names = {t["name"] for t in c.tools()}
     assert {"pdf_read", "web_fetch", "office_read"} <= names
+
+
+# --- local argument errors ---------------------------------------------------
+
+def _backends_with(module) -> LocalBackends:
+    backends = LocalBackends()
+    backends._loaded = True
+    for name in module.TOOL_NAMES:
+        backends._routes[name] = module
+    return backends
+
+
+class _FakeBackend:
+    TOOL_NAMES = ("echo", "broken")
+
+    @staticmethod
+    async def _echo(*, input: str) -> dict:
+        return {"output": input, "error": None}
+
+    @staticmethod
+    async def _broken(*, input: str) -> dict:
+        return len(None)  # a real bug inside the tool, not bad input
+
+    @staticmethod
+    async def call_tool(name, arguments):
+        if name == "echo":
+            return await _FakeBackend._echo(**arguments)
+        return await _FakeBackend._broken(**arguments)
+
+
+def test_local_missing_argument_is_an_error_envelope():
+    result = _backends_with(_FakeBackend).call("echo", {})
+    assert result == {"error": "echo: missing 1 required keyword-only argument: 'input'"}
+
+
+def test_local_unknown_argument_is_an_error_envelope():
+    result = _backends_with(_FakeBackend).call("echo", {"input": "x", "nope": 1})
+    assert "unexpected keyword argument 'nope'" in result["error"]
+
+
+def test_local_type_error_inside_a_tool_still_raises():
+    with pytest.raises(TypeError):
+        _backends_with(_FakeBackend).call("broken", {"input": "x"})
+
+
+@pytest.mark.parametrize(
+    ("tool", "missing"),
+    [("decode", "input"), ("file_read", "path"), ("dns_lookup", "name"), ("web_fetch", "url")],
+)
+def test_real_backends_report_missing_arguments(tool, missing):
+    backends = LocalBackends()
+    if not backends.has(tool):
+        pytest.skip(f"{tool} backend not installed")
+    result = backends.call(tool, {})
+    assert result["error"].startswith(f"{tool}: missing")
+    assert f"'{missing}'" in result["error"]

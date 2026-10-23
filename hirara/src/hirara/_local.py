@@ -25,6 +25,7 @@ local backend installed and fall through to the hub.
 from __future__ import annotations
 
 import asyncio
+import re
 from importlib.metadata import entry_points
 
 _GROUP = "hirara.backends"
@@ -71,7 +72,16 @@ class LocalBackends:
     def call(self, name: str, arguments: dict | None) -> dict:
         self._load()
         module = self._routes[name]
-        return _run(module.call_tool(name, arguments or {}))
+        try:
+            return _run(module.call_tool(name, arguments or {}))
+        except TypeError as exc:
+            # A missing or unknown argument is bad input, so it gets the same
+            # {"error": ...} envelope as any other bad input. The HTTP service
+            # and MCP servers validate against the schema first; this path
+            # hands the dict straight to the tool method.
+            if not _raised_by_call_site(exc, module.call_tool):
+                raise
+            return {"error": f"{name}: {_ARG_PREFIX.sub('', str(exc))}"}
 
     def schemas(self) -> list[dict]:
         self._load()
@@ -85,6 +95,27 @@ class LocalBackends:
             except Exception:
                 continue
         return out
+
+
+# "Toolset.decode() missing 1 required ..." -> "missing 1 required ..."
+_ARG_PREFIX = re.compile(r"^[\w.]+\(\) ")
+
+
+def _raised_by_call_site(exc: BaseException, call_tool) -> bool:
+    """Whether ``exc`` was raised while binding arguments inside ``call_tool``.
+
+    A bad ``**arguments`` fails before the tool method has a frame of its own,
+    so the traceback ends in ``call_tool`` itself. A TypeError raised deeper,
+    inside the tool's own code, is a real bug and must not be relabelled as
+    bad input.
+    """
+    code = getattr(call_tool, "__code__", None)
+    tb = exc.__traceback__
+    if code is None or tb is None:
+        return False
+    while tb.tb_next is not None:
+        tb = tb.tb_next
+    return tb.tb_frame.f_code is code
 
 
 def _iter_entry_points(group: str):
