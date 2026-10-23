@@ -17,9 +17,10 @@ that exposes three names:
     def tool_schemas() -> list[dict]
 
 So a freshly written tool package joins local mode just by declaring the entry
-point — the SDK needs no change. A few tools (``execute_code``, ``web_search``
-against your own SearXNG) still need a running service; those simply have no
-local backend installed and fall through to the hub.
+point — the SDK needs no change. A tool whose package is not installed falls
+through to the hub. ``execute_code`` has a local backend but still needs a
+Docker daemon reachable from this process, and ``web_search`` needs your
+SearXNG either way.
 """
 
 from __future__ import annotations

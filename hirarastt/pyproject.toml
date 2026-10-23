@@ -48,6 +48,9 @@ Issues = "https://github.com/lucasdmarshall/Hirara/issues"
 [project.scripts]
 hirarastt-mcp = "hirarastt.mcp_server:main"
 
+[project.entry-points."hirara.backends"]
+hirarastt = "hirarastt.tools"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

@@ -156,11 +156,13 @@ hirara.web_fetch("https://example.com")
 ```
 
 No `configure()` needed. Heavier, model-backed tools are opt-in extras:
-`pip install "hirara[ocr]"`, `hirara[stt]`, or `hirara[all]`.
+`pip install "hirara[ocr]"` (`ocr_read`, `form_extract`), `hirara[stt]`
+(`transcribe`), or `hirara[all]`. `hirara[code]` runs `execute_code` in-process
+too, but it still needs a Docker daemon that process can reach.
 
-**Via a hub.** Some tools need a running service — `execute_code` (a Docker
-sandbox) and `web_search` (your own SearXNG). Point the SDK at a hub and those
-work too:
+**Via a hub.** Some tools need a running service — `web_search` (your own
+SearXNG), and `execute_code` when this machine has no Docker. Point the SDK at
+a hub and those work too:
 
 ```python
 import hirara

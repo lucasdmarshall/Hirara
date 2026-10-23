@@ -251,3 +251,15 @@ async def test_missing_source_returns_envelope():
     }
     assert result["error"]
     assert result["text"] is None
+
+
+async def test_local_backend_contract():
+    from hirarastt import tools
+
+    assert tools.TOOL_NAMES == ("transcribe",)
+    assert [s["name"] for s in tools.tool_schemas()] == ["transcribe"]
+    with pytest.raises(KeyError):
+        await tools.call_tool("nope", {})
+    # A missing source is answered without loading Whisper.
+    result = await tools.call_tool("transcribe", {})
+    assert result["error"].startswith("provide exactly one of")

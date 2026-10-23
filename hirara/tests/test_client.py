@@ -159,7 +159,7 @@ def test_local_false_never_uses_local():
 def test_local_true_errors_for_a_tool_with_no_backend():
     c = Client(local=True)
     with pytest.raises(HiraraError, match="no in-process backend"):
-        c.call("execute_code", {"language": "python", "code": "print(1)"})
+        c.call("no_such_tool", {})
 
 
 @local_only

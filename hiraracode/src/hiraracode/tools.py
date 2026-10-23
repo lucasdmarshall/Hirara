@@ -133,4 +133,32 @@ class Toolset:
             return _envelope(error=f"execute_code failed: {exc}", language=language)
 
 
-__all__ = ["Toolset"]
+__all__ = ["Toolset", "TOOL_NAMES", "call_tool", "tool_schemas"]
+
+
+# --- local backend: in-process dispatch for the hirara SDK -------------------
+# Discovered by the hirara SDK through the ``hirara.backends`` entry point and
+# called directly (no HTTP hop). Reuses the same Toolset the service and MCP
+# server use, so behaviour cannot drift between local and networked calls.
+# execute_code still needs a reachable Docker daemon in this process; without
+# one it returns its usual error envelope, exactly as the service would.
+TOOL_NAMES = ("execute_code",)
+_local_toolset: "Toolset | None" = None
+
+
+def _backend() -> "Toolset":
+    global _local_toolset
+    if _local_toolset is None:
+        _local_toolset = Toolset.from_env()
+    return _local_toolset
+
+
+async def call_tool(name: str, arguments: dict | None = None) -> dict:
+    """Run one tool in-process and return its response envelope."""
+    if name != "execute_code":
+        raise KeyError(f"unknown tool: {name}")
+    return await _backend().execute(**(arguments or {}))
+
+
+def tool_schemas() -> list[dict]:
+    return _backend().schemas()

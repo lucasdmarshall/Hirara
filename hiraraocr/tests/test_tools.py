@@ -206,3 +206,16 @@ async def test_url_fetch_happy_path(monkeypatch):
     assert r["error"] is None
     assert r["text"] == "hello world"
     assert r["source"] == "https://example.com/a.png"
+
+
+async def test_local_backend_contract():
+    from hiraraocr import tools
+
+    assert tools.TOOL_NAMES == ("ocr_read", "form_extract")
+    assert [s["name"] for s in tools.tool_schemas()] == list(tools.TOOL_NAMES)
+    with pytest.raises(KeyError):
+        await tools.call_tool("nope", {})
+    # A missing source is answered without loading any OCR model.
+    for name in tools.TOOL_NAMES:
+        result = await tools.call_tool(name, {})
+        assert result["error"].startswith("provide exactly one of")

@@ -435,4 +435,41 @@ class Toolset:
             return _form_envelope(error=f"form_extract failed: {exc}", source=source, languages=langs)
 
 
-__all__ = ["FORM_EXTRACT_SCHEMA", "OCR_READ_SCHEMA", "Toolset"]
+__all__ = [
+    "FORM_EXTRACT_SCHEMA",
+    "OCR_READ_SCHEMA",
+    "Toolset",
+    "TOOL_NAMES",
+    "call_tool",
+    "tool_schemas",
+]
+
+
+# --- local backend: in-process dispatch for the hirara SDK -------------------
+# Discovered by the hirara SDK through the ``hirara.backends`` entry point and
+# called directly (no HTTP hop). Reuses the same Toolset the service and MCP
+# server use, so behaviour cannot drift between local and networked calls.
+# OCR models load on first use, not here, so discovery stays cheap.
+TOOL_NAMES = ("ocr_read", "form_extract")
+_local_toolset: "Toolset | None" = None
+
+
+def _backend() -> "Toolset":
+    global _local_toolset
+    if _local_toolset is None:
+        _local_toolset = Toolset.from_env()
+    return _local_toolset
+
+
+async def call_tool(name: str, arguments: dict | None = None) -> dict:
+    """Run one tool in-process and return its response envelope."""
+    args = arguments or {}
+    if name == "ocr_read":
+        return await _backend().read(**args)
+    if name == "form_extract":
+        return await _backend().extract(**args)
+    raise KeyError(f"unknown tool: {name}")
+
+
+def tool_schemas() -> list[dict]:
+    return [OCR_READ_SCHEMA, FORM_EXTRACT_SCHEMA]

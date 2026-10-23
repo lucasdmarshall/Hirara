@@ -67,6 +67,9 @@ Issues = "https://github.com/lucasdmarshall/Hirara/issues"
 [project.scripts]
 hiraraocr-mcp = "hiraraocr.mcp_server:main"
 
+[project.entry-points."hirara.backends"]
+hiraraocr = "hiraraocr.tools"
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
