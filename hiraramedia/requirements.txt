@@ -1,0 +1,12 @@
+# Runtime — pin ranges; install with: pip install -e ".[service,mcp,audio]"
+# System packages: ffmpeg (video_profile), libzbar0 (barcode_read).
+
+numpy>=1.26
+pillow>=10.0
+segno>=1.6
+pyzbar>=0.1.9
+httpx>=0.28
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+mcp>=2.0

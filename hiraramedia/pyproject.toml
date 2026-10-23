@@ -1,0 +1,68 @@
+[project]
+name = "hiraramedia"
+version = "0.1.0"
+description = "Self-hosted media tools for AI agents — video profiling, image diffs, barcodes and QR codes — over HTTP and MCP"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Lucas D Marshall (Kaung Myat San)" }]
+keywords = [
+    "llm",
+    "agent",
+    "mcp",
+    "video",
+    "image-diff",
+    "qr-code",
+    "barcode",
+    "self-hosted",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "segno>=1.6",
+    # barcode_read; also needs the zbar library (apt-get install libzbar0).
+    "pyzbar>=0.1.9",
+    "httpx>=0.28",
+    # Shared SSRF guard. Repo-local package, install it first:
+    # pip install -e hirara-core
+    "hirara-core>=0.1",
+]
+
+[project.optional-dependencies]
+service = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
+mcp = ["mcp>=2.0"]
+# Soundtrack timeline in video_profile.
+audio = ["hiraraaudio>=0.1.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[project.urls]
+Homepage = "https://github.com/lucasdmarshall/Hirara"
+Repository = "https://github.com/lucasdmarshall/Hirara"
+Issues = "https://github.com/lucasdmarshall/Hirara/issues"
+
+[project.scripts]
+hiraramedia-mcp = "hiraramedia.mcp_server:main"
+
+[project.entry-points."hirara.backends"]
+hiraramedia = "hiraramedia.tools"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
