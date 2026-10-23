@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from hiraraweb.config import RobotsConfig
-from hiraraweb.robots import RobotsCache, robots_url_for
+from hiraraweb.robots import RobotsCache, RobotsRules, robots_url_for
 
 DISALLOW_ALL = "User-agent: *\nDisallow: /\n"
 ALLOW_ALL = "User-agent: *\nDisallow:\n"
@@ -154,3 +154,51 @@ async def test_expired_entry_is_refetched():
     await robots.check("https://example.com/x")
     await robots.check("https://example.com/y")
     assert len(calls) == 2
+
+
+# --- RFC 9309 matching ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "path,allowed",
+    [
+        ("/private/public.html", True),   # longer Allow beats shorter Disallow
+        ("/private/other.html", False),
+        ("/page", True),                  # equal length: Allow wins
+        ("/files/a.pdf", False),          # * wildcard
+        ("/files/a.pdf?x=1", True),       # $ anchors the end
+        ("/search?q=x", False),           # query string is part of the path
+        ("/robots.txt", True),            # always fetchable
+    ],
+)
+def test_longest_match_wildcards_and_ties(path, allowed):
+    rules = RobotsRules(
+        "User-agent: *\n"
+        "Disallow: /private/\n"
+        "Allow: /private/public.html\n"
+        "Disallow: /page\n"
+        "Allow: /page\n"
+        "Disallow: /*.pdf$\n"
+        "Disallow: /search?q=\n"
+        "Disallow: /robots\n"
+    )
+    assert rules.can_fetch("hirara-web", f"https://example.com{path}") is allowed
+
+
+def test_groups_for_the_same_agent_are_merged_and_versions_ignored():
+    rules = RobotsRules(
+        "User-agent: Hirara-Web/1.0\nDisallow: /a/\n\n"
+        "User-agent: *\nDisallow: /\n\n"
+        "User-agent: hirara-web\nDisallow: /b/\n"
+    )
+    assert rules.can_fetch("hirara-web", "https://example.com/a/x") is False
+    assert rules.can_fetch("hirara-web", "https://example.com/b/x") is False
+    # The named group wins outright: the wildcard's "Disallow: /" does not apply.
+    assert rules.can_fetch("hirara-web", "https://example.com/c") is True
+    assert rules.can_fetch("other-bot", "https://example.com/c") is False
+
+
+def test_percent_encoding_is_compared_decoded():
+    rules = RobotsRules("User-agent: *\nDisallow: /caf%C3%A9/\n")
+    assert rules.can_fetch("x", "https://example.com/café/menu") is False
+    assert rules.can_fetch("x", "https://example.com/caf%c3%a9/menu") is False
