@@ -200,3 +200,26 @@ async def test_toolset_replay_compare():
     # unknown id
     bad = await ts.request_replay(id="missing")
     assert bad["error"] is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("location", "name", "expected"),
+    [
+        ("cookiejar", "sid", "location must be one of"),
+        ("query", "  ", "name is required"),
+    ],
+)
+async def test_parameter_test_bad_arguments_fail_at_top_level(location, name, expected):
+    transport = _Transport(lambda request: httpx.Response(200, text="ok"))
+    result = await parameter_test(
+        location=location,
+        name=name,
+        values=["a", "b"],
+        url="https://example.com/",
+        config=HttpConfig(allow_private_ips=True),
+        transport=transport,
+    )
+    assert result.error is not None and result.error.startswith(expected)
+    assert result.results == []
+    assert transport.calls == []

@@ -375,6 +375,17 @@ async def parameter_test(
     started = time.perf_counter()
     source_id = None
 
+    # Bad arguments fail the whole call up front. Left to build_variant they
+    # would only surface per trial, under a top-level "error": null.
+    if (location or "").strip().lower() not in _PARAM_LOCATIONS:
+        return ParameterTestResult(
+            location=location,
+            name=name,
+            error=f"location must be one of {', '.join(sorted(_PARAM_LOCATIONS))}",
+        )
+    if not (name or "").strip():
+        return ParameterTestResult(location=location, name=name, error="name is required")
+
     try:
         value_list = _normalize_values(values)
     except ReplayError as exc:
