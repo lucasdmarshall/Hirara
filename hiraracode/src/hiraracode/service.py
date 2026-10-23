@@ -35,6 +35,29 @@ class ExecuteRequest(BaseModel):
     timeout: float | None = Field(default=None, gt=0)
 
 
+class JobStartRequest(BaseModel):
+    """JSON body for job_start."""
+
+    language: str
+    code: str
+    stdin: str | None = None
+    timeout: float | None = None
+
+
+class JobStatusRequest(BaseModel):
+    """JSON body for job_status."""
+
+    job_id: str | None = None
+    stdout_cursor: int = 0
+    stderr_cursor: int = 0
+
+
+class JobStopRequest(BaseModel):
+    """JSON body for job_stop."""
+
+    job_id: str
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -57,3 +80,18 @@ async def execute_code(request: ExecuteRequest) -> dict:
         stdin=request.stdin,
         timeout=request.timeout,
     )
+
+
+@app.post("/job_start")
+async def job_start(request: JobStartRequest) -> dict:
+    return await _toolset.job_start(**request.model_dump())
+
+
+@app.post("/job_status")
+async def job_status(request: JobStatusRequest) -> dict:
+    return await _toolset.job_status(**request.model_dump())
+
+
+@app.post("/job_stop")
+async def job_stop(request: JobStopRequest) -> dict:
+    return await _toolset.job_stop(job_id=request.job_id)

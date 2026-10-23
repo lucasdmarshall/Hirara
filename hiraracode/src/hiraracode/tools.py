@@ -14,6 +14,7 @@ import logging
 from dataclasses import dataclass, field
 
 from .config import ExecConfig
+from .jobs import JobManager, snapshot
 from .runner import DockerRunner, RunnerError, build_runner
 
 log = logging.getLogger(__name__)
@@ -64,6 +65,61 @@ def _execute_schema(languages: list[str]) -> dict:
     }
 
 
+def _job_schemas(languages: list[str]) -> list[dict]:
+    listed = ", ".join(languages) if languages else "python, node, bash"
+    return [
+        {
+            "name": "job_start",
+            "description": (
+                "Start a long-running program (a server, a build, a test suite, a "
+                "crawl) in the same sandbox as execute_code, but in the background: "
+                "it returns a job_id at once. Poll job_status for output and the "
+                "exit code; job_stop ends it. Killed at its timeout (default 10 "
+                f"minutes, capped by the server). Languages: {listed}."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "language": {"type": "string", "enum": languages},
+                    "code": {"type": "string", "description": "Source code to run."},
+                    "stdin": {"type": "string", "description": "Optional standard input."},
+                    "timeout": {"type": "number", "description": "Seconds before it is killed."},
+                },
+                "required": ["language", "code"],
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "job_status",
+            "description": (
+                "Check a background job: state (running / exited / timed_out / "
+                "stopped), exit code, and the stdout / stderr written since the "
+                "cursors you pass (use the cursors returned last time to get only "
+                "new output). Without job_id, lists all jobs."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "job_id": {"type": "string"},
+                    "stdout_cursor": {"type": "integer", "minimum": 0},
+                    "stderr_cursor": {"type": "integer", "minimum": 0},
+                },
+                "additionalProperties": False,
+            },
+        },
+        {
+            "name": "job_stop",
+            "description": "Stop a background job, remove its container, and return its final output.",
+            "input_schema": {
+                "type": "object",
+                "properties": {"job_id": {"type": "string"}},
+                "required": ["job_id"],
+                "additionalProperties": False,
+            },
+        },
+    ]
+
+
 def _envelope(**overrides) -> dict:
     envelope = {
         "stdout": None,
@@ -93,13 +149,15 @@ class Toolset:
         # lazily on first use — so constructing a Toolset is cheap and safe
         # even where Docker is not (yet) reachable.
         self.runner = build_runner(self.config)
+        self.jobs = JobManager(self.runner)
 
     @classmethod
     def from_env(cls) -> "Toolset":
         return cls(config=ExecConfig.from_env())
 
     def schemas(self) -> list[dict]:
-        return [_execute_schema(self.runner.languages())]
+        langs = self.runner.languages()
+        return [_execute_schema(langs), *_job_schemas(langs)]
 
     def health(self) -> dict:
         info = self.runner.info()
@@ -133,6 +191,52 @@ class Toolset:
             return _envelope(error=f"execute_code failed: {exc}", language=language)
 
 
+    async def job_start(self, *, language: str, code: str, stdin: str | None = None,
+                        timeout: float | None = None) -> dict:
+        try:
+            job = await asyncio.to_thread(self.jobs.start, language=language, code=code,
+                                          stdin=stdin, timeout=timeout)
+            return snapshot(self.jobs, job, limit=self.config.max_output_bytes)
+        except RunnerError as exc:
+            return {"job_id": None, "state": None, "language": language, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("job_start failed")
+            return {"job_id": None, "state": None, "language": language,
+                    "error": f"job_start failed: {exc}"}
+
+    async def job_status(self, *, job_id: str | None = None, stdout_cursor: int = 0,
+                         stderr_cursor: int = 0) -> dict:
+        try:
+            if not job_id:
+                jobs = await asyncio.to_thread(self.jobs.all)
+                for job in jobs:
+                    await asyncio.to_thread(self.jobs.refresh, job)
+                return {"jobs": [{"job_id": j.id, "language": j.language, "state": j.state,
+                                  "exit_code": j.exit_code} for j in jobs], "error": None}
+            job = self.jobs.get(job_id)
+            await asyncio.to_thread(self.jobs.refresh, job)
+            return await asyncio.to_thread(
+                snapshot, self.jobs, job, stdout_cursor=max(0, int(stdout_cursor)),
+                stderr_cursor=max(0, int(stderr_cursor)), limit=self.config.max_output_bytes)
+        except RunnerError as exc:
+            return {"job_id": job_id, "state": None, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("job_status failed")
+            return {"job_id": job_id, "state": None, "error": f"job_status failed: {exc}"}
+
+    async def job_stop(self, *, job_id: str) -> dict:
+        try:
+            job = self.jobs.get(job_id)
+            await asyncio.to_thread(self.jobs.refresh, job)
+            await asyncio.to_thread(self.jobs.stop, job)
+            return snapshot(self.jobs, job, limit=self.config.max_output_bytes)
+        except RunnerError as exc:
+            return {"job_id": job_id, "state": None, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("job_stop failed")
+            return {"job_id": job_id, "state": None, "error": f"job_stop failed: {exc}"}
+
+
 __all__ = ["Toolset", "TOOL_NAMES", "call_tool", "tool_schemas"]
 
 
@@ -142,7 +246,7 @@ __all__ = ["Toolset", "TOOL_NAMES", "call_tool", "tool_schemas"]
 # server use, so behaviour cannot drift between local and networked calls.
 # execute_code still needs a reachable Docker daemon in this process; without
 # one it returns its usual error envelope, exactly as the service would.
-TOOL_NAMES = ("execute_code",)
+TOOL_NAMES = ("execute_code", "job_start", "job_status", "job_stop")
 _local_toolset: "Toolset | None" = None
 
 
@@ -155,9 +259,10 @@ def _backend() -> "Toolset":
 
 async def call_tool(name: str, arguments: dict | None = None) -> dict:
     """Run one tool in-process and return its response envelope."""
-    if name != "execute_code":
+    if name not in TOOL_NAMES:
         raise KeyError(f"unknown tool: {name}")
-    return await _backend().execute(**(arguments or {}))
+    method = "execute" if name == "execute_code" else name
+    return await getattr(_backend(), method)(**(arguments or {}))
 
 
 def tool_schemas() -> list[dict]:

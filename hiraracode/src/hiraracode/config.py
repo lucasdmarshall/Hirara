@@ -132,6 +132,13 @@ class ExecConfig:
     # Remove the container after each run. Off only for debugging.
     remove: bool = True
 
+    # Background jobs (job_start): wall-clock default and ceiling, how many
+    # may run at once, and how long a finished job's logs are kept.
+    job_timeout: float = 600.0
+    job_max_timeout: float = 3600.0
+    max_jobs: int = 4
+    job_retention: float = 3600.0
+
     @classmethod
     def from_env(cls) -> "ExecConfig":
         base = cls(
@@ -149,6 +156,10 @@ class ExecConfig:
             user=os.getenv("CCODE_USER", cls.user).strip() or cls.user,
             auto_pull=_env_bool("CCODE_AUTO_PULL", cls.auto_pull),
             remove=_env_bool("CCODE_REMOVE", cls.remove),
+            job_timeout=_env_float("CCODE_JOB_TIMEOUT", cls.job_timeout),
+            job_max_timeout=_env_float("CCODE_JOB_MAX_TIMEOUT", cls.job_max_timeout),
+            max_jobs=_env_int("CCODE_MAX_JOBS", cls.max_jobs),
+            job_retention=_env_float("CCODE_JOB_RETENTION", cls.job_retention),
         )
         return base
 

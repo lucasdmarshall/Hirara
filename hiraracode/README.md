@@ -119,9 +119,9 @@ docker compose up -d --build
 
 ---
 
-## The tool
+## The tools
 
-One tool, `execute_code`:
+`execute_code` runs a program and waits for it:
 
 | Field | Required | Meaning |
 |---|---|---|
@@ -135,6 +135,21 @@ Every response carries the same keys — `stdout`, `stderr`, `exit_code`,
 `error` — whether it succeeded or failed. Errors (bad language, daemon
 unreachable) come back in `error`, not as an HTTP status code: the caller is an
 agent loop, and a refusal is a result to reason about.
+
+### Background jobs
+
+For anything long-running (a dev server, a build, a test suite), use a job.
+It runs in exactly the same locked-down container, detached:
+
+| Tool | What it does |
+|---|---|
+| `job_start` | Start the program; returns a `job_id` immediately |
+| `job_status` | State (`running` / `exited` / `timed_out` / `stopped`), exit code, and stdout / stderr written since the cursors you pass; without `job_id`, lists jobs |
+| `job_stop` | Kill it, remove the container, return the final output |
+
+A job past its timeout (default 10 minutes, `CCODE_JOB_MAX_TIMEOUT` ceiling)
+is killed on the next status check. Finished jobs keep their logs for
+`CCODE_JOB_RETENTION` seconds after the container is removed.
 
 ---
 
@@ -171,6 +186,10 @@ All via environment variable.
 | `CCODE_USER` | `65534:65534` | UID:GID code runs as — never `0` |
 | `CCODE_AUTO_PULL` | `true` | Pull an allowlisted image if missing |
 | `CCODE_IMAGES` | — | JSON to add/override languages |
+| `CCODE_JOB_TIMEOUT` | `600` | Default wall-clock seconds per background job |
+| `CCODE_JOB_MAX_TIMEOUT` | `3600` | Ceiling for a job's timeout |
+| `CCODE_MAX_JOBS` | `4` | Background jobs running at once |
+| `CCODE_JOB_RETENTION` | `3600` | Seconds a finished job's logs are kept |
 | `CCODE_PORT` | `8300` | Published port (loopback only) |
 
 ---

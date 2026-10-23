@@ -31,7 +31,9 @@ server = MCPServer(
         "execute_code to actually run a snippet — check a calculation, test "
         "code, transform data — rather than reasoning about it. No network by "
         "default and no persistent filesystem: write self-contained code that "
-        f"prints its results. Languages: {_languages}."
+        f"prints its results. Languages: {_languages}. For anything long-running "
+        "(a server, a build, a test suite) use job_start, then job_status to "
+        "read new output, and job_stop when done."
     ),
 )
 
@@ -65,6 +67,27 @@ async def execute_code_tool(
     return await _toolset.execute(
         language=language, code=code, stdin=stdin, timeout=timeout
     )
+
+
+_job_schemas = {s["name"]: s for s in _toolset.schemas()}
+
+
+@server.tool(name="job_start", description=_job_schemas["job_start"]["description"])
+async def job_start_tool(language: str, code: str, stdin: str | None = None,
+                         timeout: float | None = None) -> dict:
+    return await _toolset.job_start(language=language, code=code, stdin=stdin, timeout=timeout)
+
+
+@server.tool(name="job_status", description=_job_schemas["job_status"]["description"])
+async def job_status_tool(job_id: str | None = None, stdout_cursor: int = 0,
+                          stderr_cursor: int = 0) -> dict:
+    return await _toolset.job_status(job_id=job_id, stdout_cursor=stdout_cursor,
+                                     stderr_cursor=stderr_cursor)
+
+
+@server.tool(name="job_stop", description=_job_schemas["job_stop"]["description"])
+async def job_stop_tool(job_id: str) -> dict:
+    return await _toolset.job_stop(job_id=job_id)
 
 
 def main() -> None:

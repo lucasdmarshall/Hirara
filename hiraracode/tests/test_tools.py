@@ -91,7 +91,7 @@ def test_health_reports_runner_state(make_client):
 async def test_local_backend_contract():
     from hiraracode import tools
 
-    assert tools.TOOL_NAMES == ("execute_code",)
-    assert [s["name"] for s in tools.tool_schemas()] == ["execute_code"]
+    assert tools.TOOL_NAMES == ("execute_code", "job_start", "job_status", "job_stop")
+    assert [s["name"] for s in tools.tool_schemas()] == list(tools.TOOL_NAMES)
     with pytest.raises(KeyError):
         await tools.call_tool("nope", {})
