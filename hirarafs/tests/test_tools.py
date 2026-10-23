@@ -25,7 +25,7 @@ def test_health():
     ts = Toolset(config=FsConfig(roots=("/data",), allow_any_path=False))
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["file_read", "file_write"]
+    assert h["tools"] == list(TOOL_NAMES)
     assert h["roots"] == ["/data"]
     assert h["allow_any_path"] is False
     assert h["allow_write"] is True
@@ -45,6 +45,7 @@ async def test_toolset_roundtrip(tmp_path):
 
 @pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("file_read", "file_write")
+    assert TOOL_NAMES == ("file_read", "file_write", "file_edit", "file_search",
+                          "file_list", "archive_list", "archive_extract")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

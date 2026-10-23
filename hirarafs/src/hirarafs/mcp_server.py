@@ -15,15 +15,18 @@ import argparse
 
 from mcp.server.mcpserver import MCPServer
 
+from . import tools as T
 from .tools import Toolset
 
 server = MCPServer(
     name="hirarafs",
     version="0.1.0",
     instructions=(
-        "Self-hosted filesystem tools, no API keys. Use file_read / file_write "
-        "on allowlisted paths. Content is utf-8 text when possible, otherwise "
-        "base64. Paths outside CFS_ROOTS are rejected."
+        "Self-hosted filesystem tools, no API keys. Find files with file_list / "
+        "file_search, read with file_read, change a file with file_edit (exact "
+        "string replacement, never a full rewrite), create with file_write. "
+        "archive_list / archive_extract handle zip and tar safely. Paths outside "
+        "CFS_ROOTS are rejected."
     ),
 )
 
@@ -97,6 +100,63 @@ async def file_write_tool(
         overwrite=overwrite,
         max_bytes=max_bytes,
     )
+
+
+@server.tool(name="file_edit", description=T.FILE_EDIT_SCHEMA["description"])
+async def file_edit_tool(
+    path: str,
+    old_string: str | None = None,
+    new_string: str | None = None,
+    replace_all: bool = False,
+    edits: list[dict] | None = None,
+    dry_run: bool = False,
+) -> dict:
+    return await _toolset.file_edit(path=path, old_string=old_string, new_string=new_string,
+                                    replace_all=replace_all, edits=edits, dry_run=dry_run)
+
+
+@server.tool(name="file_search", description=T.FILE_SEARCH_SCHEMA["description"])
+async def file_search_tool(
+    pattern: str,
+    path: str | None = None,
+    glob: str | None = None,
+    regex: bool = True,
+    case_sensitive: bool = False,
+    context: int = 0,
+    max_results: int = 200,
+    include_hidden: bool = False,
+) -> dict:
+    return await _toolset.file_search(pattern=pattern, path=path, glob=glob, regex=regex,
+                                      case_sensitive=case_sensitive, context=context,
+                                      max_results=max_results, include_hidden=include_hidden)
+
+
+@server.tool(name="file_list", description=T.FILE_LIST_SCHEMA["description"])
+async def file_list_tool(
+    path: str | None = None,
+    pattern: str | None = None,
+    recursive: bool = False,
+    include_hidden: bool = False,
+    max_entries: int = 500,
+) -> dict:
+    return await _toolset.file_list(path=path, pattern=pattern, recursive=recursive,
+                                    include_hidden=include_hidden, max_entries=max_entries)
+
+
+@server.tool(name="archive_list", description=T.ARCHIVE_LIST_SCHEMA["description"])
+async def archive_list_tool(path: str, max_entries: int = 1000) -> dict:
+    return await _toolset.archive_list(path=path, max_entries=max_entries)
+
+
+@server.tool(name="archive_extract", description=T.ARCHIVE_EXTRACT_SCHEMA["description"])
+async def archive_extract_tool(
+    path: str,
+    dest: str,
+    members: list[str] | None = None,
+    overwrite: bool = False,
+) -> dict:
+    return await _toolset.archive_extract(path=path, dest=dest, members=members,
+                                          overwrite=overwrite)
 
 
 def main() -> None:

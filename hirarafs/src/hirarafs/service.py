@@ -45,6 +45,56 @@ class FileWriteRequest(BaseModel):
     max_bytes: int | None = None
 
 
+class FileEditRequest(BaseModel):
+    """JSON body for file_edit."""
+
+    path: str
+    old_string: str | None = None
+    new_string: str | None = None
+    replace_all: bool = False
+    edits: list[dict] | None = None
+    dry_run: bool = False
+
+
+class FileSearchRequest(BaseModel):
+    """JSON body for file_search."""
+
+    pattern: str
+    path: str | None = None
+    glob: str | None = None
+    regex: bool = True
+    case_sensitive: bool = False
+    context: int = 0
+    max_results: int = 200
+    include_hidden: bool = False
+
+
+class FileListRequest(BaseModel):
+    """JSON body for file_list."""
+
+    path: str | None = None
+    pattern: str | None = None
+    recursive: bool = False
+    include_hidden: bool = False
+    max_entries: int = 500
+
+
+class ArchiveListRequest(BaseModel):
+    """JSON body for archive_list."""
+
+    path: str
+    max_entries: int = 1000
+
+
+class ArchiveExtractRequest(BaseModel):
+    """JSON body for archive_extract."""
+
+    path: str
+    dest: str
+    members: list[str] | None = None
+    overwrite: bool = False
+
+
 @app.get("/health")
 async def health() -> dict:
     return _toolset.health()
@@ -79,3 +129,28 @@ async def file_write_endpoint(request: FileWriteRequest) -> dict:
         overwrite=request.overwrite,
         max_bytes=request.max_bytes,
     )
+
+
+@app.post("/file_edit")
+async def file_edit_endpoint(request: FileEditRequest) -> dict:
+    return await _toolset.file_edit(**request.model_dump())
+
+
+@app.post("/file_search")
+async def file_search_endpoint(request: FileSearchRequest) -> dict:
+    return await _toolset.file_search(**request.model_dump())
+
+
+@app.post("/file_list")
+async def file_list_endpoint(request: FileListRequest) -> dict:
+    return await _toolset.file_list(**request.model_dump())
+
+
+@app.post("/archive_list")
+async def archive_list_endpoint(request: ArchiveListRequest) -> dict:
+    return await _toolset.archive_list(**request.model_dump())
+
+
+@app.post("/archive_extract")
+async def archive_extract_endpoint(request: ArchiveExtractRequest) -> dict:
+    return await _toolset.archive_extract(**request.model_dump())

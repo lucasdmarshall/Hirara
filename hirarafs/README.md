@@ -2,7 +2,7 @@
 
 # Hirarafs
 
-**Self-hosted filesystem tools for AI agents — read and write allowlisted paths.**
+**Self-hosted filesystem tools for AI agents — find, read, edit and write allowlisted paths.**
 
 Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths are gated by
 `CFS_ROOTS`; the Docker image only serves files under `/data`.
@@ -17,6 +17,11 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara). Paths are gated by
 |---|---|---|
 | **`file_read`** | ✅ shipped | Read a file → text or base64 |
 | **`file_write`** | ✅ shipped | Write / create / append a file |
+| **`file_edit`** | ✅ shipped | Exact-string replace (one or many edits, all or nothing), atomic, with a diff |
+| **`file_search`** | ✅ shipped | Regex / literal search across files, with line numbers and context |
+| **`file_list`** | ✅ shipped | Directory listing, glob filter, recursive |
+| **`archive_list`** | ✅ shipped | Inspect a zip / tar and flag unsafe entries |
+| **`archive_extract`** | ✅ shipped | Safe extraction: no zip-slip, no links, bomb caps |
 
 ---
 
@@ -49,6 +54,22 @@ curl -X POST localhost:8900/file_read -H 'content-type: application/json' \
   "is_binary": false,
   "error": null
 }
+```
+
+**Edit** a file without rewriting it:
+
+```bash
+curl -X POST localhost:8900/file_edit -H 'content-type: application/json' \
+  -d '{"path":"/data/app.py","old_string":"return 1","new_string":"return 2"}'
+```
+
+**Search** and **list**:
+
+```bash
+curl -X POST localhost:8900/file_search -H 'content-type: application/json' \
+  -d '{"pattern":"TODO","glob":"*.py","context":1}'
+curl -X POST localhost:8900/file_list -H 'content-type: application/json' \
+  -d '{"path":"/data","recursive":true,"pattern":"*.md"}'
 ```
 
 **Write** a file:
@@ -100,7 +121,11 @@ CFS_DATA=/path/to/workspace docker compose up -d --build
 | `CFS_MAX_WRITE_BYTES` | `2000000` | Cap on bytes accepted per write |
 | `CFS_ROOTS` | _(empty)_ / `/data` (image) | Comma/colon-separated allowlisted roots |
 | `CFS_ALLOW_ANY_PATH` | `true` (lib) / `false` (image) | Allow any path when roots are empty |
-| `CFS_ALLOW_WRITE` | `true` | When false, `file_write` returns an error |
+| `CFS_ALLOW_WRITE` | `true` | When false, `file_write`, `file_edit` and `archive_extract` return an error |
+| `CFS_MAX_SEARCH_FILES` | `20000` | Most files `file_search` scans per call |
+| `CFS_MAX_SEARCH_FILE_BYTES` | `2000000` | `file_search` skips larger files |
+| `CFS_MAX_EXTRACT_BYTES` | `1073741824` | Cap on bytes `archive_extract` writes (checked while writing) |
+| `CFS_MAX_EXTRACT_FILES` | `10000` | Cap on files `archive_extract` writes |
 | `CFS_DEFAULT_ENCODING` | `auto` | Read default: `auto`, `utf-8`, `ascii`, `latin-1`, or `base64` |
 | `CFS_PORT` | `8900` | Compose host port |
 | `CFS_DATA` | `./data` | Host dir mounted at `/data` |

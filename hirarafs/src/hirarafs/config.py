@@ -45,6 +45,16 @@ class FsConfig:
     # When False, file_write returns an error without writing.
     allow_write: bool = True
 
+    # file_search: most files scanned per call, and files larger than this
+    # are skipped (they are almost never source a caller wants to grep).
+    max_search_files: int = 20_000
+    max_search_file_bytes: int = 2_000_000
+
+    # archive_extract: caps against archive bombs, checked while writing
+    # (declared sizes in an archive can lie).
+    max_extract_bytes: int = 1_073_741_824
+    max_extract_files: int = 10_000
+
     # Default content encoding when the caller omits encoding on file_read.
     # auto: utf-8 if decodable, else base64.
     default_encoding: str = "auto"
@@ -57,6 +67,12 @@ class FsConfig:
             roots=_env_roots("CFS_ROOTS", cls.roots),
             allow_any_path=_env_bool("CFS_ALLOW_ANY_PATH", cls.allow_any_path),
             allow_write=_env_bool("CFS_ALLOW_WRITE", cls.allow_write),
+            max_search_files=_env_int("CFS_MAX_SEARCH_FILES", cls.max_search_files),
+            max_search_file_bytes=_env_int(
+                "CFS_MAX_SEARCH_FILE_BYTES", cls.max_search_file_bytes
+            ),
+            max_extract_bytes=_env_int("CFS_MAX_EXTRACT_BYTES", cls.max_extract_bytes),
+            max_extract_files=_env_int("CFS_MAX_EXTRACT_FILES", cls.max_extract_files),
             default_encoding=(
                 os.getenv("CFS_DEFAULT_ENCODING") or cls.default_encoding
             ).strip()

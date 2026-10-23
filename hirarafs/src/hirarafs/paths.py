@@ -64,6 +64,31 @@ def resolve_existing_file(path: str, *, config: FsConfig) -> Path:
     return resolved
 
 
+def resolve_existing_dir(path: str | None, *, config: FsConfig) -> Path:
+    """Expand, resolve, and gate an existing directory.
+
+    With no path, the first configured root is used (or the working
+    directory when roots are not configured).
+    """
+    roots = require_roots(config)
+    cleaned = (path or "").strip()
+    if not cleaned:
+        if roots:
+            return roots[0]
+        cleaned = "."
+    try:
+        resolved = Path(cleaned).expanduser().resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise PathError(f"directory not found: {cleaned}") from exc
+    except OSError as exc:
+        raise PathError(f"cannot resolve path: {exc}") from exc
+    if not resolved.is_dir():
+        raise PathError(f"not a directory: {resolved}")
+    if roots and not under_root(resolved, roots):
+        raise PathError(f"path is outside allowed roots: {resolved}")
+    return resolved
+
+
 def resolve_write_target(
     path: str,
     *,
@@ -143,6 +168,7 @@ __all__ = [
     "PathError",
     "parse_roots",
     "require_roots",
+    "resolve_existing_dir",
     "resolve_existing_file",
     "resolve_write_target",
     "under_root",
