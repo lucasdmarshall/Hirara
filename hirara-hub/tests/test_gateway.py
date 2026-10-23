@@ -129,6 +129,13 @@ def test_every_tool_has_a_route():
         "audio_info", "audio_profile", "audio_check", "audio_fix", "audio_compare",
         "audio_find", "audio_fingerprint", "audio_split", "audio_tighten",
         "audio_spectrogram", "audio_tones", "audio_speak", "audio_sonify", "audio_watch",
+        "file_edit", "file_search", "file_list", "archive_list", "archive_extract",
+        "time_now", "date_calc", "schema_validate",
+        "link_check", "site_map", "web_watch", "secret_list",
+        "job_start", "job_status", "job_stop", "email_read",
+        "data_profile", "chart_render", "diagram_render",
+        "video_profile", "image_compare", "barcode_read", "qr_generate",
+        "memory", "ask_human", "schedule", "wait_until",
     }
     audio = [r for r in TOOLS.values() if r.tool.startswith("audio_")]
     assert all(r.service == "hiraraaudio" and r.path == f"/{r.tool}" for r in audio)

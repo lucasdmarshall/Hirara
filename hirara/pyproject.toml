@@ -34,6 +34,7 @@ local = [
     "hirarautil>=0.1.0",
     "hiraradb>=0.1.0",
     "hiraraops>=0.1.0",
+    "hiraraagent>=0.1.0",
 ]
 # Heavier, model-backed tools — opt in only if you want them in-process.
 ocr = ["hiraraocr>=0.1.0"]
@@ -43,7 +44,12 @@ code = ["hiraracode>=0.1.0"]
 # Audio tools in-process: NumPy only, but needs FFmpeg on PATH (and eSpeak NG
 # for audio_speak).
 audio = ["hiraraaudio>=0.1.0"]
-all = ["hirara[local]", "hirara[ocr]", "hirara[stt]", "hirara[code]", "hirara[audio]"]
+# Data profiling, charts (matplotlib) and diagrams (needs Graphviz on PATH).
+data = ["hiraradata>=0.1.0"]
+# Video / image / barcode tools (needs FFmpeg and the zbar library).
+media = ["hiraramedia>=0.1.0"]
+all = ["hirara[local]", "hirara[ocr]", "hirara[stt]", "hirara[code]", "hirara[audio]",
+       "hirara[data]", "hirara[media]"]
 
 [project.urls]
 Homepage = "https://github.com/lucasdmarshall/Hirara"

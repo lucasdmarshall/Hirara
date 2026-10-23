@@ -975,6 +975,126 @@ class Client:
     def audio_watch(self, action: str, **extra) -> dict:
         return self.call("audio_watch", {"action": action, **extra})
 
+    # --- files (hirarafs): paths are on the backend's filesystem ---
+
+    def file_edit(self, path: str, old_string: str | None = None,
+                  new_string: str | None = None, **extra) -> dict:
+        args = {"path": path, **extra}
+        if old_string is not None:
+            args["old_string"] = old_string
+        if new_string is not None:
+            args["new_string"] = new_string
+        return self.call("file_edit", args)
+
+    def file_search(self, pattern: str, **extra) -> dict:
+        return self.call("file_search", {"pattern": pattern, **extra})
+
+    def file_list(self, path: str | None = None, **extra) -> dict:
+        return self.call("file_list", {**({"path": path} if path else {}), **extra})
+
+    def archive_list(self, path: str, **extra) -> dict:
+        return self.call("archive_list", {"path": path, **extra})
+
+    def archive_extract(self, path: str, dest: str, **extra) -> dict:
+        return self.call("archive_extract", {"path": path, "dest": dest, **extra})
+
+    # --- time and validation (hirarautil) ---
+
+    def time_now(self, timezones: list[str] | str | None = None) -> dict:
+        return self.call("time_now", {} if timezones is None else {"timezones": timezones})
+
+    def date_calc(self, operation: str, **extra) -> dict:
+        return self.call("date_calc", {"operation": operation, **extra})
+
+    def schema_validate(self, instance, schema, **extra) -> dict:
+        return self.call("schema_validate", {"instance": instance, "schema": schema, **extra})
+
+    # --- web checks and secrets (hirarahttp) ---
+
+    def link_check(self, url: str, **extra) -> dict:
+        return self.call("link_check", {"url": url, **extra})
+
+    def site_map(self, url: str, **extra) -> dict:
+        return self.call("site_map", {"url": url, **extra})
+
+    def web_watch(self, url: str | None = None, *, action: str = "check", **extra) -> dict:
+        return self.call("web_watch", {"action": action, **({"url": url} if url else {}), **extra})
+
+    def secret_list(self) -> dict:
+        return self.call("secret_list", {})
+
+    # --- background jobs (hiraracode) ---
+
+    def job_start(self, language: str, code: str, **extra) -> dict:
+        return self.call("job_start", {"language": language, "code": code, **extra})
+
+    def job_status(self, job_id: str | None = None, **extra) -> dict:
+        return self.call("job_status", {**({"job_id": job_id} if job_id else {}), **extra})
+
+    def job_stop(self, job_id: str) -> dict:
+        return self.call("job_stop", {"job_id": job_id})
+
+    # --- email (hirarareader) ---
+
+    def email_read(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        args = {**self._source("file", path, url, base64), **extra}
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call("email_read", args)
+
+    # --- data (hiraradata) ---
+
+    def data_profile(self, *, path=None, url=None, base64=None, data=None, **extra) -> dict:
+        if data is not None:
+            return self.call("data_profile", {"data": data, **extra})
+        args = {**self._source("file", path, url, base64), **extra}
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call("data_profile", args)
+
+    def chart_render(self, type: str, **extra) -> dict:
+        return self.call("chart_render", {"type": type, **extra})
+
+    def diagram_render(self, source: str, **extra) -> dict:
+        return self.call("diagram_render", {"source": source, **extra})
+
+    # --- media (hiraramedia) ---
+
+    def video_profile(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        args = {**self._source("file", path, url, base64), **extra}
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call("video_profile", args)
+
+    def image_compare(self, *, a_path=None, a_url=None, a_base64=None, b_path=None,
+                      b_url=None, b_base64=None, **extra) -> dict:
+        args = {**self._source("a", a_path, a_url, a_base64),
+                **self._source("b", b_path, b_url, b_base64), **extra}
+        return self.call("image_compare", args)
+
+    def barcode_read(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        args = {**self._source("file", path, url, base64), **extra}
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call("barcode_read", args)
+
+    def qr_generate(self, data: str, **extra) -> dict:
+        return self.call("qr_generate", {"data": data, **extra})
+
+    # --- agent state (hiraraagent) ---
+
+    def memory(self, action: str, **extra) -> dict:
+        return self.call("memory", {"action": action, **extra})
+
+    def ask_human(self, action: str, **extra) -> dict:
+        return self.call("ask_human", {"action": action, **extra})
+
+    def schedule(self, action: str, **extra) -> dict:
+        return self.call("schedule", {"action": action, **extra})
+
+    def wait_until(self, **extra) -> dict:
+        return self.call("wait_until", dict(extra))
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -1067,6 +1187,33 @@ audio_tones = _delegate("audio_tones")
 audio_speak = _delegate("audio_speak")
 audio_sonify = _delegate("audio_sonify")
 audio_watch = _delegate("audio_watch")
+file_edit = _delegate("file_edit")
+file_search = _delegate("file_search")
+file_list = _delegate("file_list")
+archive_list = _delegate("archive_list")
+archive_extract = _delegate("archive_extract")
+time_now = _delegate("time_now")
+date_calc = _delegate("date_calc")
+schema_validate = _delegate("schema_validate")
+link_check = _delegate("link_check")
+site_map = _delegate("site_map")
+web_watch = _delegate("web_watch")
+secret_list = _delegate("secret_list")
+job_start = _delegate("job_start")
+job_status = _delegate("job_status")
+job_stop = _delegate("job_stop")
+email_read = _delegate("email_read")
+data_profile = _delegate("data_profile")
+chart_render = _delegate("chart_render")
+diagram_render = _delegate("diagram_render")
+video_profile = _delegate("video_profile")
+image_compare = _delegate("image_compare")
+barcode_read = _delegate("barcode_read")
+qr_generate = _delegate("qr_generate")
+memory = _delegate("memory")
+ask_human = _delegate("ask_human")
+schedule = _delegate("schedule")
+wait_until = _delegate("wait_until")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -1132,4 +1279,31 @@ __all__ = [
     "audio_speak",
     "audio_sonify",
     "audio_watch",
+    "file_edit",
+    "file_search",
+    "file_list",
+    "archive_list",
+    "archive_extract",
+    "time_now",
+    "date_calc",
+    "schema_validate",
+    "link_check",
+    "site_map",
+    "web_watch",
+    "secret_list",
+    "job_start",
+    "job_status",
+    "job_stop",
+    "email_read",
+    "data_profile",
+    "chart_render",
+    "diagram_render",
+    "video_profile",
+    "image_compare",
+    "barcode_read",
+    "qr_generate",
+    "memory",
+    "ask_human",
+    "schedule",
+    "wait_until",
 ]

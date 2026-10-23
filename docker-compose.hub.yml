@@ -75,6 +75,7 @@ services:
   hirarahttp:
     build: { context: ., dockerfile: hirarahttp/Dockerfile }
     restart: unless-stopped
+    volumes: [http-data:/data]
     networks: [hirara]
 
   hirarafs:
@@ -108,6 +109,31 @@ services:
     volumes: [audio-data:/data]
     networks: [hirara]
 
+  # Data profiling, charts (matplotlib) and diagrams (Graphviz).
+  hiraradata:
+    build: { context: ., dockerfile: hiraradata/Dockerfile }
+    restart: unless-stopped
+    volumes: [data-data:/data]
+    networks: [hirara]
+
+  # Video / image / barcode tools (FFmpeg, Pillow, zbar).
+  hiraramedia:
+    build: { context: ., dockerfile: hiraramedia/Dockerfile }
+    restart: unless-stopped
+    volumes: [media-data:/data]
+    networks: [hirara]
+
+  # Agent state: memory, ask_human, reminders. People answer at the hub's
+  # host on port 9600 only if you publish it; set HG_HUMAN_TOKEN first.
+  hiraraagent:
+    build: { context: ., dockerfile: hiraraagent/Dockerfile }
+    restart: unless-stopped
+    environment:
+      - HG_HUMAN_TOKEN=${HG_HUMAN_TOKEN:-}
+      - HG_NOTIFY_URL=${HG_NOTIFY_URL:-}
+    volumes: [agent-data:/data]
+    networks: [hirara]
+
   # hirarastt (Whisper STT) is still experimental and heavy (downloads a
   # model at boot). Uncomment to include it — the gateway will pick it up.
   # hirarastt:
@@ -119,7 +145,7 @@ services:
   hub:
     build: { context: ., dockerfile: hirara-hub/Dockerfile }
     restart: unless-stopped
-    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs, hirarautil, hiraradb, hiraraops, hiraraaudio]
+    depends_on: [websearch, hirarapdf, hiraracode, hiraraocr, hirarareader, hiraranet, hirarabrowser, hirarahttp, hirarafs, hirarautil, hiraradb, hiraraops, hiraraaudio, hiraradata, hiraramedia, hiraraagent]
     environment:
       - HUB_TOKEN=${HUB_TOKEN:-}
       - HUB_WEBSEARCH_URL=http://websearch:8000
@@ -135,6 +161,9 @@ services:
       - HUB_HIRARADB_URL=http://hiraradb:9100
       - HUB_HIRARAOPS_URL=http://hiraraops:9200
       - HUB_HIRARAAUDIO_URL=http://hiraraaudio:9300
+      - HUB_HIRARADATA_URL=http://hiraradata:9400
+      - HUB_HIRARAMEDIA_URL=http://hiraramedia:9500
+      - HUB_HIRARAAGENT_URL=http://hiraraagent:9600
       - HUB_HIRARASTT_URL=http://hirarastt:8100
     ports:
       - "127.0.0.1:${HUB_PORT:-8080}:8080"
@@ -152,3 +181,7 @@ volumes:
   db-data:
   ops-logs:
   audio-data:
+  http-data:
+  data-data:
+  media-data:
+  agent-data:

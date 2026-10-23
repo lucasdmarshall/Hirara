@@ -91,11 +91,21 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `audio_compare` · `audio_find` · `audio_fingerprint` | verify edits, find clips, duplicates |
 | `audio_split` · `audio_tighten` · `audio_spectrogram` · `audio_tones` | edit at pauses, image, DTMF / hum |
 | `audio_speak(text, …)` · `audio_sonify(values, …)` · `audio_watch(action, …)` | TTS, data to sound, stream monitor |
+| `file_edit(path, old, new, …)` · `file_search(pattern, …)` · `file_list(path, …)` | edit / grep / list (backend path) |
+| `archive_list(path)` · `archive_extract(path, dest)` | zip / tar, safely |
+| `time_now(timezones)` · `date_calc(operation, …)` · `schema_validate(instance, schema)` | time, dates, JSON Schema |
+| `link_check(url)` · `site_map(url)` · `web_watch(url, action=…)` · `secret_list()` | site checks, page diffs, secrets |
+| `job_start(language, code, …)` · `job_status(job_id)` · `job_stop(job_id)` | background sandbox jobs |
+| `email_read(...)` | .eml / .msg / mbox |
+| `data_profile(...)` · `chart_render(type, …)` · `diagram_render(source, …)` | data, charts, diagrams |
+| `video_profile(...)` · `image_compare(...)` · `barcode_read(...)` · `qr_generate(data)` | video, image diff, barcodes |
+| `memory(action, …)` · `ask_human(action, …)` · `schedule(action, …)` · `wait_until(…)` | agent state and human approval |
 | `call(name, arguments)` | any tool, raw |
 
 File tools like PDF/OCR accept `path=` (local, auto-base64), `url=`, or `base64=`.
 `file_read` passes `path=` through to the backend (reads the hub or local process filesystem),
-and so do `audio_fingerprint`'s paths and any `output_path` / `output_dir`.
+and so do the `file_*` / `archive_*` tools, `audio_fingerprint`'s paths and any
+`output_path` / `output_dir`.
 
 ---
 

@@ -310,3 +310,56 @@ def test_audio_fingerprint_speak_sonify_watch():
     assert _last["arguments"] == {"values": [1, None, 3], "duration": 2}
     c.audio_watch("poll", watch_id="abc", cursor=4)
     assert _last["arguments"] == {"action": "poll", "watch_id": "abc", "cursor": 4}
+
+
+# --- agent essentials (fs, util, http, code, reader, data, media, agent) --------------
+
+def test_file_and_time_tools_forward_arguments():
+    c = _client()
+    c.file_edit("/w/a.py", "old", "new", replace_all=True)
+    assert _last["arguments"] == {"path": "/w/a.py", "old_string": "old", "new_string": "new",
+                                  "replace_all": True}
+    c.file_list()
+    assert _last["arguments"] == {}
+    c.archive_extract("/w/x.zip", "/w/out")
+    assert _last["arguments"] == {"path": "/w/x.zip", "dest": "/w/out"}
+    c.time_now(["Asia/Yangon"])
+    assert _last["arguments"] == {"timezones": ["Asia/Yangon"]}
+    c.schema_validate({"a": 1}, {"type": "object"})
+    assert _last["arguments"] == {"instance": {"a": 1}, "schema": {"type": "object"}}
+
+
+def test_web_watch_and_jobs():
+    c = _client()
+    c.web_watch("https://example.com", selector="#price")
+    assert _last["name"] == "web_watch"
+    assert _last["arguments"] == {"action": "check", "url": "https://example.com",
+                                  "selector": "#price"}
+    c.job_start("python", "print(1)", timeout=60)
+    assert _last["arguments"] == {"language": "python", "code": "print(1)", "timeout": 60}
+    c.job_status()
+    assert _last["arguments"] == {}
+
+
+def test_file_sources_for_email_data_and_media(tmp_path):
+    f = tmp_path / "m.eml"
+    f.write_bytes(b"EML")
+    c = _client()
+    c.email_read(path=str(f))
+    assert _last["arguments"] == {"file_base64": base64.b64encode(b"EML").decode(),
+                                  "filename": "m.eml"}
+    c.data_profile(data="a,b\n1,2\n")
+    assert _last["arguments"] == {"data": "a,b\n1,2\n"}
+    c.image_compare(a_url="https://x/a.png", b_url="https://x/b.png", threshold=0.2)
+    assert _last["arguments"] == {"a_url": "https://x/a.png", "b_url": "https://x/b.png",
+                                  "threshold": 0.2}
+
+
+def test_agent_state_tools():
+    c = _client()
+    c.memory("set", key="k", value={"x": 1})
+    assert _last["arguments"] == {"action": "set", "key": "k", "value": {"x": 1}}
+    c.ask_human("ask", question="Deploy?", kind="approval")
+    assert _last["arguments"] == {"action": "ask", "question": "Deploy?", "kind": "approval"}
+    c.wait_until(request_id="abc", max_wait=30)
+    assert _last["arguments"] == {"request_id": "abc", "max_wait": 30}

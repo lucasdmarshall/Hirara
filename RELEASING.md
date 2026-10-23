@@ -23,6 +23,9 @@ never sees a long-lived secret.
 | `hiraradb`     | `hiraradb/`     | `hiraradb`    | `hiraradb/pyproject.toml`   |
 | `hiraraops`    | `hiraraops/`    | `hiraraops`   | `hiraraops/pyproject.toml`  |
 | `hiraraaudio`  | `hiraraaudio/`  | `hiraraaudio` | `hiraraaudio/pyproject.toml`|
+| `hiraradata`   | `hiraradata/`   | `hiraradata`  | `hiraradata/pyproject.toml` |
+| `hiraramedia`  | `hiraramedia/`  | `hiraramedia` | `hiraramedia/pyproject.toml`|
+| `hiraraagent`  | `hiraraagent/`  | `hiraraagent` | `hiraraagent/pyproject.toml`|
 | `hirara` (SDK) | `hirara/`       | `hirara`      | `hirara/pyproject.toml`     |
 
 Each package is versioned **independently**. A git tag only *triggers* a
@@ -59,6 +62,9 @@ below match the ones the workflow sends.
 | `hiraradb`     | `pypi-db`        |
 | `hiraraops`    | `pypi-ops`       |
 | `hiraraaudio`  | `pypi-audio`     |
+| `hiraradata`   | `pypi-data`      |
+| `hiraramedia`  | `pypi-media`     |
+| `hiraraagent`  | `pypi-agent`     |
 | `hirara`       | `pypi-sdk`       |
 
 ### On PyPI (https://pypi.org)
@@ -66,7 +72,7 @@ below match the ones the workflow sends.
 - **`hirara`** already exists (you own it). Open it → **Manage → Publishing →
   Add a new publisher**: Owner `lucasdmarshall`, Repository `Hirara`, Workflow
   `pypi-publish.yml`, Environment `pypi-sdk`.
-- **`hirara-core`, `hirara-web`, `hirarapdf`, `hirarareader`, `hiraranet`, `hirarabrowser`, `hirarahttp`, `hirarafs`, `hirarautil`, `hiraradb`, `hiraraops`, `hiraraaudio`** do not exist yet.
+- **`hirara-core`, `hirara-web`, `hirarapdf`, `hirarareader`, `hiraranet`, `hirarabrowser`, `hirarahttp`, `hirarafs`, `hirarautil`, `hiraradb`, `hiraraops`, `hiraraaudio`, `hiraradata`, `hiraramedia`, `hiraraagent`** do not exist yet.
   Go to **Your account → Publishing** (https://pypi.org/manage/account/publishing/)
   — that page has the extra **PyPI Project Name** field, which is what makes it a
   *pending* publisher. Add one per name with its Environment from the table.

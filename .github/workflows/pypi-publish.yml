@@ -60,6 +60,9 @@ jobs:
           - { name: hiraradb, path: hiraradb, environment: pypi-db }
           - { name: hiraraops, path: hiraraops, environment: pypi-ops }
           - { name: hiraraaudio, path: hiraraaudio, environment: pypi-audio }
+          - { name: hiraradata, path: hiraradata, environment: pypi-data }
+          - { name: hiraramedia, path: hiraramedia, environment: pypi-media }
+          - { name: hiraraagent, path: hiraraagent, environment: pypi-agent }
           - { name: hirara, path: hirara, environment: pypi-sdk }
     steps:
       - uses: actions/checkout@v4

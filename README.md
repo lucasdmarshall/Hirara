@@ -87,6 +87,33 @@ to be inspected.
 | **`audio_speak`** | ✅ shipped | Lightweight text-to-speech (eSpeak NG) — [`hiraraaudio/`](hiraraaudio/) |
 | **`audio_sonify`** | ✅ shipped | Turn a data series into sound — [`hiraraaudio/`](hiraraaudio/) |
 | **`audio_watch`** | ✅ shipped | Monitor a live stream: dead air, spikes, clipping, tones — [`hiraraaudio/`](hiraraaudio/) |
+| **`file_edit`** | ✅ shipped | Exact-string replace / insert without clobbering the file — [`hirarafs/`](hirarafs/) |
+| **`file_search`** | ✅ shipped | Regex search across files with line numbers — [`hirarafs/`](hirarafs/) |
+| **`file_list`** | ✅ shipped | Glob / tree listing with sizes and times — [`hirarafs/`](hirarafs/) |
+| **`archive_list`** | ✅ shipped | What is inside a zip / tar, without extracting — [`hirarafs/`](hirarafs/) |
+| **`archive_extract`** | ✅ shipped | Safe extraction: no zip-slip, no links out, size caps — [`hirarafs/`](hirarafs/) |
+| **`time_now`** | ✅ shipped | Current date and time in any timezone — [`hirarautil/`](hirarautil/) |
+| **`date_calc`** | ✅ shipped | Date arithmetic, differences, business days, conversion — [`hirarautil/`](hirarautil/) |
+| **`schema_validate`** | ✅ shipped | Validate JSON against a JSON Schema, every error with its path — [`hirarautil/`](hirarautil/) |
+| **`link_check`** | ✅ shipped | Broken links on a page or site (SSRF-guarded) — [`hirarahttp/`](hirarahttp/) |
+| **`site_map`** | ✅ shipped | Same-site crawl: pages, titles, status, depth — [`hirarahttp/`](hirarahttp/) |
+| **`web_watch`** | ✅ shipped | Watch a URL across calls and diff what changed — [`hirarahttp/`](hirarahttp/) |
+| **`secret_list`** | ✅ shipped | Host-scoped credentials `http_request` uses without exposing them — [`hirarahttp/`](hirarahttp/) |
+| **`job_start`** | ✅ shipped | Long-running sandbox job in the background — [`hiraracode/`](hiraracode/) |
+| **`job_status`** | ✅ shipped | Job state, exit code and new log lines — [`hiraracode/`](hiraracode/) |
+| **`job_stop`** | ✅ shipped | Stop a job and remove its container — [`hiraracode/`](hiraracode/) |
+| **`email_read`** | ✅ shipped | Parse .eml / .msg / mbox with attachments — [`hirarareader/`](hirarareader/) |
+| **`data_profile`** | ✅ shipped | Profile CSV / JSON / Excel / Parquet: types, nulls, ranges, outliers — [`hiraradata/`](hiraradata/) |
+| **`chart_render`** | ✅ shipped | Data to a chart PNG / SVG — [`hiraradata/`](hiraradata/) |
+| **`diagram_render`** | ✅ shipped | Graphviz DOT and Mermaid flowcharts to PNG / SVG — [`hiraradata/`](hiraradata/) |
+| **`video_profile`** | ✅ shipped | Scene cuts, keyframe contact sheet and audio timeline — [`hiraramedia/`](hiraramedia/) |
+| **`image_compare`** | ✅ shipped | Pixel diff with changed regions boxed — [`hiraramedia/`](hiraramedia/) |
+| **`barcode_read`** | ✅ shipped | QR codes and barcodes in an image, exactly — [`hiraramedia/`](hiraramedia/) |
+| **`qr_generate`** | ✅ shipped | QR code PNG / SVG — [`hiraramedia/`](hiraramedia/) |
+| **`memory`** | ✅ shipped | Notes that persist across sessions — [`hiraraagent/`](hiraraagent/) |
+| **`ask_human`** | ✅ shipped | Ask a person a question or for approval — [`hiraraagent/`](hiraraagent/) |
+| **`schedule`** | ✅ shipped | Reminders and follow-ups that come due later — [`hiraraagent/`](hiraraagent/) |
+| **`wait_until`** | ✅ shipped | Block until a time, an answer or a due reminder (capped) — [`hiraraagent/`](hiraraagent/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through

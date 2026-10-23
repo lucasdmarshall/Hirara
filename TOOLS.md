@@ -48,9 +48,9 @@ progress in this repo (hub + SDK + packages).
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
 | **`hiraraops`** | `application_logs`, `process_list`, `environment_read` |
-| **`hiraradata`** (planned) | `data_profile`, `chart_render`, `diagram_render` |
-| **`hiraramedia`** (planned) | `video_profile`, `image_compare`, `barcode_read`, `qr_generate` |
-| **`hiraraagent`** (planned) | `memory`, `ask_human`, `schedule`, `wait_until` |
+| **`hiraradata`** | `data_profile`, `chart_render`, `diagram_render` |
+| **`hiraramedia`** | `video_profile`, `image_compare`, `barcode_read`, `qr_generate` |
+| **`hiraraagent`** | `memory`, `ask_human`, `schedule`, `wait_until` |
 | **`hiraraaudio`** | `audio_info`, `audio_profile`, `audio_check`, `audio_fix`, `audio_compare`, `audio_find`, `audio_fingerprint`, `audio_split`, `audio_tighten`, `audio_spectrogram`, `audio_tones`, `audio_speak`, `audio_sonify`, `audio_watch` |
 | Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT (`transcribe`) |
 
@@ -100,33 +100,33 @@ no ML models.
 
 | # | Tool | Status | Package | What it gives an agent |
 |---|---|---|---|---|
-| 46 | `file_edit` | 📋 upcoming | `hirarafs` | Exact-string replace / insert in a file, so an edit cannot clobber the rest of it |
-| 47 | `file_search` | 📋 upcoming | `hirarafs` | Regex search across files under the allowed roots, with line numbers |
-| 48 | `file_list` | 📋 upcoming | `hirarafs` | Glob / tree listing with sizes and times |
-| 49 | `archive_list` | 📋 upcoming | `hirarafs` | What is inside a zip / tar without extracting it |
-| 50 | `archive_extract` | 📋 upcoming | `hirarafs` | Safe extraction: no path escape (zip-slip), no links out, size and count caps against bombs |
-| 51 | `time_now` | 📋 upcoming | `hirarautil` | The current date and time in any timezone; a model does not know today's date |
-| 52 | `date_calc` | 📋 upcoming | `hirarautil` | Date arithmetic, differences, business days, timezone conversion |
-| 53 | `schema_validate` | 📋 upcoming | `hirarautil` | Check JSON against a JSON Schema, with every error and its path |
-| 54 | `link_check` | 📋 upcoming | `hirarahttp` | Broken links on a page or site, through the SSRF guard |
-| 55 | `site_map` | 📋 upcoming | `hirarahttp` | Same-site crawl: pages, titles, status, depth |
-| 56 | `web_watch` | 📋 upcoming | `hirarahttp` | Watch a URL across calls and report what changed, as a diff |
-| 57 | `secret_list` | 📋 upcoming | `hirarahttp` | Named, host-scoped credentials `http_request` can use without the agent ever seeing them |
-| 58 | `job_start` | 📋 upcoming | `hiraracode` | Long-running sandbox job (server, build, test suite) in the background |
-| 59 | `job_status` | 📋 upcoming | `hiraracode` | Poll a job: state, exit code, new log lines |
-| 60 | `job_stop` | 📋 upcoming | `hiraracode` | Stop a job and remove its container |
-| 61 | `email_read` | 📋 upcoming | `hirarareader` | Parse .eml / .msg / mbox: headers, body, attachments |
-| 62 | `data_profile` | 📋 upcoming | `hiraradata` | Profile CSV / TSV / JSON / Excel / Parquet: types, nulls, ranges, top values, outliers |
-| 63 | `chart_render` | 📋 upcoming | `hiraradata` | Data to a chart PNG / SVG |
-| 64 | `diagram_render` | 📋 upcoming | `hiraradata` | Graphviz DOT and Mermaid flowcharts to PNG / SVG |
-| 65 | `video_profile` | 📋 upcoming | `hiraramedia` | Scene cuts, keyframe images and an audio timeline, so an agent can "watch" a video |
-| 66 | `image_compare` | 📋 upcoming | `hiraramedia` | Pixel diff of two images with changed regions boxed (verify a UI change) |
-| 67 | `barcode_read` | 📋 upcoming | `hiraramedia` | QR codes and barcodes in an image |
-| 68 | `qr_generate` | 📋 upcoming | `hiraramedia` | QR code PNG / SVG from text or a URL |
-| 69 | `memory` | 📋 upcoming | `hiraraagent` | Notes that persist across sessions: set, get, search, list, delete |
-| 70 | `ask_human` | 📋 upcoming | `hiraraagent` | Ask a person a question or for approval, then check for the answer |
-| 71 | `schedule` | 📋 upcoming | `hiraraagent` | Reminders and follow-ups that come due later |
-| 72 | `wait_until` | 📋 upcoming | `hiraraagent` | Block until a time, a human answer or a due reminder (capped) |
+| 46 | `file_edit` | ✅ shipped | `hirarafs` | Exact-string replace / insert in a file, so an edit cannot clobber the rest of it |
+| 47 | `file_search` | ✅ shipped | `hirarafs` | Regex search across files under the allowed roots, with line numbers |
+| 48 | `file_list` | ✅ shipped | `hirarafs` | Glob / tree listing with sizes and times |
+| 49 | `archive_list` | ✅ shipped | `hirarafs` | What is inside a zip / tar without extracting it |
+| 50 | `archive_extract` | ✅ shipped | `hirarafs` | Safe extraction: no path escape (zip-slip), no links out, size and count caps against bombs |
+| 51 | `time_now` | ✅ shipped | `hirarautil` | The current date and time in any timezone; a model does not know today's date |
+| 52 | `date_calc` | ✅ shipped | `hirarautil` | Date arithmetic, differences, business days, timezone conversion |
+| 53 | `schema_validate` | ✅ shipped | `hirarautil` | Check JSON against a JSON Schema, with every error and its path |
+| 54 | `link_check` | ✅ shipped | `hirarahttp` | Broken links on a page or site, through the SSRF guard |
+| 55 | `site_map` | ✅ shipped | `hirarahttp` | Same-site crawl: pages, titles, status, depth |
+| 56 | `web_watch` | ✅ shipped | `hirarahttp` | Watch a URL across calls and report what changed, as a diff |
+| 57 | `secret_list` | ✅ shipped | `hirarahttp` | Named, host-scoped credentials `http_request` can use without the agent ever seeing them |
+| 58 | `job_start` | ✅ shipped | `hiraracode` | Long-running sandbox job (server, build, test suite) in the background |
+| 59 | `job_status` | ✅ shipped | `hiraracode` | Poll a job: state, exit code, new log lines |
+| 60 | `job_stop` | ✅ shipped | `hiraracode` | Stop a job and remove its container |
+| 61 | `email_read` | ✅ shipped | `hirarareader` | Parse .eml / .msg / mbox: headers, body, attachments |
+| 62 | `data_profile` | ✅ shipped | `hiraradata` | Profile CSV / TSV / JSON / Excel / Parquet: types, nulls, ranges, top values, outliers |
+| 63 | `chart_render` | ✅ shipped | `hiraradata` | Data to a chart PNG / SVG |
+| 64 | `diagram_render` | ✅ shipped | `hiraradata` | Graphviz DOT and Mermaid flowcharts to PNG / SVG |
+| 65 | `video_profile` | ✅ shipped | `hiraramedia` | Scene cuts, keyframe images and an audio timeline, so an agent can "watch" a video |
+| 66 | `image_compare` | ✅ shipped | `hiraramedia` | Pixel diff of two images with changed regions boxed (verify a UI change) |
+| 67 | `barcode_read` | ✅ shipped | `hiraramedia` | QR codes and barcodes in an image |
+| 68 | `qr_generate` | ✅ shipped | `hiraramedia` | QR code PNG / SVG from text or a URL |
+| 69 | `memory` | ✅ shipped | `hiraraagent` | Notes that persist across sessions: set, get, search, list, delete |
+| 70 | `ask_human` | ✅ shipped | `hiraraagent` | Ask a person a question or for approval, then check for the answer |
+| 71 | `schedule` | ✅ shipped | `hiraraagent` | Reminders and follow-ups that come due later |
+| 72 | `wait_until` | ✅ shipped | `hiraraagent` | Block until a time, a human answer or a due reminder (capped) |
 
 ## Current focus
 
@@ -137,8 +137,11 @@ no ML models.
 `database_schema`** (`hiraradb/`), **`application_logs` / `process_list` /
 `environment_read`** (`hiraraops/`), and the full **`hirarahttp`** cluster
 (including **`request_replay` / `parameter_test` / `response_compare`**) are
-shipped, plus **`html_to_pdf`** (`hirarapdf/`) and the fourteen
-**`audio_*`** tools (`hiraraaudio/`).
+shipped, plus **`html_to_pdf`** (`hirarapdf/`), the fourteen
+**`audio_*`** tools (`hiraraaudio/`) and the twenty-seven agent essentials
+(#46–72: files and archives, time and schemas, link and page watching,
+secrets, background jobs, email, data / charts / diagrams, video / image /
+barcodes, and memory / human approval / reminders).
 
 ## Engineering conventions (all tools)
 

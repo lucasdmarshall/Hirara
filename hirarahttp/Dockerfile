@@ -13,11 +13,15 @@ COPY hirarahttp/src ./src
 
 RUN pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
 
-RUN useradd --create-home --uid 10001 app && chown -R app:app /app
+RUN useradd --create-home --uid 10001 app \
+    && mkdir -p /data \
+    && chown -R app:app /app /data
 USER app
 
 ENV PYTHONUNBUFFERED=1
 ENV CHTTP_ALLOW_PRIVATE_IPS=false
+# web_watch snapshots persist on the data volume.
+ENV CHTTP_WATCH_DB=/data/web_watch.db
 
 EXPOSE 8800
 

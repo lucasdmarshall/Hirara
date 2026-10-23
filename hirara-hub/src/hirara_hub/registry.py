@@ -26,6 +26,9 @@ DEFAULT_PORTS: dict[str, int] = {
     "hiraradb": 9100,
     "hiraraops": 9200,
     "hiraraaudio": 9300,
+    "hiraradata": 9400,
+    "hiraramedia": 9500,
+    "hiraraagent": 9600,
 }
 
 
@@ -114,6 +117,33 @@ TOOLS: dict[str, ToolRoute] = {
     "audio_speak": ToolRoute("audio_speak", "hiraraaudio", "/audio_speak"),
     "audio_sonify": ToolRoute("audio_sonify", "hiraraaudio", "/audio_sonify"),
     "audio_watch": ToolRoute("audio_watch", "hiraraaudio", "/audio_watch"),
+    "file_edit": ToolRoute("file_edit", "hirarafs", "/file_edit"),
+    "file_search": ToolRoute("file_search", "hirarafs", "/file_search"),
+    "file_list": ToolRoute("file_list", "hirarafs", "/file_list"),
+    "archive_list": ToolRoute("archive_list", "hirarafs", "/archive_list"),
+    "archive_extract": ToolRoute("archive_extract", "hirarafs", "/archive_extract"),
+    "time_now": ToolRoute("time_now", "hirarautil", "/time_now"),
+    "date_calc": ToolRoute("date_calc", "hirarautil", "/date_calc"),
+    "schema_validate": ToolRoute("schema_validate", "hirarautil", "/schema_validate"),
+    "link_check": ToolRoute("link_check", "hirarahttp", "/link_check"),
+    "site_map": ToolRoute("site_map", "hirarahttp", "/site_map"),
+    "web_watch": ToolRoute("web_watch", "hirarahttp", "/web_watch"),
+    "secret_list": ToolRoute("secret_list", "hirarahttp", "/secret_list"),
+    "job_start": ToolRoute("job_start", "hiraracode", "/job_start"),
+    "job_status": ToolRoute("job_status", "hiraracode", "/job_status"),
+    "job_stop": ToolRoute("job_stop", "hiraracode", "/job_stop"),
+    "email_read": ToolRoute("email_read", "hirarareader", "/email_read"),
+    "data_profile": ToolRoute("data_profile", "hiraradata", "/data_profile"),
+    "chart_render": ToolRoute("chart_render", "hiraradata", "/chart_render"),
+    "diagram_render": ToolRoute("diagram_render", "hiraradata", "/diagram_render"),
+    "video_profile": ToolRoute("video_profile", "hiraramedia", "/video_profile"),
+    "image_compare": ToolRoute("image_compare", "hiraramedia", "/image_compare"),
+    "barcode_read": ToolRoute("barcode_read", "hiraramedia", "/barcode_read"),
+    "qr_generate": ToolRoute("qr_generate", "hiraramedia", "/qr_generate"),
+    "memory": ToolRoute("memory", "hiraraagent", "/memory"),
+    "ask_human": ToolRoute("ask_human", "hiraraagent", "/ask_human"),
+    "schedule": ToolRoute("schedule", "hiraraagent", "/schedule"),
+    "wait_until": ToolRoute("wait_until", "hiraraagent", "/wait_until"),
 }
 
 
