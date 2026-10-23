@@ -34,6 +34,37 @@ class HttpRequestBody(BaseModel):
     follow_redirects: bool = True
     max_redirects: int | None = None
     max_bytes: int | None = None
+    secret: str | None = None
+
+
+class LinkCheckRequest(BaseModel):
+    """JSON body for link_check."""
+
+    url: str
+    scope: str = "page"
+    max_pages: int = 20
+    max_links: int = 500
+    check_external: bool = True
+    respect_robots: bool = True
+
+
+class SiteMapRequest(BaseModel):
+    """JSON body for site_map."""
+
+    url: str
+    max_pages: int = 50
+    max_depth: int = 3
+    respect_robots: bool = True
+    keep_query: bool = False
+
+
+class WebWatchRequest(BaseModel):
+    """JSON body for web_watch."""
+
+    action: str = "check"
+    url: str | None = None
+    watch_id: str | None = None
+    ignore: list[str] | None = None
 
 
 class HttpHistoryBody(BaseModel):
@@ -70,6 +101,7 @@ async def http_request_endpoint(request: HttpRequestBody) -> dict:
         follow_redirects=request.follow_redirects,
         max_redirects=request.max_redirects,
         max_bytes=request.max_bytes,
+        secret=request.secret,
     )
 
 
@@ -269,3 +301,23 @@ async def response_compare_endpoint(request: ResponseCompareBody) -> dict:
         compare_body=request.compare_body,
         ignore_headers=request.ignore_headers,
     )
+
+
+@app.post("/link_check")
+async def link_check_endpoint(request: LinkCheckRequest) -> dict:
+    return await _toolset.link_check(**request.model_dump())
+
+
+@app.post("/site_map")
+async def site_map_endpoint(request: SiteMapRequest) -> dict:
+    return await _toolset.site_map(**request.model_dump())
+
+
+@app.post("/web_watch")
+async def web_watch_endpoint(request: WebWatchRequest) -> dict:
+    return await _toolset.web_watch(**request.model_dump())
+
+
+@app.post("/secret_list")
+async def secret_list_endpoint() -> dict:
+    return await _toolset.secret_list()

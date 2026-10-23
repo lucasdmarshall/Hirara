@@ -36,6 +36,10 @@ from .replay import (
 )
 from .request import http_request, result_to_dict
 
+from .crawl import CrawlError, link_check as run_link_check, site_map as run_site_map
+from .pagewatch import WatchError, WatchStore, web_watch as run_web_watch
+from .secrets import SecretError, load_secrets, redact
+
 log = logging.getLogger(__name__)
 
 
@@ -91,6 +95,14 @@ HTTP_REQUEST_SCHEMA = {
                 "type": "integer",
                 "minimum": 1,
                 "description": "Cap on response body bytes (server also caps).",
+            },
+            "secret": {
+                "type": "string",
+                "description": (
+                    "Name of a configured credential (see secret_list) to attach. "
+                    "It is only sent to that secret's allowed hosts and is "
+                    "redacted from the result."
+                ),
             },
         },
         "required": ["url"],
@@ -607,6 +619,90 @@ def _compare_envelope(**overrides) -> dict:
     return envelope
 
 
+LINK_CHECK_SCHEMA = {
+    "name": "link_check",
+    "description": (
+        "Find broken links. scope=page checks every link, image, script and "
+        "stylesheet on one page; scope=site crawls the same site first (up to "
+        "max_pages, honouring robots.txt) and checks links from every page. "
+        "Reports broken links with their status and the pages they appear on, "
+        "redirects, and links the SSRF policy refused to fetch."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "url": {"type": "string", "description": "Page (or site start) URL."},
+            "scope": {"type": "string", "enum": ["page", "site"], "description": "Default page."},
+            "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000},
+            "max_links": {"type": "integer", "minimum": 1, "maximum": 5000},
+            "check_external": {"type": "boolean", "description": "Check off-site links (default true)."},
+            "respect_robots": {"type": "boolean", "description": "Default true."},
+        },
+        "required": ["url"],
+        "additionalProperties": False,
+    },
+}
+
+
+SITE_MAP_SCHEMA = {
+    "name": "site_map",
+    "description": (
+        "Crawl one site breadth-first from a URL and map it: every page's "
+        "status, title, depth and size, as a list and an indented outline. "
+        "Stays on the start host, skips assets, honours robots.txt, and stops "
+        "at max_pages / max_depth. Every fetch goes through the SSRF guard."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "url": {"type": "string", "description": "Start URL."},
+            "max_pages": {"type": "integer", "minimum": 1, "maximum": 1000,
+                          "description": "Default 50."},
+            "max_depth": {"type": "integer", "minimum": 0, "maximum": 10,
+                          "description": "Link hops from the start (default 3)."},
+            "respect_robots": {"type": "boolean", "description": "Default true."},
+            "keep_query": {"type": "boolean",
+                           "description": "Treat ?query variants as separate pages."},
+        },
+        "required": ["url"],
+        "additionalProperties": False,
+    },
+}
+
+
+WEB_WATCH_SCHEMA = {
+    "name": "web_watch",
+    "description": (
+        "Watch a page for changes across calls. action=check fetches the URL, "
+        "compares its readable text with the last check and returns a line "
+        "diff (the first check saves a baseline). ignore takes regexes for "
+        "noise such as timestamps. action=list shows watches, remove deletes one."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "action": {"type": "string", "enum": ["check", "list", "remove"]},
+            "url": {"type": "string"},
+            "watch_id": {"type": "string", "description": "Default: derived from the URL."},
+            "ignore": {"type": "array", "items": {"type": "string"},
+                       "description": "Regexes removed from each line before comparing."},
+        },
+        "additionalProperties": False,
+    },
+}
+
+
+SECRET_LIST_SCHEMA = {
+    "name": "secret_list",
+    "description": (
+        "List the named credentials http_request can attach with secret=<name>: "
+        "which hosts each is allowed for and whether it is sent as a header or "
+        "query parameter. Values are never shown."
+    ),
+    "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
+}
+
+
 @dataclass
 class Toolset:
     """HTTP tools sharing one config + history store."""
@@ -620,6 +716,15 @@ class Toolset:
                 max_entries=self.config.history_size,
                 max_body_chars=self.config.history_body_chars,
             )
+        # A bad secrets config must not take the other tools down; it is
+        # reported by health, secret_list and any request that names a secret.
+        self.secrets_error: str | None = None
+        try:
+            self.secrets = load_secrets(self.config.secrets_json, self.config.secrets_file)
+        except SecretError as exc:
+            self.secrets = {}
+            self.secrets_error = str(exc)
+        self.watch_store = WatchStore(self.config.watch_db)
 
     @classmethod
     def from_env(cls) -> "Toolset":
@@ -636,23 +741,20 @@ class Toolset:
             REQUEST_REPLAY_SCHEMA,
             PARAMETER_TEST_SCHEMA,
             RESPONSE_COMPARE_SCHEMA,
+            LINK_CHECK_SCHEMA,
+            SITE_MAP_SCHEMA,
+            WEB_WATCH_SCHEMA,
+            SECRET_LIST_SCHEMA,
         ]
 
     def health(self) -> dict:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": [
-                "http_request",
-                "http_history",
-                "inspect_headers",
-                "inspect_cookies",
-                "inspect_response",
-                "directory_enum",
-                "request_replay",
-                "parameter_test",
-                "response_compare",
-            ],
+            "tools": list(TOOL_NAMES),
+            "secrets": sorted(self.secrets),
+            "secrets_error": self.secrets_error,
+            "watch_db": self.config.watch_db,
             "max_bytes": self.config.max_bytes,
             "max_redirects": self.config.max_redirects,
             "history_size": self.config.history_size,
@@ -670,7 +772,14 @@ class Toolset:
         follow_redirects: bool = True,
         max_redirects: int | None = None,
         max_bytes: int | None = None,
+        secret: str | None = None,
     ) -> dict:
+        spec = None
+        if secret:
+            spec = self.secrets.get(secret)
+            if spec is None:
+                detail = self.secrets_error or f"unknown secret {secret!r}; see secret_list"
+                return _request_envelope(method=method, url=url, error=detail)
         try:
             result = await http_request(
                 url,
@@ -682,8 +791,13 @@ class Toolset:
                 max_redirects=max_redirects,
                 max_bytes=max_bytes,
                 config=self.config,
+                secret=spec,
             )
             payload = result_to_dict(result)
+            if spec is not None:
+                # A server may echo the credential back; never return or record it.
+                payload = redact(payload, [spec])
+                payload["secret"] = spec.name
         except Exception as exc:  # noqa: BLE001
             log.exception("http_request failed")
             payload = _request_envelope(
@@ -694,6 +808,54 @@ class Toolset:
         entry = self.history.record(payload)
         payload["request_id"] = entry.id
         return payload
+
+
+    async def link_check(self, *, url: str, scope: str = "page", max_pages: int = 20,
+                         max_links: int = 500, check_external: bool = True,
+                         respect_robots: bool = True) -> dict:
+        try:
+            return await run_link_check(
+                url, config=self.config, scope=scope,
+                max_pages=min(max_pages, self.config.crawl_max_pages), max_links=max_links,
+                check_external=check_external, respect_robots=respect_robots)
+        except CrawlError as exc:
+            return {"url": url, "broken": [], "links_checked": 0, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("link_check failed")
+            return {"url": url, "broken": [], "links_checked": 0,
+                    "error": f"link_check failed: {exc}"}
+
+    async def site_map(self, *, url: str, max_pages: int = 50, max_depth: int = 3,
+                       respect_robots: bool = True, keep_query: bool = False) -> dict:
+        try:
+            return await run_site_map(
+                url, config=self.config, max_pages=min(max_pages, self.config.crawl_max_pages),
+                max_depth=max_depth, respect_robots=respect_robots, keep_query=keep_query)
+        except CrawlError as exc:
+            return {"url": url, "pages": [], "count": 0, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("site_map failed")
+            return {"url": url, "pages": [], "count": 0, "error": f"site_map failed: {exc}"}
+
+    async def web_watch(self, *, action: str = "check", url: str | None = None,
+                        watch_id: str | None = None, ignore: list[str] | None = None) -> dict:
+        try:
+            return await run_web_watch(self.watch_store, action=action, url=url,
+                                       watch_id=watch_id, ignore=ignore, config=self.config)
+        except WatchError as exc:
+            return {"action": action, "url": url, "watch_id": watch_id, "changed": None,
+                    "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("web_watch failed")
+            return {"action": action, "url": url, "watch_id": watch_id, "changed": None,
+                    "error": f"web_watch failed: {exc}"}
+
+    async def secret_list(self) -> dict:
+        return {
+            "secrets": [spec.public() for spec in self.secrets.values()],
+            "count": len(self.secrets),
+            "error": self.secrets_error,
+        }
 
     async def http_history(
         self,
@@ -1047,6 +1209,10 @@ __all__ = [
     "REQUEST_REPLAY_SCHEMA",
     "PARAMETER_TEST_SCHEMA",
     "RESPONSE_COMPARE_SCHEMA",
+    "LINK_CHECK_SCHEMA",
+    "SITE_MAP_SCHEMA",
+    "WEB_WATCH_SCHEMA",
+    "SECRET_LIST_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -1064,6 +1230,10 @@ TOOL_NAMES = (
     "request_replay",
     "parameter_test",
     "response_compare",
+    "link_check",
+    "site_map",
+    "web_watch",
+    "secret_list",
 )
 _local_toolset: "Toolset | None" = None
 
@@ -1076,26 +1246,9 @@ def _backend() -> "Toolset":
 
 
 async def call_tool(name: str, arguments: dict | None = None) -> dict:
-    args = arguments or {}
-    if name == "http_request":
-        return await _backend().http_request(**args)
-    if name == "http_history":
-        return await _backend().http_history(**args)
-    if name == "inspect_headers":
-        return await _backend().inspect_headers(**args)
-    if name == "inspect_cookies":
-        return await _backend().inspect_cookies(**args)
-    if name == "inspect_response":
-        return await _backend().inspect_response(**args)
-    if name == "directory_enum":
-        return await _backend().directory_enum(**args)
-    if name == "request_replay":
-        return await _backend().request_replay(**args)
-    if name == "parameter_test":
-        return await _backend().parameter_test(**args)
-    if name == "response_compare":
-        return await _backend().response_compare(**args)
-    raise KeyError(f"unknown tool: {name}")
+    if name not in TOOL_NAMES:
+        raise KeyError(f"unknown tool: {name}")
+    return await getattr(_backend(), name)(**(arguments or {}))
 
 
 def tool_schemas() -> list[dict]:

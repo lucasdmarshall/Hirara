@@ -61,6 +61,18 @@ class HttpConfig:
     enum_max_paths: int = 200
     enum_timeout: float = 10.0
 
+    # Named credentials http_request can attach (JSON; see secrets.py).
+    # Inline JSON and/or a file path; the values never reach the agent.
+    secrets_json: str | None = None
+    secrets_file: str | None = None
+
+    # web_watch snapshots. ":memory:" forgets them on restart; point it at a
+    # file (the Docker image uses /data/web_watch.db) to keep them.
+    watch_db: str = ":memory:"
+
+    # site_map / link_check page cap per call.
+    crawl_max_pages: int = 200
+
     # parameter_test: value cap and concurrency.
     param_test_max_values: int = 20
     param_test_concurrency: int = 4
@@ -94,6 +106,10 @@ class HttpConfig:
             param_test_concurrency=_env_int(
                 "CHTTP_PARAM_TEST_CONCURRENCY", cls.param_test_concurrency
             ),
+            secrets_json=os.getenv("CHTTP_SECRETS") or None,
+            secrets_file=os.getenv("CHTTP_SECRETS_FILE") or None,
+            watch_db=os.getenv("CHTTP_WATCH_DB") or cls.watch_db,
+            crawl_max_pages=_env_int("CHTTP_CRAWL_MAX_PAGES", cls.crawl_max_pages),
         )
 
 

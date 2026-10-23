@@ -17,6 +17,7 @@ import httpx
 from hirara_core.ssrf import BlockedURL, Target, resolve_target
 
 from .config import HttpConfig
+from .secrets import SecretSpec
 
 log = logging.getLogger(__name__)
 
@@ -220,8 +221,14 @@ async def http_request(
     config: HttpConfig | None = None,
     resolver=None,
     transport: httpx.AsyncBaseTransport | None = None,
+    secret: SecretSpec | None = None,
 ) -> RequestResult:
-    """Issue an HTTP request through the SSRF guard."""
+    """Issue an HTTP request through the SSRF guard.
+
+    ``secret`` is attached per hop, and only when that hop's pinned host is
+    on the secret's allowlist. A redirect to another host goes out without
+    it. What is echoed back as ``request_headers`` shows a placeholder.
+    """
     cfg = config or HttpConfig()
     started = time.perf_counter()
 
@@ -263,6 +270,10 @@ async def http_request(
         payload = _encode_body(body, max_bytes=cfg.max_request_body_bytes)
     except RequestError as exc:
         return RequestResult(method=verb, url=cleaned_url, error=str(exc))
+
+    if secret is not None and not secret.value:
+        return RequestResult(method=verb, url=cleaned_url,
+                             error=f"secret {secret.name!r} has no value configured")
 
     if payload is not None and verb in {"GET", "HEAD"}:
         return RequestResult(
@@ -313,10 +324,30 @@ async def http_request(
                 req_headers.update(custom)
                 req_headers["Host"] = target.host_header
                 sent_headers = dict(req_headers)
+                pinned = _pin(target)
+                if secret is not None:
+                    if secret.allows(target.host):
+                        if secret.header:
+                            # The secret wins over a caller header of the same name.
+                            for key in [k for k in req_headers if k.lower() == secret.header.lower()]:
+                                del req_headers[key]
+                                sent_headers.pop(key, None)
+                            req_headers[secret.header] = secret.value
+                            sent_headers[secret.header] = secret.placeholder()
+                        else:
+                            pinned = pinned.copy_merge_params({secret.query: secret.value})
+                    elif hop == 0:
+                        return RequestResult(
+                            method=verb,
+                            url=cleaned_url,
+                            elapsed_ms=int((time.perf_counter() - started) * 1000),
+                            error=(f"secret {secret.name!r} may only be sent to "
+                                   f"{', '.join(secret.hosts)}, not {target.host}"),
+                        )
 
                 request = client.build_request(
                     active_method,
-                    _pin(target),
+                    pinned,
                     headers=req_headers,
                     content=active_body,
                     extensions={"sni_hostname": target.host},

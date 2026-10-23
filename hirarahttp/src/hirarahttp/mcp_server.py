@@ -15,6 +15,7 @@ import argparse
 
 from mcp.server.mcpserver import MCPServer
 
+from . import tools as T
 from .tools import Toolset
 
 server = MCPServer(
@@ -48,6 +49,7 @@ async def http_request_tool(
     follow_redirects: bool = True,
     max_redirects: int | None = None,
     max_bytes: int | None = None,
+    secret: str | None = None,
 ) -> dict:
     """Send an HTTP request through the SSRF perimeter.
 
@@ -60,6 +62,7 @@ async def http_request_tool(
         follow_redirects: Follow redirects when true.
         max_redirects: Max hops.
         max_bytes: Cap on response body bytes.
+        secret: Name of a configured credential to attach (see secret_list).
     """
     return await _toolset.http_request(
         url=url,
@@ -70,6 +73,7 @@ async def http_request_tool(
         follow_redirects=follow_redirects,
         max_redirects=max_redirects,
         max_bytes=max_bytes,
+        secret=secret,
     )
 
 
@@ -381,6 +385,33 @@ async def response_compare_tool(
         compare_body=compare_body,
         ignore_headers=ignore_headers,
     )
+
+
+@server.tool(name="link_check", description=T.LINK_CHECK_SCHEMA["description"])
+async def link_check_tool(url: str, scope: str = "page", max_pages: int = 20,
+                          max_links: int = 500, check_external: bool = True,
+                          respect_robots: bool = True) -> dict:
+    return await _toolset.link_check(url=url, scope=scope, max_pages=max_pages,
+                                     max_links=max_links, check_external=check_external,
+                                     respect_robots=respect_robots)
+
+
+@server.tool(name="site_map", description=T.SITE_MAP_SCHEMA["description"])
+async def site_map_tool(url: str, max_pages: int = 50, max_depth: int = 3,
+                        respect_robots: bool = True, keep_query: bool = False) -> dict:
+    return await _toolset.site_map(url=url, max_pages=max_pages, max_depth=max_depth,
+                                   respect_robots=respect_robots, keep_query=keep_query)
+
+
+@server.tool(name="web_watch", description=T.WEB_WATCH_SCHEMA["description"])
+async def web_watch_tool(action: str = "check", url: str | None = None,
+                         watch_id: str | None = None, ignore: list[str] | None = None) -> dict:
+    return await _toolset.web_watch(action=action, url=url, watch_id=watch_id, ignore=ignore)
+
+
+@server.tool(name="secret_list", description=T.SECRET_LIST_SCHEMA["description"])
+async def secret_list_tool() -> dict:
+    return await _toolset.secret_list()
 
 
 def main() -> None:

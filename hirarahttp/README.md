@@ -24,6 +24,10 @@ redirect hop) goes through [`hirara-core`](../hirara-core/) resolve-then-pin.
 | **`request_replay`** | ✅ shipped | Re-issue a recorded request (optional overrides) |
 | **`parameter_test`** | ✅ shipped | Vary one parameter across values |
 | **`response_compare`** | ✅ shipped | Diff two responses (history or inline) |
+| **`link_check`** | ✅ shipped | Broken links on a page or across a site |
+| **`site_map`** | ✅ shipped | Same-site crawl: status, title, depth (honours robots.txt) |
+| **`web_watch`** | ✅ shipped | Remember a page and diff it on the next check |
+| **`secret_list`** | ✅ shipped | Named, host-scoped credentials for `http_request(secret=…)`; values never shown |
 
 ---
 
@@ -148,6 +152,25 @@ docker compose up -d --build
 | `CHTTP_ENUM_TIMEOUT` | `10` | Per-path timeout (seconds) |
 | `CHTTP_PARAM_TEST_MAX_VALUES` | `20` | Cap on values per parameter_test |
 | `CHTTP_PARAM_TEST_CONCURRENCY` | `4` | Max concurrent parameter_test probes |
+| `CHTTP_SECRETS` | _(empty)_ | JSON map of named credentials (see below) |
+| `CHTTP_SECRETS_FILE` | _(empty)_ | Same, from a file |
+| `CHTTP_WATCH_DB` | `:memory:` | SQLite file for `web_watch` snapshots |
+| `CHTTP_CRAWL_MAX_PAGES` | `200` | Page cap for `site_map` / `link_check` |
+
+### Scoped secrets
+
+An agent names a credential; it never sees it. Each secret lists the hosts it
+may be sent to, and is sent as a header or a query parameter:
+
+```json
+{"github": {"hosts": ["api.github.com"], "header": "Authorization",
+            "prefix": "Bearer ", "value_env": "GITHUB_TOKEN"},
+ "weather": {"hosts": ["*.openweathermap.org"], "query": "appid", "value": "..."}}
+```
+
+`http_request(url=..., secret="github")` attaches it only when the pinned
+destination host matches, drops it on a redirect to another host, and redacts
+the value from the result and the history (even if the server echoes it).
 | `CHTTP_USER_AGENT` | Hirara UA | Default User-Agent |
 | `CHTTP_PORT` | `8800` | Compose host port |
 

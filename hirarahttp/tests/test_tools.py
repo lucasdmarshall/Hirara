@@ -8,6 +8,7 @@ import pytest
 from hirarahttp.config import HttpConfig
 from hirarahttp.history import HistoryStore
 from hirarahttp.tools import (
+    TOOL_NAMES,
     DIRECTORY_ENUM_SCHEMA,
     HTTP_HISTORY_SCHEMA,
     HTTP_REQUEST_SCHEMA,
@@ -296,15 +297,6 @@ def test_health():
     ts = Toolset(config=HttpConfig())
     h = ts.health()
     assert h["status"] == "ok"
-    assert h["tools"] == [
-        "http_request",
-        "http_history",
-        "inspect_headers",
-        "inspect_cookies",
-        "inspect_response",
-        "directory_enum",
-        "request_replay",
-        "parameter_test",
-        "response_compare",
-    ]
+    assert h["tools"] == list(TOOL_NAMES)
+    assert h["tools"][-4:] == ["link_check", "site_map", "web_watch", "secret_list"]
     assert h["history_count"] == 0
