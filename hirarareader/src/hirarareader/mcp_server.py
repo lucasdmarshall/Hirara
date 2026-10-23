@@ -15,7 +15,7 @@ import argparse
 
 from mcp.server.mcpserver import MCPServer
 
-from .tools import Toolset
+from .tools import EMAIL_READ_SCHEMA, Toolset
 
 server = MCPServer(
     name="hirarareader",
@@ -63,6 +63,22 @@ async def office_read_tool(
         file_base64=file_base64,
         filename=filename,
     )
+
+
+@server.tool(name="email_read", description=EMAIL_READ_SCHEMA["description"])
+async def email_read_tool(
+    file_path: str | None = None,
+    file_url: str | None = None,
+    file_base64: str | None = None,
+    filename: str | None = None,
+    read_attachments: bool = True,
+    include_html: bool = False,
+    max_messages: int = 50,
+) -> dict:
+    return await _toolset.email_read(
+        file_path=file_path, file_url=file_url, file_base64=file_base64, filename=filename,
+        read_attachments=read_attachments, include_html=include_html,
+        max_messages=max_messages)
 
 
 def main() -> None:

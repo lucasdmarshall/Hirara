@@ -2,7 +2,7 @@
 
 # HiraraReader
 
-**Self-hosted Office-document reader for AI agents — docx, pptx, xlsx → text. No API keys.**
+**Self-hosted Office-document and email reader for AI agents — docx, pptx, xlsx, eml, msg, mbox → text. No API keys.**
 
 Part of the [Hirara](https://github.com/lucasdmarshall/Hirara) tool hub.
 Pure-Python — [python-docx](https://github.com/python-openxml/python-docx),
@@ -17,6 +17,21 @@ through the hub's shared SSRF guard, [`hirara-core`](../hirara-core/).
 </div>
 
 ---
+
+## Email: `email_read`
+
+`email_read` takes an `.eml`, an Outlook `.msg` (needs the `msg` extra:
+`pip install "hirarareader[msg]"`, included in the Docker image) or an mbox
+mailbox and returns, per message: from / to / cc / reply-to, subject, date,
+message ids, the readable body (HTML turned into text, scripts dropped), every
+link, `Authentication-Results` and the number of `Received` hops, and the
+attachments with size and SHA-256. Word / PowerPoint / Excel and text
+attachments are read in place. Nothing in a message is fetched or executed.
+
+```bash
+curl -X POST localhost:8500/email_read -H 'content-type: application/json' \
+  -d '{"file_path":"/data/invoice.eml"}'
+```
 
 ## One tool, three formats
 

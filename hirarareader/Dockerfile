@@ -12,7 +12,7 @@ COPY hirarareader/pyproject.toml hirarareader/README.md \
 COPY hirarareader/src ./src
 
 # Pure-Python readers (python-docx/pptx/openpyxl) + the HTTP + MCP front ends.
-RUN pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "python-multipart" "mcp"
+RUN pip install --no-cache-dir ".[msg]" "uvicorn[standard]" "fastapi" "python-multipart" "mcp"
 
 RUN useradd --create-home --uid 10001 app && chown -R app:app /app
 USER app
