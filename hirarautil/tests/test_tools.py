@@ -41,7 +41,7 @@ def test_schema():
 def test_health():
     h = Toolset(config=UtilConfig()).health()
     assert h["status"] == "ok"
-    assert h["tools"] == ["decode", "hash", "jwt_inspect", "jwt_decode"]
+    assert h["tools"] == list(TOOL_NAMES)
 
 
 @pytest.mark.asyncio
@@ -75,6 +75,7 @@ async def test_toolset_jwt():
 
 @pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("decode", "hash", "jwt_inspect", "jwt_decode")
+    assert TOOL_NAMES == ("decode", "hash", "jwt_inspect", "jwt_decode", "time_now",
+                          "date_calc", "schema_validate")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

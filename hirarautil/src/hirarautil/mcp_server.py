@@ -9,6 +9,9 @@ import argparse
 
 from mcp.server.mcpserver import MCPServer
 
+from typing import Any
+
+from . import tools as T
 from .tools import Toolset
 
 server = MCPServer(
@@ -116,6 +119,47 @@ async def jwt_decode_tool(
         secret=secret,
         include_signature=include_signature,
     )
+
+
+@server.tool(name="time_now", description=T.TIME_NOW_SCHEMA["description"])
+async def time_now_tool(timezones: list[str] | str | None = None) -> dict:
+    return await _toolset.time_now(timezones=timezones)
+
+
+@server.tool(name="date_calc", description=T.DATE_CALC_SCHEMA["description"])
+async def date_calc_tool(
+    operation: str,
+    date: str | None = None,
+    other: str | None = None,
+    timezone: str | None = None,
+    to_timezones: list[str] | str | None = None,
+    years: int = 0,
+    months: int = 0,
+    weeks: int = 0,
+    days: float = 0,
+    hours: float = 0,
+    minutes: float = 0,
+    seconds: float = 0,
+    business_days: int = 0,
+    holidays: list[str] | None = None,
+    weekend: list[str] | None = None,
+) -> dict:
+    return await _toolset.date_calc(
+        operation=operation, date=date, other=other, timezone=timezone,
+        to_timezones=to_timezones, years=years, months=months, weeks=weeks, days=days,
+        hours=hours, minutes=minutes, seconds=seconds, business_days=business_days,
+        holidays=holidays, weekend=weekend)
+
+
+@server.tool(name="schema_validate", description=T.SCHEMA_VALIDATE_SCHEMA["description"])
+async def schema_validate_tool(
+    instance: Any,
+    schema: Any,
+    check_formats: bool = True,
+    max_errors: int = 100,
+) -> dict:
+    return await _toolset.schema_validate(instance=instance, schema=schema,
+                                          check_formats=check_formats, max_errors=max_errors)
 
 
 def main() -> None:

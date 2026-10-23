@@ -23,7 +23,12 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Utilities",
 ]
-dependencies = []
+dependencies = [
+    # schema_validate: the reference JSON Schema implementation.
+    "jsonschema>=4.18",
+    # IANA time zone data for slim images that ship none.
+    "tzdata>=2024.1",
+]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]

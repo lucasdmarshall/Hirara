@@ -18,6 +18,9 @@ Part of [Hirara](https://github.com/lucasdmarshall/Hirara).
 | **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) |
 | **`jwt_inspect`** | ✅ shipped | Inspect JWT header, claim keys, and time claims |
 | **`jwt_decode`** | ✅ shipped | Decode JWT header + payload (optional HS* verify) |
+| **`time_now`** | ✅ shipped | Current date and time in any IANA time zone (weekday, ISO week, offset, DST) |
+| **`date_calc`** | ✅ shipped | Date add / diff / convert / info, month ends, DST and business days |
+| **`schema_validate`** | ✅ shipped | Validate JSON against a JSON Schema, every error with its path |
 
 ---
 

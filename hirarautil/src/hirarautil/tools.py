@@ -1,6 +1,7 @@
 """The tool layer: schema and JSON-ready results.
 
-Tools: ``decode``, ``hash``, ``jwt_inspect``, ``jwt_decode``.
+Tools: ``decode``, ``hash``, ``jwt_inspect``, ``jwt_decode``, ``time_now``,
+``date_calc``, ``schema_validate``.
 """
 
 from __future__ import annotations
@@ -17,6 +18,9 @@ from .jwt import JwtError, jwt_decode as run_jwt_decode
 from .jwt import jwt_inspect as run_jwt_inspect
 from .jwt import decode_result_to_dict as jwt_decode_result_to_dict
 from .jwt import inspect_result_to_dict as jwt_inspect_result_to_dict
+
+from .schema import SchemaError, schema_validate as run_schema_validate
+from .timecalc import TimeError, date_calc as run_date_calc, time_now as run_time_now
 
 log = logging.getLogger(__name__)
 
@@ -157,6 +161,93 @@ JWT_DECODE_SCHEMA = {
 }
 
 
+TIME_NOW_SCHEMA = {
+    "name": "time_now",
+    "description": (
+        "The current date and time. You do not know today's date; call this "
+        "whenever the answer depends on it (deadlines, ages, 'next Friday', "
+        "opening hours). Give IANA time zones (e.g. Asia/Yangon, "
+        "America/New_York); default UTC. Returns weekday, ISO week, UTC offset "
+        "and DST for each."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "timezones": {
+                "description": "One IANA zone or a list (default UTC).",
+                "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}],
+            },
+        },
+        "additionalProperties": False,
+    },
+}
+
+
+DATE_CALC_SCHEMA = {
+    "name": "date_calc",
+    "description": (
+        "Calendar arithmetic without mistakes. operation=add (years, months, "
+        "weeks, days, hours, minutes, seconds, business_days; month ends and "
+        "DST handled), diff (between date and other: calendar y/m/d, total "
+        "days, business days), convert (date into to_timezones), info "
+        "(weekday, ISO week, quarter, leap year, month bounds, business day). "
+        "Dates are ISO 8601, a unix timestamp, or now / today / tomorrow / "
+        "yesterday, read in timezone (default UTC). Business days skip the "
+        "weekend (default Sat/Sun) and any holidays listed."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "operation": {"type": "string", "enum": ["add", "diff", "convert", "info"]},
+            "date": {"type": "string", "description": "Start date (default now)."},
+            "other": {"type": "string", "description": "Second date for diff."},
+            "timezone": {"type": "string", "description": "Zone to read and show dates in."},
+            "to_timezones": {
+                "description": "Target zone(s) for convert.",
+                "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}],
+            },
+            "years": {"type": "integer"},
+            "months": {"type": "integer"},
+            "weeks": {"type": "integer"},
+            "days": {"type": "number"},
+            "hours": {"type": "number"},
+            "minutes": {"type": "number"},
+            "seconds": {"type": "number"},
+            "business_days": {"type": "integer"},
+            "holidays": {"type": "array", "items": {"type": "string"},
+                         "description": "ISO dates that are not business days."},
+            "weekend": {"type": "array", "items": {"type": "string"},
+                        "description": "Weekend days (default Saturday, Sunday)."},
+        },
+        "required": ["operation"],
+        "additionalProperties": False,
+    },
+}
+
+
+SCHEMA_VALIDATE_SCHEMA = {
+    "name": "schema_validate",
+    "description": (
+        "Validate JSON against a JSON Schema (draft from $schema, default "
+        "2020-12) and list every error with its JSON pointer path, so you can "
+        "fix generated output before sending it on. Pass instance and schema "
+        "as JSON values or as JSON strings."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "instance": {"description": "The JSON to check (value or JSON string)."},
+            "schema": {"description": "The JSON Schema (object or JSON string)."},
+            "check_formats": {"type": "boolean",
+                              "description": "Also check format (email, date, uri, ...). Default true."},
+            "max_errors": {"type": "integer", "minimum": 1, "maximum": 1000},
+        },
+        "required": ["instance", "schema"],
+        "additionalProperties": False,
+    },
+}
+
+
 def _decode_envelope(**overrides) -> dict:
     envelope = {
         "input": None,
@@ -250,7 +341,7 @@ class Toolset:
         return {
             "status": "ok",
             "version": "0.1.0",
-            "tools": ["decode", "hash", "jwt_inspect", "jwt_decode"],
+            "tools": list(TOOL_NAMES),
             "max_input_chars": self.config.max_input_chars,
             "max_output_bytes": self.config.max_output_bytes,
         }
@@ -360,11 +451,72 @@ class Toolset:
             )
 
 
+    async def time_now(self, *, timezones: list[str] | str | None = None) -> dict:
+        try:
+            return run_time_now(timezones)
+        except TimeError as exc:
+            return {"zones": [], "text": None, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("time_now failed")
+            return {"zones": [], "text": None, "error": f"time_now failed: {exc}"}
+
+    async def date_calc(
+        self,
+        *,
+        operation: str,
+        date: str | None = None,
+        other: str | None = None,
+        timezone: str | None = None,
+        to_timezones: list[str] | str | None = None,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: float = 0,
+        hours: float = 0,
+        minutes: float = 0,
+        seconds: float = 0,
+        business_days: int = 0,
+        holidays: list[str] | None = None,
+        weekend: list[str] | None = None,
+    ) -> dict:
+        try:
+            return run_date_calc(
+                operation, date_value=date, other=other, timezone_name=timezone,
+                to_timezones=to_timezones, years=years, months=months, weeks=weeks,
+                days=days, hours=hours, minutes=minutes, seconds=seconds,
+                business_days=business_days, holidays=holidays, weekend=weekend,
+            )
+        except (TimeError, OverflowError) as exc:
+            return {"operation": operation, "result": None, "text": None, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("date_calc failed")
+            return {"operation": operation, "result": None, "text": None,
+                    "error": f"date_calc failed: {exc}"}
+
+    async def schema_validate(self, *, instance, schema, check_formats: bool = True,
+                              max_errors: int = 100) -> dict:
+        import asyncio
+
+        try:
+            return await asyncio.to_thread(
+                run_schema_validate, instance, schema, check_formats=check_formats,
+                max_errors=max_errors, max_chars=self.config.max_input_chars)
+        except SchemaError as exc:
+            return {"valid": None, "errors": [], "error_count": None, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            log.exception("schema_validate failed")
+            return {"valid": None, "errors": [], "error_count": None,
+                    "error": f"schema_validate failed: {exc}"}
+
+
 __all__ = [
     "DECODE_SCHEMA",
     "HASH_SCHEMA",
     "JWT_INSPECT_SCHEMA",
     "JWT_DECODE_SCHEMA",
+    "TIME_NOW_SCHEMA",
+    "DATE_CALC_SCHEMA",
+    "SCHEMA_VALIDATE_SCHEMA",
     "Toolset",
     "TOOL_NAMES",
     "call_tool",
@@ -372,7 +524,15 @@ __all__ = [
 ]
 
 
-TOOL_NAMES = ("decode", "hash", "jwt_inspect", "jwt_decode")
+TOOL_NAMES = (
+    "decode",
+    "hash",
+    "jwt_inspect",
+    "jwt_decode",
+    "time_now",
+    "date_calc",
+    "schema_validate",
+)
 _local_toolset: "Toolset | None" = None
 
 
@@ -384,16 +544,9 @@ def _backend() -> "Toolset":
 
 
 async def call_tool(name: str, arguments: dict | None = None) -> dict:
-    args = arguments or {}
-    if name == "decode":
-        return await _backend().decode(**args)
-    if name == "hash":
-        return await _backend().hash(**args)
-    if name == "jwt_inspect":
-        return await _backend().jwt_inspect(**args)
-    if name == "jwt_decode":
-        return await _backend().jwt_decode(**args)
-    raise KeyError(f"unknown tool: {name}")
+    if name not in TOOL_NAMES:
+        raise KeyError(f"unknown tool: {name}")
+    return await getattr(_backend(), name)(**(arguments or {}))
 
 
 def tool_schemas() -> list[dict]:
