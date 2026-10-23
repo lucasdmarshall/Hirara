@@ -903,6 +903,78 @@ class Client:
             args["max_vars"] = max_vars
         return self.call("environment_read", args)
 
+    # --- audio (hiraraaudio) ---
+    # path= is read here and sent as base64 so it works against a hub that
+    # cannot see your disk. Arguments that name hub-side files (output_path,
+    # output_dir, audio_fingerprint's paths) pass through unchanged.
+
+    def _audio(self, tool: str, path, url, base64, extra: dict) -> dict:
+        args = {**self._source("audio", path, url, base64), **extra}
+        if path and "filename" not in args:
+            args["filename"] = os.path.basename(path)
+        return self.call(tool, args)
+
+    def audio_info(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_info", path, url, base64, extra)
+
+    def audio_profile(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_profile", path, url, base64, extra)
+
+    def audio_check(self, *, path=None, url=None, base64=None, preset: str = "podcast",
+                    **extra) -> dict:
+        return self._audio("audio_check", path, url, base64, {"preset": preset, **extra})
+
+    def audio_fix(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_fix", path, url, base64, extra)
+
+    def audio_compare(self, *, a_path=None, a_url=None, a_base64=None, b_path=None,
+                      b_url=None, b_base64=None, **extra) -> dict:
+        args = {**self._source("a", a_path, a_url, a_base64),
+                **self._source("b", b_path, b_url, b_base64), **extra}
+        return self.call("audio_compare", args)
+
+    def audio_find(self, *, path=None, url=None, base64=None, clip_path=None, clip_url=None,
+                   clip_base64=None, **extra) -> dict:
+        if clip_path or clip_url or clip_base64:
+            extra = {**self._source("clip", clip_path, clip_url, clip_base64), **extra}
+        return self._audio("audio_find", path, url, base64, extra)
+
+    def audio_fingerprint(self, paths: list[str] | None = None, *,
+                          urls: list[str] | None = None, **extra) -> dict:
+        args = dict(extra)
+        if paths is not None:
+            args["audio_paths"] = list(paths)
+        if urls is not None:
+            args["audio_urls"] = list(urls)
+        return self.call("audio_fingerprint", args)
+
+    def audio_split(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_split", path, url, base64, extra)
+
+    def audio_tighten(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_tighten", path, url, base64, extra)
+
+    def audio_spectrogram(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_spectrogram", path, url, base64, extra)
+
+    def audio_tones(self, *, path=None, url=None, base64=None, **extra) -> dict:
+        return self._audio("audio_tones", path, url, base64, extra)
+
+    def audio_speak(self, text: str | None = None, **extra) -> dict:
+        args = dict(extra)
+        if text is not None:
+            args["text"] = text
+        return self.call("audio_speak", args)
+
+    def audio_sonify(self, values: list | None = None, **extra) -> dict:
+        args = dict(extra)
+        if values is not None:
+            args["values"] = list(values)
+        return self.call("audio_sonify", args)
+
+    def audio_watch(self, action: str, **extra) -> dict:
+        return self.call("audio_watch", {"action": action, **extra})
+
 
 # --- module-level convenience: `import hirara; hirara.web_search(...)` ---
 
@@ -981,6 +1053,20 @@ database_schema = _delegate("database_schema")
 application_logs = _delegate("application_logs")
 process_list = _delegate("process_list")
 environment_read = _delegate("environment_read")
+audio_info = _delegate("audio_info")
+audio_profile = _delegate("audio_profile")
+audio_check = _delegate("audio_check")
+audio_fix = _delegate("audio_fix")
+audio_compare = _delegate("audio_compare")
+audio_find = _delegate("audio_find")
+audio_fingerprint = _delegate("audio_fingerprint")
+audio_split = _delegate("audio_split")
+audio_tighten = _delegate("audio_tighten")
+audio_spectrogram = _delegate("audio_spectrogram")
+audio_tones = _delegate("audio_tones")
+audio_speak = _delegate("audio_speak")
+audio_sonify = _delegate("audio_sonify")
+audio_watch = _delegate("audio_watch")
 call = _delegate("call")
 tools = _delegate("tools")
 health = _delegate("health")
@@ -1032,4 +1118,18 @@ __all__ = [
     "application_logs",
     "process_list",
     "environment_read",
+    "audio_info",
+    "audio_profile",
+    "audio_check",
+    "audio_fix",
+    "audio_compare",
+    "audio_find",
+    "audio_fingerprint",
+    "audio_split",
+    "audio_tighten",
+    "audio_spectrogram",
+    "audio_tones",
+    "audio_speak",
+    "audio_sonify",
+    "audio_watch",
 ]

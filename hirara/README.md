@@ -87,10 +87,15 @@ docker compose -f docker-compose.hub.yml up -d --build
 | `jwt_inspect(…)` · `jwt_decode(…)` | JWT header / payload |
 | `database_query(sql, …)` · `database_schema(…)` | SQLite query / schema |
 | `application_logs(…)` · `process_list(…)` · `environment_read(…)` | logs / processes / env |
+| `audio_info` · `audio_profile` · `audio_check` · `audio_fix` | describe / judge / repair audio |
+| `audio_compare` · `audio_find` · `audio_fingerprint` | verify edits, find clips, duplicates |
+| `audio_split` · `audio_tighten` · `audio_spectrogram` · `audio_tones` | edit at pauses, image, DTMF / hum |
+| `audio_speak(text, …)` · `audio_sonify(values, …)` · `audio_watch(action, …)` | TTS, data to sound, stream monitor |
 | `call(name, arguments)` | any tool, raw |
 
 File tools like PDF/OCR accept `path=` (local, auto-base64), `url=`, or `base64=`.
-`file_read` passes `path=` through to the backend (reads the hub or local process filesystem).
+`file_read` passes `path=` through to the backend (reads the hub or local process filesystem),
+and so do `audio_fingerprint`'s paths and any `output_path` / `output_dir`.
 
 ---
 

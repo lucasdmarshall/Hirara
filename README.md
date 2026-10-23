@@ -73,6 +73,20 @@ to be inspected.
 | **`application_logs`** | ✅ shipped | Tail / head / grep application logs — [`hiraraops/`](hiraraops/) |
 | **`process_list`** | ✅ shipped | List running processes — [`hiraraops/`](hiraraops/) |
 | **`environment_read`** | ✅ shipped | Read process environment — [`hiraraops/`](hiraraops/) |
+| **`audio_info`** | ✅ shipped | Container, codec, duration, channels, tags, chapters — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_profile`** | ✅ shipped | Timeline of speech / music / noise / silence + loudness, clipping, hum events — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_check`** | ✅ shipped | Pass/fail vs podcast, EBU R128, ACX audiobook, streaming or STT presets — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_fix`** | ✅ shipped | Loudness, true peak, DC, hum, rumble, denoise — then re-check — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_compare`** | ✅ shipped | What an edit changed: removed / inserted / moved spans, silence, level — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_find`** | ✅ shipped | Every occurrence of a clip (jingle, ad, intro) in a recording — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_fingerprint`** | ✅ shipped | Duplicate and containment matches across many files — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_split`** | ✅ shipped | Cut at natural pauses within length bounds — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_tighten`** | ✅ shipped | Shorten dead air with click-free cuts, then re-measure — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_spectrogram`** | ✅ shipped | Labelled spectrogram PNG for vision models — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_tones`** | ✅ shipped | DTMF digits, beeps, test tones, mains hum — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_speak`** | ✅ shipped | Lightweight text-to-speech (eSpeak NG) — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_sonify`** | ✅ shipped | Turn a data series into sound — [`hiraraaudio/`](hiraraaudio/) |
+| **`audio_watch`** | ✅ shipped | Monitor a live stream: dead air, spikes, clipping, tones — [`hiraraaudio/`](hiraraaudio/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
 Every tool that fetches an attacker-influenceable URL routes through
@@ -158,7 +172,8 @@ hirara.web_fetch("https://example.com")
 No `configure()` needed. Heavier, model-backed tools are opt-in extras:
 `pip install "hirara[ocr]"` (`ocr_read`, `form_extract`), `hirara[stt]`
 (`transcribe`), or `hirara[all]`. `hirara[code]` runs `execute_code` in-process
-too, but it still needs a Docker daemon that process can reach.
+too, but it still needs a Docker daemon that process can reach. `hirara[audio]`
+adds the `audio_*` tools (no models; needs FFmpeg on PATH).
 
 **Via a hub.** Some tools need a running service — `web_search` (your own
 SearXNG), and `execute_code` when this machine has no Docker. Point the SDK at

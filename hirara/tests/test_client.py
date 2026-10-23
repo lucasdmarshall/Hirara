@@ -270,3 +270,43 @@ def test_every_hub_tool_has_an_sdk_method_and_module_function():
         assert callable(getattr(Client, name, None)), f"Client.{name} is missing"
         assert callable(getattr(hirara, name, None)), f"hirara.{name} is missing"
         assert name in hirara.__all__, f"{name} is not exported from hirara"
+
+
+# --- audio (hiraraaudio) -------------------------------------------------------
+
+def test_audio_profile_sends_base64_and_filename(tmp_path):
+    f = tmp_path / "ep.mp3"
+    f.write_bytes(b"mp3")
+    c = _client()
+    c.audio_profile(path=str(f), max_segments=10)
+    assert _last["name"] == "audio_profile"
+    assert _last["arguments"] == {
+        "audio_base64": base64.b64encode(b"mp3").decode(),
+        "filename": "ep.mp3",
+        "max_segments": 10,
+    }
+
+
+def test_audio_compare_and_find_sources(tmp_path):
+    a, b = tmp_path / "a.wav", tmp_path / "b.wav"
+    a.write_bytes(b"A")
+    b.write_bytes(b"B")
+    c = _client()
+    c.audio_compare(a_path=str(a), b_url="https://x/b.wav")
+    assert _last["arguments"] == {"a_base64": base64.b64encode(b"A").decode(),
+                                  "b_url": "https://x/b.wav"}
+    c.audio_find(url="https://x/long.mp3", clip_start=3.0, clip_end=6.0)
+    assert _last["arguments"] == {"audio_url": "https://x/long.mp3", "clip_start": 3.0,
+                                  "clip_end": 6.0}
+
+
+def test_audio_fingerprint_speak_sonify_watch():
+    c = _client()
+    c.audio_fingerprint(["/data/a.mp3", "/data/b.mp3"])
+    assert _last["arguments"] == {"audio_paths": ["/data/a.mp3", "/data/b.mp3"]}
+    c.audio_speak("hello", voice="en-us")
+    assert _last["arguments"] == {"text": "hello", "voice": "en-us"}
+    c.audio_sonify([1, None, 3], duration=2)
+    assert _last["arguments"] == {"values": [1, None, 3], "duration": 2}
+    c.audio_watch("poll", watch_id="abc", cursor=4)
+    assert _last["arguments"] == {"action": "poll", "watch_id": "abc", "cursor": 4}

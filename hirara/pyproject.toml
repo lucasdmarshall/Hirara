@@ -40,7 +40,10 @@ ocr = ["hiraraocr>=0.1.0"]
 stt = ["hirarastt>=0.1.0"]
 # execute_code in-process: still needs a Docker daemon this process can reach.
 code = ["hiraracode>=0.1.0"]
-all = ["hirara[local]", "hirara[ocr]", "hirara[stt]", "hirara[code]"]
+# Audio tools in-process: NumPy only, but needs FFmpeg on PATH (and eSpeak NG
+# for audio_speak).
+audio = ["hiraraaudio>=0.1.0"]
+all = ["hirara[local]", "hirara[ocr]", "hirara[stt]", "hirara[code]", "hirara[audio]"]
 
 [project.urls]
 Homepage = "https://github.com/lucasdmarshall/Hirara"

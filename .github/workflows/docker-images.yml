@@ -50,6 +50,8 @@ jobs:
             dockerfile: hiraradb/Dockerfile
           - name: hirara-ops
             dockerfile: hiraraops/Dockerfile
+          - name: hirara-audio
+            dockerfile: hiraraaudio/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

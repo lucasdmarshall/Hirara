@@ -25,6 +25,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hirarautil": 9000,
     "hiraradb": 9100,
     "hiraraops": 9200,
+    "hiraraaudio": 9300,
 }
 
 
@@ -95,6 +96,24 @@ TOOLS: dict[str, ToolRoute] = {
     "environment_read": ToolRoute(
         "environment_read", "hiraraops", "/environment_read"
     ),
+    "audio_info": ToolRoute("audio_info", "hiraraaudio", "/audio_info"),
+    "audio_profile": ToolRoute("audio_profile", "hiraraaudio", "/audio_profile"),
+    "audio_check": ToolRoute("audio_check", "hiraraaudio", "/audio_check"),
+    "audio_fix": ToolRoute("audio_fix", "hiraraaudio", "/audio_fix"),
+    "audio_compare": ToolRoute("audio_compare", "hiraraaudio", "/audio_compare"),
+    "audio_find": ToolRoute("audio_find", "hiraraaudio", "/audio_find"),
+    "audio_fingerprint": ToolRoute(
+        "audio_fingerprint", "hiraraaudio", "/audio_fingerprint"
+    ),
+    "audio_split": ToolRoute("audio_split", "hiraraaudio", "/audio_split"),
+    "audio_tighten": ToolRoute("audio_tighten", "hiraraaudio", "/audio_tighten"),
+    "audio_spectrogram": ToolRoute(
+        "audio_spectrogram", "hiraraaudio", "/audio_spectrogram"
+    ),
+    "audio_tones": ToolRoute("audio_tones", "hiraraaudio", "/audio_tones"),
+    "audio_speak": ToolRoute("audio_speak", "hiraraaudio", "/audio_speak"),
+    "audio_sonify": ToolRoute("audio_sonify", "hiraraaudio", "/audio_sonify"),
+    "audio_watch": ToolRoute("audio_watch", "hiraraaudio", "/audio_watch"),
 }
 
 

@@ -48,12 +48,12 @@ progress in this repo (hub + SDK + packages).
 | **`hirarafs`** | `file_read`, `file_write` |
 | **`hiraradb`** | `database_query`, `database_schema` |
 | **`hiraraops`** | `application_logs`, `process_list`, `environment_read` |
-| **`hiraraaudio`** (planned) | `audio_info`, `audio_profile`, `audio_check`, `audio_fix`, `audio_compare`, `audio_find`, `audio_fingerprint`, `audio_split`, `audio_tighten`, `audio_spectrogram`, `audio_tones`, `audio_speak`, `audio_sonify`, `audio_watch` |
+| **`hiraraaudio`** | `audio_info`, `audio_profile`, `audio_check`, `audio_fix`, `audio_compare`, `audio_find`, `audio_fingerprint`, `audio_split`, `audio_tighten`, `audio_spectrogram`, `audio_tones`, `audio_speak`, `audio_sonify`, `audio_watch` |
 | Existing | `web_*`, `execute_code` / `python_exec`, PDF (`pdf_*`, `html_to_pdf`), OCR, Office, STT (`transcribe`) |
 
-## Upcoming
+## Audio (`hiraraaudio`)
 
-Next cluster: **`hiraraaudio`**. Speech-to-text stays on the existing
+Shipped in [`hiraraaudio/`](hiraraaudio/). Speech-to-text stays on the existing
 `transcribe` tool (`hirarastt`).
 
 An agent cannot hear, and it can already run `ffmpeg` through `execute_code`.
@@ -74,20 +74,20 @@ resampling stay internal building blocks rather than separate tools.
 
 | # | Tool | Status | What it gives an agent |
 |---|---|---|---|
-| 32 | `audio_info` | 📋 upcoming | Container, codec, duration, channels, tags and chapters (FFprobe) |
-| 33 | `audio_profile` | 📋 upcoming | A short timeline of speech, music, noise and silence, plus loudness, clipping and hum events |
-| 34 | `audio_check` | 📋 upcoming | Pass/fail against a preset (`podcast`, `broadcast` EBU R128, `audiobook` ACX, `music_streaming`, `stt_ready`), with the fix for each failure |
-| 35 | `audio_fix` | 📋 upcoming | Applies `audio_check`'s fixes (loudness, true peak, DC, hum, rumble), then re-checks the result |
-| 36 | `audio_compare` | 📋 upcoming | Two files: same content or not, time offset, and which spans were removed, added or changed |
-| 37 | `audio_find` | 📋 upcoming | Every place a reference clip (jingle, ad, intro) occurs in a long recording |
-| 38 | `audio_fingerprint` | 📋 upcoming | Duplicate and containment matches across many files |
-| 39 | `audio_split` | 📋 upcoming | Cut points at natural pauses within length bounds, never mid-word (e.g. chunks for `transcribe`) |
-| 40 | `audio_tighten` | 📋 upcoming | Shortens long silences with click-free cuts, with a dry-run plan and a re-check |
-| 41 | `audio_spectrogram` | 📋 upcoming | A labelled spectrogram PNG for vision models, plus a text note of steady tones |
-| 42 | `audio_tones` | 📋 upcoming | DTMF digits, beeps, test tones and 50/60 Hz mains hum |
-| 43 | `audio_speak` | 📋 upcoming | Lightweight text-to-speech in many languages (eSpeak NG) |
-| 44 | `audio_sonify` | 📋 upcoming | Turns a data series into sound, for accessibility |
-| 45 | `audio_watch` | 📋 upcoming | Monitors a live stream in the background and reports dead air, level spikes, clipping, tones and dropouts |
+| 32 | `audio_info` | ✅ shipped | Container, codec, duration, channels, tags and chapters (FFprobe) |
+| 33 | `audio_profile` | ✅ shipped | A short timeline of speech, music, noise and silence, plus loudness, clipping and hum events |
+| 34 | `audio_check` | ✅ shipped | Pass/fail against a preset (`podcast`, `broadcast` EBU R128, `audiobook` ACX, `music_streaming`, `stt_ready`), with the fix for each failure |
+| 35 | `audio_fix` | ✅ shipped | Applies `audio_check`'s fixes (loudness, true peak, DC, hum, rumble), then re-checks the result |
+| 36 | `audio_compare` | ✅ shipped | Two files: same content or not, time offset, and which spans were removed, added or changed |
+| 37 | `audio_find` | ✅ shipped | Every place a reference clip (jingle, ad, intro) occurs in a long recording |
+| 38 | `audio_fingerprint` | ✅ shipped | Duplicate and containment matches across many files |
+| 39 | `audio_split` | ✅ shipped | Cut points at natural pauses within length bounds, never mid-word (e.g. chunks for `transcribe`) |
+| 40 | `audio_tighten` | ✅ shipped | Shortens long silences with click-free cuts, with a dry-run plan and a re-check |
+| 41 | `audio_spectrogram` | ✅ shipped | A labelled spectrogram PNG for vision models, plus a text note of steady tones |
+| 42 | `audio_tones` | ✅ shipped | DTMF digits, beeps, test tones and 50/60 Hz mains hum |
+| 43 | `audio_speak` | ✅ shipped | Lightweight text-to-speech in many languages (eSpeak NG) |
+| 44 | `audio_sonify` | ✅ shipped | Turns a data series into sound, for accessibility |
+| 45 | `audio_watch` | ✅ shipped | Monitors a live stream in the background and reports dead air, level spikes, clipping, tones and dropouts |
 
 ## Current focus
 
@@ -98,8 +98,8 @@ resampling stay internal building blocks rather than separate tools.
 `database_schema`** (`hiraradb/`), **`application_logs` / `process_list` /
 `environment_read`** (`hiraraops/`), and the full **`hirarahttp`** cluster
 (including **`request_replay` / `parameter_test` / `response_compare`**) are
-shipped, plus **`html_to_pdf`** (`hirarapdf/`).
-Next up: the `hiraraaudio` cluster above.
+shipped, plus **`html_to_pdf`** (`hirarapdf/`) and the fourteen
+**`audio_*`** tools (`hiraraaudio/`).
 
 ## Engineering conventions (all tools)
 

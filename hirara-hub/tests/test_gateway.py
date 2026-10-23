@@ -126,4 +126,9 @@ def test_every_tool_has_a_route():
         "decode", "hash", "jwt_inspect", "jwt_decode",
         "database_query", "database_schema",
         "application_logs", "process_list", "environment_read",
+        "audio_info", "audio_profile", "audio_check", "audio_fix", "audio_compare",
+        "audio_find", "audio_fingerprint", "audio_split", "audio_tighten",
+        "audio_spectrogram", "audio_tones", "audio_speak", "audio_sonify", "audio_watch",
     }
+    audio = [r for r in TOOLS.values() if r.tool.startswith("audio_")]
+    assert all(r.service == "hiraraaudio" and r.path == f"/{r.tool}" for r in audio)
