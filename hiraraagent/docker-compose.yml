@@ -1,0 +1,33 @@
+# HiraraAgent — memory, ask a human, reminders and waiting for agents (HTTP + MCP).
+#
+# Bound to loopback. People answer agent questions at http://127.0.0.1:9600/human.
+# Set HG_HUMAN_TOKEN before exposing that page anywhere, and never give the
+# token to the agent.
+
+name: hiraraagent
+
+services:
+  hiraraagent:
+    build:
+      context: ..
+      dockerfile: hiraraagent/Dockerfile
+    restart: unless-stopped
+    environment:
+      - HG_DB=/data/agent.db
+      - HG_HUMAN_TOKEN=${HG_HUMAN_TOKEN:-}
+      # e.g. https://ntfy.sh/your-topic or a Slack / Discord incoming webhook
+      - HG_NOTIFY_URL=${HG_NOTIFY_URL:-}
+      - HG_PUBLIC_URL=${HG_PUBLIC_URL:-http://127.0.0.1:9600}
+    volumes:
+      - data:/data
+    ports:
+      - "127.0.0.1:${HG_PORT:-9600}:9600"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:9600/health',timeout=5).status==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  data:
