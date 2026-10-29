@@ -8,6 +8,8 @@ Tools: ``dns_lookup``, ``port_scan``, ``service_enum``.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 
@@ -258,18 +260,20 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=NetConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [DNS_LOOKUP_SCHEMA, PORT_SCAN_SCHEMA, SERVICE_ENUM_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": ["dns_lookup", "port_scan", "service_enum"],
             "default_record_types": list(self.config.default_record_types),
             "default_scan_ports": list(self.config.default_scan_ports),
         }
 
+    @tool_permission('dns_lookup')
     async def dns_lookup(
         self,
         *,
@@ -294,6 +298,7 @@ class Toolset:
             log.exception("dns_lookup failed")
             return _dns_envelope(name=name, error=f"dns_lookup failed: {exc}")
 
+    @tool_permission('port_scan')
     async def port_scan(
         self,
         *,
@@ -317,6 +322,7 @@ class Toolset:
             log.exception("port_scan failed")
             return _scan_envelope(host=host, error=f"port_scan failed: {exc}")
 
+    @tool_permission('service_enum')
     async def service_enum(
         self,
         *,
@@ -378,5 +384,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

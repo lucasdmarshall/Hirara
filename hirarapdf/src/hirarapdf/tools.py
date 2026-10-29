@@ -13,6 +13,8 @@ Three tools, matching the three things people mean by "a PDF tool":
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import base64
 import io
 import logging
@@ -262,6 +264,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=PdfConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [
             PDF_READ_SCHEMA,
@@ -273,7 +276,7 @@ class Toolset:
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "config": {
                 "max_bytes": self.config.max_bytes,
                 "allow_url_fetch": self.config.allow_url_fetch,
@@ -367,6 +370,7 @@ class Toolset:
 
     # --- pdf_read ---
 
+    @tool_permission('pdf_read')
     async def read(
         self,
         *,
@@ -403,6 +407,7 @@ class Toolset:
 
     # --- pdf_info ---
 
+    @tool_permission('pdf_info')
     async def info(
         self,
         *,
@@ -432,6 +437,7 @@ class Toolset:
 
     # --- pdf_create ---
 
+    @tool_permission('pdf_create')
     def create(
         self,
         *,
@@ -485,6 +491,7 @@ class Toolset:
 
     # --- html_to_pdf ---
 
+    @tool_permission('html_to_pdf')
     def html_to_pdf(
         self,
         *,
@@ -611,5 +618,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return result
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

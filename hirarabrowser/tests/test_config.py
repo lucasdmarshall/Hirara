@@ -8,7 +8,7 @@ def test_defaults():
     assert cfg.headless is True
     assert cfg.nav_timeout == 30.0
     assert cfg.max_sessions == 8
-    assert cfg.allow_private_urls is True
+    assert cfg.allow_private_urls is False
 
 
 def test_from_env(monkeypatch):

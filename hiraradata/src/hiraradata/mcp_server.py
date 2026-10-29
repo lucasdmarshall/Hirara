@@ -1,10 +1,12 @@
 """MCP front end — data profiling, charts and diagrams for agents.
 
     python -m hiraradata.mcp_server                       # stdio
-    python -m hiraradata.mcp_server --transport streamable-http
+    python -m hiraradata.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 from typing import Any
@@ -16,7 +18,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraradata",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Data tools for an agent. data_profile summarises a table too big to read "
         "(types, nulls, stats, outliers, duplicates). chart_render turns numbers into "
@@ -29,6 +31,7 @@ _toolset = Toolset.from_env()
 
 
 @server.tool(name="data_profile", description=T.DATA_PROFILE_SCHEMA["description"])
+@mcp_errors
 async def data_profile_tool(file_path: str | None = None, file_url: str | None = None,
                             file_base64: str | None = None, filename: str | None = None,
                             data: Any = None, format: str | None = None, sheet: str | None = None,
@@ -41,6 +44,7 @@ async def data_profile_tool(file_path: str | None = None, file_url: str | None =
 
 
 @server.tool(name="chart_render", description=T.CHART_RENDER_SCHEMA["description"])
+@mcp_errors
 async def chart_render_tool(type: str, x: list | None = None, series: list[dict] | None = None,
                             records: list[dict] | None = None, x_field: str | None = None,
                             y_fields: list[str] | None = None, title: str | None = None,
@@ -57,6 +61,7 @@ async def chart_render_tool(type: str, x: list | None = None, series: list[dict]
 
 
 @server.tool(name="diagram_render", description=T.DIAGRAM_RENDER_SCHEMA["description"])
+@mcp_errors
 async def diagram_render_tool(source: str, language: str = "auto", format: str = "png",
                               engine: str = "dot", output_path: str | None = None) -> dict:
     return await _toolset.diagram_render(source=source, language=language, format=format,
@@ -68,6 +73,8 @@ def main() -> None:
     parser.add_argument("--transport", default="stdio",
                         choices=["stdio", "sse", "streamable-http"])
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

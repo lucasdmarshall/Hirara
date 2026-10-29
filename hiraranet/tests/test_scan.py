@@ -31,18 +31,18 @@ def test_parse_ports_rejects_bad_input():
 @pytest.mark.asyncio
 async def test_scan_open_closed_timeout():
     async def connector(host: str, port: int, timeout: float) -> str:
-        assert host == "203.0.113.10"
+        assert host == "93.184.216.10"
         return {80: "open", 81: "closed", 82: "timeout"}[port]
 
     r = await scan_ports(
-        "203.0.113.10",
+        "93.184.216.10",
         ports=[80, 81, 82],
         connector=connector,
         resolver=lambda h: (h, True, None),
         config=NetConfig(annotate_ips=True),
     )
     assert r.error is None
-    assert r.ip == "203.0.113.10"
+    assert r.ip == "93.184.216.10"
     assert r.open_ports == [80]
     by_port = {x.port: x.status for x in r.results}
     assert by_port == {80: "open", 81: "closed", 82: "timeout"}
@@ -58,6 +58,7 @@ async def test_scan_annotates_private_ip():
         "127.0.0.1",
         ports=[80],
         connector=connector,
+        config=NetConfig(allow_private_targets=True),
         # use real resolve_host path via IP literal
     )
     assert r.error is None
@@ -83,10 +84,10 @@ async def test_scan_uses_default_ports_when_omitted():
 
     cfg = NetConfig(default_scan_ports=(22, 80), max_scan_ports=10)
     r = await scan_ports(
-        "203.0.113.1",
+        "93.184.216.1",
         ports=None,
         connector=connector,
-        resolver=lambda h: ("203.0.113.1", True, None),
+        resolver=lambda h: ("93.184.216.1", True, None),
         config=cfg,
     )
     assert r.error is None
@@ -99,7 +100,7 @@ async def test_scan_result_to_dict_shape():
         return "open"
 
     r = await scan_ports(
-        "203.0.113.5",
+        "93.184.216.5",
         ports=[443],
         connector=connector,
         resolver=lambda h: (h, True, None),

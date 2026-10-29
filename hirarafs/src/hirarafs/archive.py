@@ -11,6 +11,9 @@ on what the archive claims.
 from __future__ import annotations
 
 import stat
+import os
+import secrets
+from contextlib import contextmanager
 import tarfile
 import zipfile
 from datetime import datetime, timezone
@@ -92,17 +95,32 @@ def _safe_dir(out: Path, parts: tuple[str, ...]) -> Path | None:
     outside it. Walking step by step never touches anything but real
     directories under ``out``.
     """
-    current = out
-    for part in parts:
-        current = current / part
-        if current.is_symlink():
-            return None
-        if current.exists():
-            if not current.is_dir():
-                return None
-        else:
-            current.mkdir()
-    return current
+    try:
+        with _directory_fd(out, parts):
+            return out.joinpath(*parts)
+    except OSError:
+        return None
+
+
+@contextmanager
+def _directory_fd(out: Path, parts: tuple[str, ...]):
+    """Anchor every operation to an opened directory; never follow links."""
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    fd = os.open(out, flags)
+    try:
+        for part in parts:
+            if part in {"", ".", ".."} or "/" in part or "\\" in part:
+                raise ArchiveError("invalid extraction directory")
+            try:
+                os.mkdir(part, dir_fd=fd)
+            except FileExistsError:
+                pass
+            child = os.open(part, flags, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        yield fd
+    finally:
+        os.close(fd)
 
 
 def archive_list(path: str, *, max_entries: int = 1000, config: FsConfig) -> dict:
@@ -178,24 +196,35 @@ def archive_extract(path: str, *, dest: str, members: list[str] | None = None,
         nonlocal written, files
         if files >= config.max_extract_files:
             raise ArchiveError(f"more than CFS_MAX_EXTRACT_FILES ({config.max_extract_files}) files")
-        tmp = final.with_name(f".{final.name}.part")
+        tmp = f".hirara-{secrets.token_hex(16)}.part"
         size = 0
-        try:
-            with open(tmp, "wb") as handle:
-                while True:
-                    chunk = stream.read(CHUNK)
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if written + size > config.max_extract_bytes:
-                        raise ArchiveError(
-                            f"extracted data exceeds CFS_MAX_EXTRACT_BYTES ({config.max_extract_bytes}); "
-                            "possible archive bomb, stopped")
-                    handle.write(chunk)
-            tmp.replace(final)
-        except BaseException:
-            tmp.unlink(missing_ok=True)
-            raise
+        relative = final.relative_to(out)
+        with _directory_fd(out, relative.parts[:-1]) as parent_fd:
+            try:
+                fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                             0o600, dir_fd=parent_fd)
+                with os.fdopen(fd, "wb") as handle:
+                    while True:
+                        chunk = stream.read(CHUNK)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if written + size > config.max_extract_bytes:
+                            raise ArchiveError(
+                                f"extracted data exceeds CFS_MAX_EXTRACT_BYTES ({config.max_extract_bytes}); "
+                                "possible archive bomb, stopped")
+                        handle.write(chunk)
+                if overwrite:
+                    os.replace(tmp, final.name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                else:
+                    # link is an atomic no-clobber commit, unlike exists + rename.
+                    os.link(tmp, final.name, src_dir_fd=parent_fd,
+                            dst_dir_fd=parent_fd, follow_symlinks=False)
+            finally:
+                try:
+                    os.unlink(tmp, dir_fd=parent_fd)
+                except FileNotFoundError:
+                    pass
         written += size
         files += 1
         extracted.append({"name": name, "path": str(final), "size": size})

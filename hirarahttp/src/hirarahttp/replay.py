@@ -345,7 +345,8 @@ async def request_replay(
         recorded = record(payload)
         payload["request_id"] = recorded.id
 
-    return ReplayResult(source_id=entry.id, request=request_meta, response=payload)
+    return ReplayResult(source_id=entry.id, request=request_meta, response=payload,
+                        error=payload.get("error"))
 
 
 async def parameter_test(
@@ -451,7 +452,7 @@ async def parameter_test(
             error=f"unsupported method: {base_method!r}",
         )
 
-    workers = cfg.param_test_concurrency if concurrency is None else int(concurrency)
+    workers = cfg.param_test_concurrency if concurrency is None else min(cfg.param_test_concurrency, int(concurrency))
     if workers <= 0:
         return ParameterTestResult(
             source_id=source_id,

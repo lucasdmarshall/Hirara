@@ -96,7 +96,7 @@ def file_read(
             error="offset must be >= 0",
         )
 
-    cap = cfg.max_bytes if max_bytes is None else int(max_bytes)
+    cap = cfg.max_bytes if max_bytes is None else min(cfg.max_bytes, int(max_bytes))
     if cap <= 0:
         return ReadResult(
             path=requested,

@@ -9,7 +9,7 @@ httpx>=0.28
 
 # Shared SSRF guard + safe downloader (repo-local package).
 # From this directory: pip install -e ../hirara-core
-hirara-core>=0.1
+hirara-core>=0.2
 
 # Recognition engines (default paddle; tesseract fallback).
 # Tesseract also needs the system binary: apt-get install tesseract-ocr
@@ -32,4 +32,4 @@ uvicorn[standard]>=0.30
 python-multipart>=0.0.9
 
 # MCP front end (Claude Desktop / Cursor / agent runtimes)
-mcp>=2.0
+mcp>=2.3,<3

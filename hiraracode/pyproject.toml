@@ -1,6 +1,6 @@
 [project]
 name = "hiraracode"
-version = "0.1.0"
+version = "0.2.0"
 description = "Sandboxed code execution for AI agents — Docker-isolated, HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,13 +26,14 @@ classifiers = [
     "Topic :: Security",
 ]
 dependencies = [
+    "hirara-core>=0.2",
     # The Docker SDK is how the executor drives sibling sandbox containers.
     "docker>=7.0",
 ]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]

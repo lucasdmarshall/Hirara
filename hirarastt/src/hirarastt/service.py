@@ -10,6 +10,8 @@ it can spend your CPU/GPU on arbitrary audio.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -52,7 +54,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirarastt", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="hirarastt", version="0.2.0", lifespan=lifespan)
+
+install_backend(app)
 
 
 class TranscribeRequest(BaseModel):

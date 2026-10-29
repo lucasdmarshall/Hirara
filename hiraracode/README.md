@@ -221,3 +221,9 @@ the guarantees hold under test, with executed code hitting
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 Copyright 2026 Lucas D Marshall (Kaung Myat San).
+
+## Lifecycle and resource ceilings
+
+See [the security guide](../SECURITY.md#docker-execution) for per-process admission,
+independent job deadlines, bounded rolling logs, stable executor IDs, restart
+cleanup, and dedicated-daemon deployment. Network MCP is disabled; use stdio.

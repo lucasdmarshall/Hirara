@@ -47,8 +47,8 @@ class HttpConfig:
     )
 
     # When False, resolve_target rejects private/reserved destinations.
-    # True on a trusted laptop; False in the Docker image.
-    allow_private_ips: bool = True
+    # Explicit opt-in for trusted intranet work, including local SDK use.
+    allow_private_ips: bool = False
 
     # In-process http_request history ring buffer.
     history_size: int = 100

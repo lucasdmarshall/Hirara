@@ -22,6 +22,7 @@ import base64 as _b64
 import os
 
 import httpx
+from hirara_core.policy import tool_allowed
 
 from ._local import LocalBackends
 
@@ -106,6 +107,11 @@ class Client:
         Runs in-process when a local backend is installed for the tool (unless
         ``local=False``); otherwise forwards to the hub over HTTP.
         """
+        if not tool_allowed(name):
+            data = {"error": f"tool '{name}' disabled by HIRARA_ALLOWED_TOOLS", "tool": name}
+            if raise_on_error:
+                raise HiraraToolError(name, data["error"], data)
+            return data
         if self._use_local(name):
             data = _BACKENDS.call(name, arguments)
             if raise_on_error and isinstance(data, dict) and data.get("error"):
@@ -172,7 +178,7 @@ class Client:
                 continue
             seen.add(name)
             merged.append(schema)
-        return merged
+        return [s for s in merged if tool_allowed(s["name"])]
 
     def health(self) -> dict:
         return self._get("/health")

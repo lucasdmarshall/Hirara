@@ -18,7 +18,12 @@ permissions:
   packages: write
 
 jobs:
+  verify:
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
   build:
+    needs: verify
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

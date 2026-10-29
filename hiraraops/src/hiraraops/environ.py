@@ -107,8 +107,8 @@ def environment_read(
             ),
         )
 
-    do_redact = cfg.redact_env if redact is None else bool(redact)
-    cap = cfg.max_env_vars if max_vars is None else int(max_vars)
+    do_redact = cfg.redact_env or bool(redact)
+    cap = cfg.max_env_vars if max_vars is None else min(cfg.max_env_vars, int(max_vars))
     if cap <= 0:
         return EnvironResult(pid=pid, error="max_vars must be > 0")
 

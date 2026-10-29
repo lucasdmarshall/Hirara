@@ -7,15 +7,22 @@ RUN apt-get update \
 
 WORKDIR /app
 
+COPY constraints-release.txt /app/constraints-release.txt
+ENV PIP_CONSTRAINT=/app/constraints-release.txt
+
 # Build context is the repo root so the shared SSRF guard can be installed first.
 COPY hirara-core ./hirara-core
-RUN pip install --no-cache-dir ./hirara-core
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ./hirara-core
 
 COPY hiraradata/pyproject.toml hiraradata/README.md \
      hiraradata/LICENSE hiraradata/NOTICE hiraradata/requirements.txt ./
 COPY hiraradata/src ./src
 
-RUN pip install --no-cache-dir ".[parquet]" "uvicorn[standard]" "fastapi" "python-multipart" "mcp"
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ".[parquet]" "uvicorn[standard]" "fastapi" "python-multipart" "mcp"
 
 RUN useradd --create-home --uid 10001 app \
     && mkdir -p /data /data/tmp \

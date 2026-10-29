@@ -7,16 +7,23 @@ RUN apt-get update \
 
 WORKDIR /app
 
+COPY constraints-release.txt /app/constraints-release.txt
+ENV PIP_CONSTRAINT=/app/constraints-release.txt
+
 # Shared SSRF guard first, so `pip install .` sees hirara-core already
 # satisfied and never reaches for a (non-existent) PyPI release. The build
 # context is the repo root, so hirara-core/ is in scope.
 COPY hirara-core ./hirara-core
-RUN pip install --no-cache-dir ./hirara-core
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ./hirara-core
 
 COPY pyproject.toml ./
 COPY src ./src
 
-RUN pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
 
 # Runs unprivileged: this process fetches attacker-chosen URLs for a living.
 RUN useradd --create-home --uid 10001 app \

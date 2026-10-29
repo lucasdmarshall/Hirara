@@ -363,3 +363,17 @@ def test_agent_state_tools():
     assert _last["arguments"] == {"action": "ask", "question": "Deploy?", "kind": "approval"}
     c.wait_until(request_id="abc", max_wait=30)
     assert _last["arguments"] == {"request_id": "abc", "max_wait": 30}
+
+
+def test_stateful_local_backends_keep_their_event_loop():
+    import asyncio
+    from hirara._local import _run
+    async def state():
+        return asyncio.get_running_loop(), asyncio.create_task(asyncio.sleep(30))
+    loop, task = _run(state())
+    async def reuse():
+        assert asyncio.get_running_loop() is loop
+        assert not task.cancelled() and not task.done()
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    _run(reuse())

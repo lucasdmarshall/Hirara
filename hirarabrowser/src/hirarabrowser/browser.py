@@ -9,6 +9,8 @@ URLs are cleared through ``hirara_core.resolve_target`` before navigation.
 from __future__ import annotations
 
 import logging
+import asyncio
+import math
 from dataclasses import dataclass
 from typing import Any, Protocol
 from urllib.parse import urlsplit
@@ -180,16 +182,39 @@ class PlaywrightEngine:
         return self._playwright
 
     async def open_page(self, url: str, *, timeout: float) -> tuple[Any, Any, Any, int | None]:
+        if self.config.browser_channel != "chromium":
+            raise BrowserError("guarded browser egress currently requires Chromium")
         pw = await self._ensure()
         launcher = getattr(pw, self.config.browser_channel)
-        browser = await launcher.launch(headless=self.config.headless)
-        context = await browser.new_context()
-        page = await context.new_page()
-        response = await page.goto(
-            url, wait_until="domcontentloaded", timeout=int(timeout * 1000)
-        )
-        status = response.status if response is not None else None
-        return browser, context, page, status
+        browser = await launcher.launch(headless=self.config.headless,
+                                        executable_path=self.config.executable_path,
+                                        proxy={"server": "http://127.0.0.1:9"},
+                                        args=["--proxy-bypass-list=<-loopback>",
+                                              "--disable-quic",
+                                              "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"])
+        context = None
+        from .egress import BrowserEgress
+        egress = BrowserEgress(allow_private=self.config.allow_private_urls, timeout=timeout)
+        try:
+            context = await browser.new_context(offline=True, service_workers="block")
+            await context.route("**/*", egress.handle)
+            await context.route_web_socket("**/*", lambda ws: ws.close())
+            context.on("close", lambda _: asyncio.create_task(egress.close()))
+            page = await context.new_page()
+            response = await page.goto(
+                url, wait_until="domcontentloaded", timeout=int(timeout * 1000)
+            )
+            status = response.status if response is not None else None
+            return browser, context, page, status
+        except BaseException:
+            await egress.close()
+            await browser.close()
+            raise
+
+    async def close(self):
+        if self._playwright is not None:
+            await self._playwright.stop()
+            self._playwright = None
 
     async def close_session(self, session: Session) -> None:
         for obj in (session.page, session.context, session.browser):
@@ -241,10 +266,11 @@ async def browser_open(
     except BrowserError as exc:
         return OpenResult(error=str(exc))
 
-    nav_timeout = cfg.nav_timeout if timeout is None else float(timeout)
-    if nav_timeout <= 0:
+    nav_timeout = cfg.nav_timeout if timeout is None else min(float(timeout), cfg.nav_timeout)
+    if not math.isfinite(nav_timeout) or nav_timeout <= 0:
         return OpenResult(error="timeout must be > 0")
 
+    await sessions.drain()
     # Reuse session if provided: navigate existing page.
     if session_id:
         session = sessions.get(session_id)
@@ -277,6 +303,7 @@ async def browser_open(
         except Exception as exc:  # noqa: BLE001
             return OpenResult(session_id=session_id, error=f"navigation failed: {exc}")
 
+    browser = context = page = None
     try:
         browser, context, page, status = await eng.open_page(target, timeout=nav_timeout)
         title = await page.title()
@@ -295,6 +322,7 @@ async def browser_open(
             url=final_url,
             title=title,
         )
+        await sessions.drain()
         return OpenResult(
             session_id=session.session_id,
             url=final_url,
@@ -304,6 +332,12 @@ async def browser_open(
             truncated=truncated,
         )
     except Exception as exc:  # noqa: BLE001
+        for obj in (page, context, browser):
+            if obj is not None and callable(getattr(obj, "close", None)):
+                try:
+                    await obj.close()
+                except Exception:
+                    pass
         log.exception("browser_open failed")
         return OpenResult(error=f"browser_open failed: {exc}")
 
@@ -336,6 +370,7 @@ async def browser_click(
         max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
     )
 
+    await sessions.drain()
     sid = (session_id or "").strip()
     sel = (selector or "").strip()
     if not sid:
@@ -353,8 +388,8 @@ async def browser_click(
     if session is None:
         return ClickResult(session_id=sid, selector=sel, error=f"unknown session_id: {sid}")
 
-    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
-    if wait_timeout <= 0:
+    wait_timeout = cfg.nav_timeout if timeout is None else min(float(timeout), cfg.nav_timeout)
+    if not math.isfinite(wait_timeout) or wait_timeout <= 0:
         return ClickResult(session_id=sid, selector=sel, error="timeout must be > 0")
 
     page = session.page
@@ -424,6 +459,7 @@ async def browser_type(
         max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
     )
 
+    await sessions.drain()
     sid = (session_id or "").strip()
     sel = (selector or "").strip()
     if not sid:
@@ -439,8 +475,8 @@ async def browser_type(
             session_id=sid, selector=sel, text=text, error=f"unknown session_id: {sid}"
         )
 
-    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
-    if wait_timeout <= 0:
+    wait_timeout = cfg.nav_timeout if timeout is None else min(float(timeout), cfg.nav_timeout)
+    if not math.isfinite(wait_timeout) or wait_timeout <= 0:
         return TypeResult(
             session_id=sid, selector=sel, text=text, error="timeout must be > 0"
         )
@@ -525,6 +561,7 @@ async def browser_screenshot(
         max_sessions=cfg.max_sessions, session_ttl=cfg.session_ttl
     )
 
+    await sessions.drain()
     sid = (session_id or "").strip()
     if not sid:
         return ScreenshotResult(error="session_id is required")
@@ -543,8 +580,8 @@ async def browser_screenshot(
             session_id=sid, error=f"unknown session_id: {sid}"
         )
 
-    wait_timeout = cfg.nav_timeout if timeout is None else float(timeout)
-    if wait_timeout <= 0:
+    wait_timeout = cfg.nav_timeout if timeout is None else min(float(timeout), cfg.nav_timeout)
+    if not math.isfinite(wait_timeout) or wait_timeout <= 0:
         return ScreenshotResult(session_id=sid, error="timeout must be > 0")
 
     page = session.page

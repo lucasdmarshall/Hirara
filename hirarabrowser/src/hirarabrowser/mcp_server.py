@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import mcp_errors
+
 import argparse
 
 from mcp.server.mcpserver import MCPServer
@@ -10,7 +12,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarabrowser",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted browser tools. Use browser_open to load a URL, "
         "browser_click to click selectors, browser_type to fill inputs, "
@@ -29,6 +31,7 @@ _toolset = Toolset.from_env()
         "an existing session."
     ),
 )
+@mcp_errors
 async def browser_open_tool(
     url: str,
     session_id: str | None = None,
@@ -58,6 +61,7 @@ async def browser_open_tool(
         "browser_open and a CSS/text selector. Returns url/title after click."
     ),
 )
+@mcp_errors
 async def browser_click_tool(
     session_id: str,
     selector: str,
@@ -91,6 +95,7 @@ async def browser_click_tool(
         "press_enter after typing."
     ),
 )
+@mcp_errors
 async def browser_type_tool(
     session_id: str,
     selector: str,
@@ -131,6 +136,7 @@ async def browser_type_tool(
         "capture a single element."
     ),
 )
+@mcp_errors
 async def browser_screenshot_tool(
     session_id: str,
     full_page: bool = False,
@@ -167,6 +173,8 @@ def main() -> None:
         choices=["stdio", "sse", "streamable-http"],
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

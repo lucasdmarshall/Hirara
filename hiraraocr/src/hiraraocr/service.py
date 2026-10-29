@@ -11,6 +11,8 @@ files as this process.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -38,7 +40,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hiraraocr", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="hiraraocr", version="0.3.0", lifespan=lifespan)
+
+install_backend(app)
 
 
 class OcrRequest(BaseModel):

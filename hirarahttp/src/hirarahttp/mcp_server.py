@@ -6,10 +6,12 @@ Run over stdio for Claude Code / Claude Desktop / Cursor::
 
 Or over HTTP for a remote client::
 
-    python -m hirarahttp.mcp_server --transport streamable-http
+    python -m hirarahttp.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -20,7 +22,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarahttp",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted HTTP tools, no API keys. Use http_request to send a raw "
         "HTTP request, http_history, inspect_*, directory_enum, request_replay, "
@@ -40,6 +42,7 @@ _toolset = Toolset.from_env()
         "returned as data; blocked URLs set error."
     ),
 )
+@mcp_errors
 async def http_request_tool(
     url: str,
     method: str = "GET",
@@ -84,6 +87,7 @@ async def http_request_tool(
         "first. Pass id for one full entry; clear=true to wipe the buffer."
     ),
 )
+@mcp_errors
 async def http_history_tool(
     limit: int = 20,
     offset: int = 0,
@@ -117,6 +121,7 @@ async def http_history_tool(
         "missing_common security headers for responses."
     ),
 )
+@mcp_errors
 async def inspect_headers_tool(
     id: str | None = None,
     which: str = "response",
@@ -140,6 +145,7 @@ async def inspect_headers_tool(
         "flags_missing (Secure, HttpOnly, SameSite)."
     ),
 )
+@mcp_errors
 async def inspect_cookies_tool(
     id: str | None = None,
     which: str = "response",
@@ -163,6 +169,7 @@ async def inspect_cookies_tool(
         "HTML title, and a preview. Pass include_body=true for the full body."
     ),
 )
+@mcp_errors
 async def inspect_response_tool(
     id: str | None = None,
     include_body: bool = False,
@@ -201,6 +208,7 @@ async def inspect_response_tool(
         "without following redirects. Omit paths for a built-in common list."
     ),
 )
+@mcp_errors
 async def directory_enum_tool(
     url: str,
     paths: list[str] | str | None = None,
@@ -236,6 +244,7 @@ async def directory_enum_tool(
         "url/method/headers/body overrides."
     ),
 )
+@mcp_errors
 async def request_replay_tool(
     id: str,
     url: str | None = None,
@@ -283,6 +292,7 @@ async def request_replay_tool(
         "against a base request from history id and/or url."
     ),
 )
+@mcp_errors
 async def parameter_test_tool(
     location: str,
     name: str,
@@ -344,6 +354,7 @@ async def parameter_test_tool(
         "Compare two responses by history id and/or inline status/headers/body."
     ),
 )
+@mcp_errors
 async def response_compare_tool(
     left_id: str | None = None,
     right_id: str | None = None,
@@ -388,6 +399,7 @@ async def response_compare_tool(
 
 
 @server.tool(name="link_check", description=T.LINK_CHECK_SCHEMA["description"])
+@mcp_errors
 async def link_check_tool(url: str, scope: str = "page", max_pages: int = 20,
                           max_links: int = 500, check_external: bool = True,
                           respect_robots: bool = True) -> dict:
@@ -397,6 +409,7 @@ async def link_check_tool(url: str, scope: str = "page", max_pages: int = 20,
 
 
 @server.tool(name="site_map", description=T.SITE_MAP_SCHEMA["description"])
+@mcp_errors
 async def site_map_tool(url: str, max_pages: int = 50, max_depth: int = 3,
                         respect_robots: bool = True, keep_query: bool = False) -> dict:
     return await _toolset.site_map(url=url, max_pages=max_pages, max_depth=max_depth,
@@ -404,12 +417,14 @@ async def site_map_tool(url: str, max_pages: int = 50, max_depth: int = 3,
 
 
 @server.tool(name="web_watch", description=T.WEB_WATCH_SCHEMA["description"])
+@mcp_errors
 async def web_watch_tool(action: str = "check", url: str | None = None,
                          watch_id: str | None = None, ignore: list[str] | None = None) -> dict:
     return await _toolset.web_watch(action=action, url=url, watch_id=watch_id, ignore=ignore)
 
 
 @server.tool(name="secret_list", description=T.SECRET_LIST_SCHEMA["description"])
+@mcp_errors
 async def secret_list_tool() -> dict:
     return await _toolset.secret_list()
 
@@ -422,6 +437,8 @@ def main() -> None:
         choices=["stdio", "sse", "streamable-http"],
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

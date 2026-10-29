@@ -13,6 +13,8 @@ HA_ALLOW_LOCAL_PATH=false and HA_ALLOW_OUTPUT_PATH=false before exposing it.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import json
 import logging
 
@@ -25,7 +27,9 @@ log = logging.getLogger("hiraraaudio.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraraaudio", version="0.1.0")
+app = FastAPI(title="hiraraaudio", version="0.2.0")
+
+install_backend(app)
 
 
 class _Body(BaseModel):

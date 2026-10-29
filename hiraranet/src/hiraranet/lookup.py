@@ -160,6 +160,13 @@ def lookup_dns(
         )
 
     ns = nameserver or cfg.nameserver
+    if nameserver:
+        from hirara_core import check_ip
+        from hirara_core.policy import private_targets_allowed
+        reason = check_ip(nameserver)
+        if reason and not private_targets_allowed(cfg.allow_private_targets):
+            return LookupResult(name=host, record_types=types, nameserver=nameserver,
+                                error=f"nameserver blocked: {reason}")
     resolver = _build_resolver(
         nameserver=ns, timeout=cfg.timeout, factory=resolver_factory
     )

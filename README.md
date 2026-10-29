@@ -116,11 +116,11 @@ to be inspected.
 | **`wait_until`** | ✅ shipped | Block until a time, an answer or a due reminder (capped) — [`hiraraagent/`](hiraraagent/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
-Every tool that fetches an attacker-influenceable URL routes through
-[`hirara-core`](hirara-core/) — one shared SSRF guard, so a new tool cannot
-quietly re-open the egress hole. That is not hypothetical: the transcription
-tool first shipped a URL fetch with no perimeter at all; wiring it to the shared
-guard is what closed it.
+Network tools share destination validation through [`hirara-core`](hirara-core/).
+Browser connections use a pinned transport while Chromium stays offline;
+HTML rendering rejects external resources. Conversation URL provenance applies
+specifically to `web_fetch`. See [security boundaries and migration notes](SECURITY.md)
+for tool permissions, private-network opt-ins, authentication, and executor isolation.
 
 ## Usage
 
@@ -244,8 +244,9 @@ curl -X POST localhost:8080/call -H 'content-type: application/json' \
   -d '{"name":"web_search","arguments":{"query":"rust borrow checker","max_results":5}}'
 ```
 
-Responses are JSON; errors come back in the body (`"error": …`), not as HTTP
-status codes — the caller is an agent loop.
+Tool failures use JSON `"error"` envelopes. The hub preserves HTTP-200 tool
+results for compatibility; authentication and request-shape failures retain
+HTTP 401/422. MCP execution failures set `isError=true`.
 
 #### c) MCP — for agents (Claude Desktop, Cursor, …)
 
@@ -592,7 +593,11 @@ All via environment variable.
 pytest -q
 ```
 
-**177 tests.** The bulk cover `guard.py` and `provenance.py` — one case per real
+Run `python scripts/test_all.py` for all package suites; plain `pytest -q`
+selects only the web suite. CI also exercises real Docker, browser and MCP
+boundaries before releases. See [SECURITY.md](SECURITY.md).
+
+The web tests cover `guard.py` and `provenance.py` — one case per real
 technique: metadata IPs, CGNAT, v4-mapped IPv6, 6to4, split-horizon DNS answers,
 credential-stuffed URLs, non-web ports, cross-session URL leakage,
 query-string exfiltration, cache-ordering bypasses, and budget accounting.

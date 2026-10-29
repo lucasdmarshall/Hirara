@@ -111,40 +111,11 @@ def _build_html_pdf(
     ``<meta name=...>``). Content that is already a full ``<html>`` document is
     passed through untouched and controls its own head.
     """
-    pisa = _pisa()
-
-    size = _HTML_PAGE_SIZES.get(page_size.upper())
-    if size is None:
-        raise MakeError(f"unsupported page_size: {page_size}")
-
-    doc = content
-    if "<html" not in content.lower():
-        head_bits: list[str] = []
-        if title:
-            head_bits.append(f"<title>{html.escape(title)}</title>")
-        if author:
-            head_bits.append(
-                f'<meta name="author" content="{html.escape(author, quote=True)}"/>'
-            )
-        if subject:
-            head_bits.append(
-                f'<meta name="subject" content="{html.escape(subject, quote=True)}"/>'
-            )
-        doc = f"<html><head>{''.join(head_bits)}</head><body>{content}</body></html>"
-
-    # The margin here also gives @page an explicit frame, which quiets
-    # xhtml2pdf's "missing explicit frame definition" fallback warning.
-    default_css = f"@page {{ size: {size}; margin: 2cm; }}"
-    out = io.BytesIO()
-    try:
-        status = pisa.CreatePDF(
-            src=doc, dest=out, default_css=default_css, encoding="utf-8"
-        )
-    except Exception as exc:  # noqa: BLE001 — malformed HTML shouldn't 500
-        raise MakeError(f"could not render HTML to PDF: {exc}") from exc
-    if status.err:
-        raise MakeError(f"could not render HTML to PDF ({status.err} error(s))")
-    return out.getvalue()
+    # Share the closed resource policy with html_to_pdf, independent of the
+    # renderer version's default network/filesystem behavior.
+    from .htmlpdf import build_html_pdf
+    return build_html_pdf(content, title=title, author=author, subject=subject,
+                          page_size=page_size)
 
 
 # --- inline markup -----------------------------------------------------------

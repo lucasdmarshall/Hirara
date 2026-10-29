@@ -6,6 +6,8 @@ Tools: ``decode``, ``hash``, ``jwt_inspect``, ``jwt_decode``, ``time_now``,
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 
@@ -334,18 +336,20 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=UtilConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [DECODE_SCHEMA, HASH_SCHEMA, JWT_INSPECT_SCHEMA, JWT_DECODE_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": list(TOOL_NAMES),
             "max_input_chars": self.config.max_input_chars,
             "max_output_bytes": self.config.max_output_bytes,
         }
 
+    @tool_permission('decode')
     async def decode(
         self,
         *,
@@ -372,6 +376,7 @@ class Toolset:
                 error=f"decode failed: {exc}",
             )
 
+    @tool_permission('hash')
     async def hash(
         self,
         *,
@@ -398,6 +403,7 @@ class Toolset:
             log.exception("hash failed")
             return _hash_envelope(input=input, error=f"hash failed: {exc}")
 
+    @tool_permission('jwt_inspect')
     async def jwt_inspect(
         self,
         *,
@@ -422,6 +428,7 @@ class Toolset:
                 input=input, error=f"jwt_inspect failed: {exc}"
             )
 
+    @tool_permission('jwt_decode')
     async def jwt_decode(
         self,
         *,
@@ -451,6 +458,7 @@ class Toolset:
             )
 
 
+    @tool_permission('time_now')
     async def time_now(self, *, timezones: list[str] | str | None = None) -> dict:
         try:
             return run_time_now(timezones)
@@ -460,6 +468,7 @@ class Toolset:
             log.exception("time_now failed")
             return {"zones": [], "text": None, "error": f"time_now failed: {exc}"}
 
+    @tool_permission('date_calc')
     async def date_calc(
         self,
         *,
@@ -493,6 +502,7 @@ class Toolset:
             return {"operation": operation, "result": None, "text": None,
                     "error": f"date_calc failed: {exc}"}
 
+    @tool_permission('schema_validate')
     async def schema_validate(self, *, instance, schema, check_formats: bool = True,
                               max_errors: int = 100) -> dict:
         import asyncio
@@ -549,5 +559,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

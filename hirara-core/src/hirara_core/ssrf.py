@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+from .policy import private_targets_allowed
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
@@ -129,7 +130,7 @@ def resolve_target(
         raise BlockedURL(f"{host!r} resolved to no addresses")
 
     addresses = [info[4][0] for info in infos]
-    if not allow_private_ips:
+    if not private_targets_allowed(allow_private_ips):
         for address in addresses:
             reason = check_ip(address)
             if reason is not None:

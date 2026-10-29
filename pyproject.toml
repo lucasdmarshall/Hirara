@@ -1,6 +1,6 @@
 [project]
 name = "hirara-web"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted web_search and web_fetch tools for LLM agents"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,18 +23,18 @@ dependencies = [
     "pypdf>=5.0",
     # Shared SSRF guard. Repo-local package (hirara-web/hirara-core), not on
     # PyPI — install it first: pip install -e hirara-core
-    "hirara-core>=0.1",
+    "hirara-core>=0.2",
 ]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]
-Homepage = "https://github.com/lucasdmarshall/web_search"
-Repository = "https://github.com/lucasdmarshall/web_search"
-Issues = "https://github.com/lucasdmarshall/web_search/issues"
+Homepage = "https://github.com/lucasdmarshall/Hirara"
+Repository = "https://github.com/lucasdmarshall/Hirara"
+Issues = "https://github.com/lucasdmarshall/Hirara/issues"
 
 [project.scripts]
 hirara-web-mcp = "hiraraweb.mcp_server:main"

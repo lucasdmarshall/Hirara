@@ -1,6 +1,6 @@
 [project]
 name = "hiraranet"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted network tools for AI agents — DNS lookup first, over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -28,12 +28,12 @@ dependencies = [
     "dnspython>=2.6",
     # Shared IP classification (private / reserved). Answers are annotated with
     # hirara-core.check_ip so agents know when a name points off the public net.
-    "hirara-core>=0.1",
+    "hirara-core>=0.2",
 ]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]

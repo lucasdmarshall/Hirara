@@ -6,10 +6,12 @@ Run over stdio for Claude Code / Claude Desktop / Cursor::
 
 Or over HTTP for a remote client::
 
-    python -m hiraraaudio.mcp_server --transport streamable-http
+    python -m hiraraaudio.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -20,7 +22,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraraaudio",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Lightweight audio tools for an agent that cannot listen. Start with "
         "audio_profile to learn what a recording contains. audio_check judges it "
@@ -41,6 +43,7 @@ def _d(schema: dict) -> str:
 
 
 @server.tool(name="audio_info", description=_d(T.AUDIO_INFO_SCHEMA))
+@mcp_errors
 async def audio_info_tool(audio_path: str | None = None, audio_url: str | None = None,
                           audio_base64: str | None = None, filename: str | None = None) -> dict:
     return await _toolset.audio_info(audio_path=audio_path, audio_url=audio_url,
@@ -48,6 +51,7 @@ async def audio_info_tool(audio_path: str | None = None, audio_url: str | None =
 
 
 @server.tool(name="audio_profile", description=_d(T.AUDIO_PROFILE_SCHEMA))
+@mcp_errors
 async def audio_profile_tool(audio_path: str | None = None, audio_url: str | None = None,
                              audio_base64: str | None = None, filename: str | None = None,
                              start: float | None = None, duration: float | None = None,
@@ -60,6 +64,7 @@ async def audio_profile_tool(audio_path: str | None = None, audio_url: str | Non
 
 
 @server.tool(name="audio_check", description=_d(T.AUDIO_CHECK_SCHEMA))
+@mcp_errors
 async def audio_check_tool(audio_path: str | None = None, audio_url: str | None = None,
                            audio_base64: str | None = None, filename: str | None = None,
                            preset: str = "podcast", start: float | None = None,
@@ -70,6 +75,7 @@ async def audio_check_tool(audio_path: str | None = None, audio_url: str | None 
 
 
 @server.tool(name="audio_fix", description=_d(T.AUDIO_FIX_SCHEMA))
+@mcp_errors
 async def audio_fix_tool(audio_path: str | None = None, audio_url: str | None = None,
                          audio_base64: str | None = None, filename: str | None = None,
                          preset: str | None = None, target_lufs: float | None = None,
@@ -87,6 +93,7 @@ async def audio_fix_tool(audio_path: str | None = None, audio_url: str | None = 
 
 
 @server.tool(name="audio_compare", description=_d(T.AUDIO_COMPARE_SCHEMA))
+@mcp_errors
 async def audio_compare_tool(a_path: str | None = None, a_url: str | None = None,
                              a_base64: str | None = None, b_path: str | None = None,
                              b_url: str | None = None, b_base64: str | None = None) -> dict:
@@ -95,6 +102,7 @@ async def audio_compare_tool(a_path: str | None = None, a_url: str | None = None
 
 
 @server.tool(name="audio_find", description=_d(T.AUDIO_FIND_SCHEMA))
+@mcp_errors
 async def audio_find_tool(audio_path: str | None = None, audio_url: str | None = None,
                           audio_base64: str | None = None, filename: str | None = None,
                           clip_path: str | None = None, clip_url: str | None = None,
@@ -109,12 +117,14 @@ async def audio_find_tool(audio_path: str | None = None, audio_url: str | None =
 
 
 @server.tool(name="audio_fingerprint", description=_d(T.AUDIO_FINGERPRINT_SCHEMA))
+@mcp_errors
 async def audio_fingerprint_tool(audio_paths: list[str] | None = None,
                                  audio_urls: list[str] | None = None) -> dict:
     return await _toolset.audio_fingerprint(audio_paths=audio_paths, audio_urls=audio_urls)
 
 
 @server.tool(name="audio_split", description=_d(T.AUDIO_SPLIT_SCHEMA))
+@mcp_errors
 async def audio_split_tool(audio_path: str | None = None, audio_url: str | None = None,
                            audio_base64: str | None = None, filename: str | None = None,
                            min_seconds: float = 10.0, max_seconds: float = 60.0,
@@ -128,6 +138,7 @@ async def audio_split_tool(audio_path: str | None = None, audio_url: str | None 
 
 
 @server.tool(name="audio_tighten", description=_d(T.AUDIO_TIGHTEN_SCHEMA))
+@mcp_errors
 async def audio_tighten_tool(audio_path: str | None = None, audio_url: str | None = None,
                              audio_base64: str | None = None, filename: str | None = None,
                              min_pause: float = 1.0, keep_pause: float = 0.5,
@@ -142,6 +153,7 @@ async def audio_tighten_tool(audio_path: str | None = None, audio_url: str | Non
 
 
 @server.tool(name="audio_spectrogram", description=_d(T.AUDIO_SPECTROGRAM_SCHEMA))
+@mcp_errors
 async def audio_spectrogram_tool(audio_path: str | None = None, audio_url: str | None = None,
                                  audio_base64: str | None = None, filename: str | None = None,
                                  start: float | None = None, duration: float | None = None,
@@ -157,6 +169,7 @@ async def audio_spectrogram_tool(audio_path: str | None = None, audio_url: str |
 
 
 @server.tool(name="audio_tones", description=_d(T.AUDIO_TONES_SCHEMA))
+@mcp_errors
 async def audio_tones_tool(audio_path: str | None = None, audio_url: str | None = None,
                            audio_base64: str | None = None, filename: str | None = None,
                            start: float | None = None, duration: float | None = None,
@@ -167,6 +180,7 @@ async def audio_tones_tool(audio_path: str | None = None, audio_url: str | None 
 
 
 @server.tool(name="audio_speak", description=_d(T.AUDIO_SPEAK_SCHEMA))
+@mcp_errors
 async def audio_speak_tool(text: str | None = None, voice: str | None = None,
                            speed: int | None = None, pitch: int | None = None,
                            ssml: bool = False, list_voices: bool = False,
@@ -179,6 +193,7 @@ async def audio_speak_tool(text: str | None = None, voice: str | None = None,
 
 
 @server.tool(name="audio_sonify", description=_d(T.AUDIO_SONIFY_SCHEMA))
+@mcp_errors
 async def audio_sonify_tool(values: list[float | None] | None = None,
                             series: list[dict] | None = None, duration: float | None = None,
                             min_freq: float = 220.0, max_freq: float = 880.0,
@@ -194,6 +209,7 @@ async def audio_sonify_tool(values: list[float | None] | None = None,
 
 
 @server.tool(name="audio_watch", description=_d(T.AUDIO_WATCH_SCHEMA))
+@mcp_errors
 async def audio_watch_tool(action: str, stream_url: str | None = None,
                            audio_path: str | None = None, watch_id: str | None = None,
                            cursor: int = 0, max_events: int = 100, dead_air_s: float = 5.0,
@@ -216,6 +232,8 @@ def main() -> None:
         help="MCP transport to serve on (default: stdio).",
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

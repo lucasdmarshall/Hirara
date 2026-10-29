@@ -9,6 +9,8 @@ and HM_ALLOW_OUTPUT_PATH before exposing it to a network.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 from fastapi import FastAPI, File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict
 
@@ -16,7 +18,9 @@ from .tools import Toolset
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraramedia", version="0.1.0")
+app = FastAPI(title="hiraramedia", version="0.2.0")
+
+install_backend(app)
 
 
 class _Body(BaseModel):

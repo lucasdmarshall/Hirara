@@ -1,6 +1,6 @@
 [project]
 name = "hiraramedia"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted media tools for AI agents — video profiling, image diffs, barcodes and QR codes — over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,12 +34,12 @@ dependencies = [
     "httpx>=0.28",
     # Shared SSRF guard. Repo-local package, install it first:
     # pip install -e hirara-core
-    "hirara-core>=0.1",
+    "hirara-core>=0.2",
 ]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 # Soundtrack timeline in video_profile.
 audio = ["hiraraaudio>=0.1.0"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]

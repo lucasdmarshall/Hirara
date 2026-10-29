@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import mcp_errors
+
 import argparse
 from typing import Any
 
@@ -14,7 +16,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraradb",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted database tools, no API keys. Use database_query to run "
         "one SQL statement, and database_schema to list tables/columns. "
@@ -33,6 +35,7 @@ _toolset = Toolset.from_env()
         "max_rows."
     ),
 )
+@mcp_errors
 async def database_query_tool(
     sql: str,
     params: list[Any] | dict[str, Any] | None = None,
@@ -68,6 +71,7 @@ async def database_query_tool(
         "include_indexes, include_foreign_keys, include_sql for more detail."
     ),
 )
+@mcp_errors
 async def database_schema_tool(
     database: str | None = None,
     path: str | None = None,
@@ -110,6 +114,8 @@ def main() -> None:
         choices=["stdio", "sse", "streamable-http"],
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

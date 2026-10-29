@@ -28,4 +28,4 @@ __all__ = [
     "write_result_to_dict",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

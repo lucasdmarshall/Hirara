@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
 from typing import Any
 
@@ -17,7 +19,9 @@ log = logging.getLogger("hiraradb.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraradb", version="0.1.0")
+app = FastAPI(title="hiraradb", version="0.2.0")
+
+install_backend(app)
 
 
 class DatabaseQueryRequest(BaseModel):

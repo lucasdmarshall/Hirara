@@ -26,7 +26,12 @@ permissions:
   contents: read
 
 jobs:
+  verify:
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
   publish:
+    needs: verify
     runs-on: ubuntu-latest
     # A distinct GitHub environment per package gives each trusted-publisher
     # identity a unique owner/repo/workflow/environment tuple. PyPI refuses two
@@ -35,6 +40,7 @@ jobs:
     # creates these environments automatically on first run.
     environment: ${{ matrix.environment }}
     permissions:
+      contents: read
       id-token: write # OIDC token for Trusted Publishing — no secrets needed
     strategy:
       fail-fast: false

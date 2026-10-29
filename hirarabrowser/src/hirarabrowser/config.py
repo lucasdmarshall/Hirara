@@ -44,11 +44,20 @@ class BrowserConfig:
     max_screenshot_bytes: int = 5_000_000
 
     # When False, resolve_target rejects private/reserved destinations.
-    # True on a trusted laptop; False in the Docker image.
-    allow_private_urls: bool = True
+    # Explicit opt-in is required in every deployment mode.
+    allow_private_urls: bool = False
 
     # Playwright browser channel: chromium | firefox | webkit
     browser_channel: str = "chromium"
+    executable_path: str | None = None
+
+    def __post_init__(self):
+        import math
+        for name in ("nav_timeout", "max_sessions", "session_ttl", "max_text_chars",
+                     "max_screenshot_bytes"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} must be finite and > 0")
 
     @classmethod
     def from_env(cls) -> "BrowserConfig":
@@ -56,6 +65,7 @@ class BrowserConfig:
         if channel not in {"chromium", "firefox", "webkit"}:
             channel = "chromium"
         return cls(
+            executable_path=os.getenv("CBRO_EXECUTABLE_PATH") or None,
             headless=_env_bool("CBRO_HEADLESS", cls.headless),
             nav_timeout=_env_float("CBRO_NAV_TIMEOUT", cls.nav_timeout),
             max_sessions=_env_int("CBRO_MAX_SESSIONS", cls.max_sessions),

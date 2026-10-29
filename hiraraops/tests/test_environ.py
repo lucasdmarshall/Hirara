@@ -54,8 +54,8 @@ def test_include_values_false():
 def test_redact_override_and_disabled():
     env = {"DB_PASSWORD": "pw", "OK": "yes"}
     r = environment_read(environ=env, redact=False, config=OpsConfig(redact_env=True))
-    assert r.variables["DB_PASSWORD"] == "pw"
-    assert r.redacted_keys == []
+    assert r.variables["DB_PASSWORD"] == "***"
+    assert r.redacted_keys == ["DB_PASSWORD"]
 
     disabled = environment_read(
         environ=env, config=OpsConfig(allow_environment_read=False)

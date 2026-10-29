@@ -9,6 +9,8 @@ Tools: ``memory``, ``ask_human``, ``schedule``, ``wait_until``. Each takes an
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import asyncio
 import logging
 import time
@@ -158,11 +160,12 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=AgentConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return list(SCHEMAS)
 
     def health(self) -> dict:
-        return {"status": "ok", "version": "0.1.0", "tools": list(TOOL_NAMES),
+        return {"status": "ok", "version": "0.2.0", "tools": list(TOOL_NAMES),
                 "db": self.store.path, "notify": bool(self.config.notify_url),
                 "human_token": bool(self.config.human_token)}
 
@@ -177,6 +180,7 @@ class Toolset:
 
     # --- memory --------------------------------------------------------------------
 
+    @tool_permission('memory')
     async def memory(self, *, action: str, key: str | None = None, value=None,
                      tags: list[str] | None = None, ttl_seconds: float | None = None,
                      query: str | None = None, limit: int = 20, offset: int = 0,
@@ -219,6 +223,7 @@ class Toolset:
 
     # --- ask_human -------------------------------------------------------------------
 
+    @tool_permission('ask_human')
     async def ask_human(self, *, action: str, question: str | None = None,
                         kind: str = "question", options: list[str] | None = None,
                         allow_free_text: bool = False, context: str | None = None,
@@ -283,6 +288,7 @@ class Toolset:
 
     # --- schedule --------------------------------------------------------------------
 
+    @tool_permission('schedule')
     async def schedule(self, *, action: str, title: str | None = None, note: str | None = None,
                        at: str | None = None, in_seconds: float | None = None,
                        repeat_seconds: float | None = None, reminder_id: str | None = None,
@@ -316,6 +322,7 @@ class Toolset:
 
     # --- wait_until ----------------------------------------------------------------------
 
+    @tool_permission('wait_until')
     async def wait_until(self, *, request_id: str | None = None, reminder_due: bool = False,
                          at: str | None = None, in_seconds: float | None = None,
                          max_wait: float | None = None, namespace: str | None = None) -> dict:
@@ -386,5 +393,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return list(SCHEMAS)

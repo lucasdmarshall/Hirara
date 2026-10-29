@@ -2,11 +2,21 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+COPY constraints-release.txt /app/constraints-release.txt
+ENV PIP_CONSTRAINT=/app/constraints-release.txt
+
+COPY hirara-core ./hirara-core
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ./hirara-core
+
 COPY hiraracode/pyproject.toml hiraracode/README.md \
      hiraracode/LICENSE hiraracode/NOTICE hiraracode/requirements.txt ./
 COPY hiraracode/src ./src
 
-RUN pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
 
 # NOTE: this service is intentionally NOT run as an unprivileged user, and the
 # container is given access to the host's Docker socket (see docker-compose.yml).

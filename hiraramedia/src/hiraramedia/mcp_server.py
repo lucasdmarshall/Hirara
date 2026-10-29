@@ -1,10 +1,12 @@
 """MCP front end — video, image and barcode tools for agents.
 
     python -m hiraramedia.mcp_server                       # stdio
-    python -m hiraramedia.mcp_server --transport streamable-http
+    python -m hiraramedia.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -15,7 +17,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraramedia",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Media tools for an agent. video_profile 'watches' a video: shots, black and "
         "frozen stretches, keyframes on one contact sheet, and the audio timeline. "
@@ -28,6 +30,7 @@ _toolset = Toolset.from_env()
 
 
 @server.tool(name="video_profile", description=T.VIDEO_PROFILE_SCHEMA["description"])
+@mcp_errors
 async def video_profile_tool(file_path: str | None = None, file_url: str | None = None,
                              file_base64: str | None = None, filename: str | None = None,
                              max_keyframes: int = 12, frame_width: int = 480,
@@ -42,6 +45,7 @@ async def video_profile_tool(file_path: str | None = None, file_url: str | None 
 
 
 @server.tool(name="image_compare", description=T.IMAGE_COMPARE_SCHEMA["description"])
+@mcp_errors
 async def image_compare_tool(a_path: str | None = None, a_url: str | None = None,
                              a_base64: str | None = None, b_path: str | None = None,
                              b_url: str | None = None, b_base64: str | None = None,
@@ -57,6 +61,7 @@ async def image_compare_tool(a_path: str | None = None, a_url: str | None = None
 
 
 @server.tool(name="barcode_read", description=T.BARCODE_READ_SCHEMA["description"])
+@mcp_errors
 async def barcode_read_tool(file_path: str | None = None, file_url: str | None = None,
                             file_base64: str | None = None, filename: str | None = None) -> dict:
     kw = {k: v for k, v in {"file_path": file_path, "file_url": file_url,
@@ -65,6 +70,7 @@ async def barcode_read_tool(file_path: str | None = None, file_url: str | None =
 
 
 @server.tool(name="qr_generate", description=T.QR_GENERATE_SCHEMA["description"])
+@mcp_errors
 async def qr_generate_tool(data: str, error_correction: str = "M", scale: int = 8,
                            border: int = 4, format: str = "png", dark: str = "#000000",
                            light: str = "#ffffff", output_path: str | None = None) -> dict:
@@ -78,6 +84,8 @@ def main() -> None:
     parser.add_argument("--transport", default="stdio",
                         choices=["stdio", "sse", "streamable-http"])
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

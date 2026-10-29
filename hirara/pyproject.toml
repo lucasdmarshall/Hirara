@@ -1,6 +1,6 @@
 [project]
 name = "hirara"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python SDK for Hirara agent tools — run web/PDF/Office tools in-process, or call a self-hosted hub"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "hirara-core>=0.2",
     "httpx>=0.28",
 ]
 
@@ -25,29 +26,29 @@ dev = ["pytest>=8.0"]
 # Local mode: run the pure-library tools in this process, no hub required.
 # Each package pulls hirara-core (the shared SSRF guard) transitively.
 local = [
-    "hirara-web>=0.1.0",
-    "hirarapdf>=0.1.0",
-    "hirarareader>=0.1.0",
-    "hiraranet>=0.1.0",
-    "hirarahttp>=0.1.0",
-    "hirarafs>=0.1.0",
-    "hirarautil>=0.1.0",
-    "hiraradb>=0.1.0",
-    "hiraraops>=0.1.0",
-    "hiraraagent>=0.1.0",
+    "hirara-web>=0.2.0",
+    "hirarapdf>=0.2.0",
+    "hirarareader>=0.2.0",
+    "hiraranet>=0.2.0",
+    "hirarahttp>=0.2.0",
+    "hirarafs>=0.2.0",
+    "hirarautil>=0.2.0",
+    "hiraradb>=0.2.0",
+    "hiraraops>=0.2.0",
+    "hiraraagent>=0.2.0",
 ]
 # Heavier, model-backed tools — opt in only if you want them in-process.
-ocr = ["hiraraocr>=0.1.0"]
-stt = ["hirarastt>=0.1.0"]
+ocr = ["hiraraocr>=0.3.0"]
+stt = ["hirarastt>=0.2.0"]
 # execute_code in-process: still needs a Docker daemon this process can reach.
-code = ["hiraracode>=0.1.0"]
+code = ["hiraracode>=0.2.0"]
 # Audio tools in-process: NumPy only, but needs FFmpeg on PATH (and eSpeak NG
 # for audio_speak).
-audio = ["hiraraaudio>=0.1.0"]
+audio = ["hiraraaudio>=0.2.0"]
 # Data profiling, charts (matplotlib) and diagrams (needs Graphviz on PATH).
-data = ["hiraradata>=0.1.0"]
+data = ["hiraradata>=0.2.0"]
 # Video / image / barcode tools (needs FFmpeg and the zbar library).
-media = ["hiraramedia>=0.1.0"]
+media = ["hiraramedia>=0.2.0"]
 all = ["hirara[local]", "hirara[ocr]", "hirara[stt]", "hirara[code]", "hirara[audio]",
        "hirara[data]", "hirara[media]"]
 

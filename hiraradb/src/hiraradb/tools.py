@@ -5,6 +5,8 @@ Tools: ``database_query``, ``database_schema``.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 from typing import Any
@@ -154,6 +156,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=DbConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [DATABASE_QUERY_SCHEMA, DATABASE_SCHEMA_TOOL]
 
@@ -161,13 +164,14 @@ class Toolset:
         dbs = self.config.resolved_databases()
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": ["database_query", "database_schema"],
             "databases": sorted(dbs),
             "readonly": self.config.readonly,
             "max_rows": self.config.max_rows,
         }
 
+    @tool_permission('database_query')
     async def database_query(
         self,
         *,
@@ -202,6 +206,7 @@ class Toolset:
                 error=f"database_query failed: {exc}",
             )
 
+    @tool_permission('database_schema')
     async def database_schema(
         self,
         *,
@@ -270,5 +275,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

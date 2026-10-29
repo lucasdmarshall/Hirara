@@ -30,7 +30,7 @@ def test_classify_falls_back_to_port_hint():
 @pytest.mark.asyncio
 async def test_enum_identifies_open_services():
     async def prober(host: str, port: int, timeout: float, use_tls: bool) -> dict:
-        assert host == "203.0.113.50"
+        assert host == "93.184.216.50"
         if port == 22:
             return {
                 "status": "open",
@@ -59,7 +59,7 @@ async def test_enum_identifies_open_services():
         }
 
     r = await enum_services(
-        "203.0.113.50",
+        "93.184.216.50",
         ports=[22, 80, 81],
         prober=prober,
         resolver=lambda h: (h, True, None),
@@ -92,7 +92,7 @@ async def test_enum_result_to_dict_shape():
         }
 
     r = await enum_services(
-        "203.0.113.7",
+        "93.184.216.7",
         ports=[22],
         prober=prober,
         resolver=lambda h: (h, True, None),

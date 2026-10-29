@@ -110,7 +110,7 @@ def file_write(
     except WriteError as exc:
         return WriteResult(path=requested, error=str(exc))
 
-    cap = cfg.max_write_bytes if max_bytes is None else int(max_bytes)
+    cap = cfg.max_write_bytes if max_bytes is None else min(cfg.max_write_bytes, int(max_bytes))
     if cap <= 0:
         return WriteResult(path=requested, error="max_bytes must be > 0")
     if len(data) > cap:

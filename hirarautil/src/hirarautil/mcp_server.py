@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import mcp_errors
+
 import argparse
 
 from mcp.server.mcpserver import MCPServer
@@ -16,7 +18,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarautil",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted utility tools, no API keys. Use decode for base64/hex/url/"
         "html/unicode_escape, hash for md5/sha*/blake2 digests, jwt_inspect for "
@@ -35,6 +37,7 @@ _toolset = Toolset.from_env()
         "format=auto detects when possible."
     ),
 )
+@mcp_errors
 async def decode_tool(input: str, format: str = "auto") -> dict:
     """Decode an encoded string.
 
@@ -53,6 +56,7 @@ async def decode_tool(input: str, format: str = "auto") -> dict:
         "output_format=hex|base64."
     ),
 )
+@mcp_errors
 async def hash_tool(
     input: str,
     algorithms: list[str] | str | None = None,
@@ -82,6 +86,7 @@ async def hash_tool(
         "Optional include_claims for full payload."
     ),
 )
+@mcp_errors
 async def jwt_inspect_tool(input: str, include_claims: bool = False) -> dict:
     """Inspect a JWT without verifying the signature.
 
@@ -99,6 +104,7 @@ async def jwt_inspect_tool(input: str, include_claims: bool = False) -> dict:
         "with secret when verify=true."
     ),
 )
+@mcp_errors
 async def jwt_decode_tool(
     input: str,
     verify: bool = False,
@@ -122,11 +128,13 @@ async def jwt_decode_tool(
 
 
 @server.tool(name="time_now", description=T.TIME_NOW_SCHEMA["description"])
+@mcp_errors
 async def time_now_tool(timezones: list[str] | str | None = None) -> dict:
     return await _toolset.time_now(timezones=timezones)
 
 
 @server.tool(name="date_calc", description=T.DATE_CALC_SCHEMA["description"])
+@mcp_errors
 async def date_calc_tool(
     operation: str,
     date: str | None = None,
@@ -152,6 +160,7 @@ async def date_calc_tool(
 
 
 @server.tool(name="schema_validate", description=T.SCHEMA_VALIDATE_SCHEMA["description"])
+@mcp_errors
 async def schema_validate_tool(
     instance: Any,
     schema: Any,
@@ -170,6 +179,8 @@ def main() -> None:
         choices=["stdio", "sse", "streamable-http"],
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

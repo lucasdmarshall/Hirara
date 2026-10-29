@@ -6,4 +6,7 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 
 # MCP front end (Claude Desktop / Cursor / agent runtimes)
-mcp>=2.0
+mcp>=2.3,<3
+
+# Shared tool permissions and backend authentication.
+hirara-core>=0.2

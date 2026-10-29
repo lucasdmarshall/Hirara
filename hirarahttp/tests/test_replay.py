@@ -112,7 +112,13 @@ def test_response_compare_inline_and_ignore():
 
 
 @pytest.mark.asyncio
-async def test_request_replay_and_parameter_test():
+async def test_request_replay_and_parameter_test(monkeypatch):
+    import socket
+    from hirara_core.ssrf import resolve_target
+    def resolve(url, **kwargs):
+        return resolve_target(url, resolver=lambda host, port, **kw: [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port))], **kwargs)
+    monkeypatch.setattr("hirarahttp.request.resolve_target", resolve)
     def handler(request: httpx.Request) -> httpx.Response:
         q = httpx.URL(str(request.url)).params.get("q", "")
         return httpx.Response(200, text=f"ok:{q}", headers={"content-type": "text/plain"})

@@ -14,6 +14,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
+from hirara_core import check_ip
+from hirara_core.policy import private_targets_allowed
+
 from .config import NetConfig
 from .scan import ScanError, parse_ports, resolve_host
 
@@ -296,6 +299,9 @@ async def enum_services(
         )
         resolve = resolver or resolve_host
         ip, routable, block_reason = resolve(target)
+        reason = check_ip(ip)
+        if reason and not private_targets_allowed(cfg.allow_private_targets):
+            raise ScanError(f"target blocked: {reason}")
     except ScanError as exc:
         return EnumResult(host=(host or "").strip(), error=str(exc))
     except Exception as exc:  # noqa: BLE001
@@ -304,7 +310,7 @@ async def enum_services(
     per_port_timeout = cfg.scan_timeout if timeout is None else float(timeout)
     if per_port_timeout <= 0:
         return EnumResult(host=target, ip=ip, error="timeout must be > 0")
-    workers = cfg.scan_concurrency if concurrency is None else int(concurrency)
+    workers = cfg.scan_concurrency if concurrency is None else min(cfg.scan_concurrency, int(concurrency))
     if workers < 1:
         return EnumResult(host=target, ip=ip, error="concurrency must be >= 1")
     workers = min(workers, len(port_list))

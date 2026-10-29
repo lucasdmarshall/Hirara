@@ -1,6 +1,6 @@
 [project]
 name = "hirara-hub"
-version = "0.1.0"
+version = "0.2.0"
 description = "Aggregating gateway for the Hirara tool hub — one HTTP + MCP surface over all tools"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,13 +17,15 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
+    "hirara-core>=0.2",
+    "jsonschema>=4.0",
     "httpx>=0.28",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
 ]
 
 [project.optional-dependencies]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]

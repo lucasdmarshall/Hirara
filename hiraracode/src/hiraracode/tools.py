@@ -9,6 +9,8 @@ and get back stdout, stderr and the exit code.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import asyncio
 import logging
 from dataclasses import dataclass, field
@@ -155,6 +157,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=ExecConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         langs = self.runner.languages()
         return [_execute_schema(langs), *_job_schemas(langs)]
@@ -162,8 +165,9 @@ class Toolset:
     def health(self) -> dict:
         info = self.runner.info()
         status = "ok" if info["docker_reachable"] else "degraded"
-        return {"status": status, "version": "0.1.0", "runner": info}
+        return {"status": status, "version": "0.2.0", "runner": info}
 
+    @tool_permission('execute_code')
     async def execute(
         self,
         *,
@@ -191,6 +195,7 @@ class Toolset:
             return _envelope(error=f"execute_code failed: {exc}", language=language)
 
 
+    @tool_permission('job_start')
     async def job_start(self, *, language: str, code: str, stdin: str | None = None,
                         timeout: float | None = None) -> dict:
         try:
@@ -204,6 +209,7 @@ class Toolset:
             return {"job_id": None, "state": None, "language": language,
                     "error": f"job_start failed: {exc}"}
 
+    @tool_permission('job_status')
     async def job_status(self, *, job_id: str | None = None, stdout_cursor: int = 0,
                          stderr_cursor: int = 0) -> dict:
         try:
@@ -224,6 +230,7 @@ class Toolset:
             log.exception("job_status failed")
             return {"job_id": job_id, "state": None, "error": f"job_status failed: {exc}"}
 
+    @tool_permission('job_stop')
     async def job_stop(self, *, job_id: str) -> dict:
         try:
             job = self.jobs.get(job_id)
@@ -265,5 +272,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), method)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import os
+import math
+import re
 from dataclasses import dataclass, field, replace
 
 # A caller names a *language*, never an image. This is the core containment
@@ -45,6 +47,13 @@ class LanguageSpec:
     image: str
     cmd: list[str]
     filename: str
+
+    def __post_init__(self):
+        if not self.image or not isinstance(self.cmd, list) or not self.cmd or not all(
+                isinstance(arg, str) and arg for arg in self.cmd):
+            raise ValueError("language image and command argv must be nonempty")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}", self.filename):
+            raise ValueError("language filename must be a simple workspace filename")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -138,6 +147,23 @@ class ExecConfig:
     job_max_timeout: float = 3600.0
     max_jobs: int = 4
     job_retention: float = 3600.0
+    max_runs: int = 4
+    max_retained_jobs: int = 100
+    max_input_bytes: int = 1_000_000
+    executor_id: str = "default"
+
+    def __post_init__(self):
+        for name in ("timeout", "max_timeout", "cpus", "pids_limit", "max_output_bytes",
+                     "job_timeout", "job_max_timeout", "max_jobs", "job_retention",
+                     "max_runs", "max_retained_jobs", "max_input_bytes"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} must be finite and > 0")
+        uid = self.user.split(":", 1)[0]
+        if uid == "root" or (uid.isdigit() and int(uid) == 0):
+            raise ValueError("CCODE_USER must be non-root")
+        if not self.executor_id or len(self.executor_id) > 100:
+            raise ValueError("CCODE_EXECUTOR_ID must contain 1..100 characters")
 
     @classmethod
     def from_env(cls) -> "ExecConfig":
@@ -160,6 +186,10 @@ class ExecConfig:
             job_max_timeout=_env_float("CCODE_JOB_MAX_TIMEOUT", cls.job_max_timeout),
             max_jobs=_env_int("CCODE_MAX_JOBS", cls.max_jobs),
             job_retention=_env_float("CCODE_JOB_RETENTION", cls.job_retention),
+            max_runs=_env_int("CCODE_MAX_RUNS", cls.max_runs),
+            max_retained_jobs=_env_int("CCODE_MAX_RETAINED_JOBS", cls.max_retained_jobs),
+            max_input_bytes=_env_int("CCODE_MAX_INPUT_BYTES", cls.max_input_bytes),
+            executor_id=os.getenv("CCODE_EXECUTOR_ID", cls.executor_id),
         )
         return base
 
@@ -167,6 +197,8 @@ class ExecConfig:
         """A caller may lower the timeout but never raise it past the ceiling."""
         if requested is None:
             return min(self.timeout, self.max_timeout)
+        if not math.isfinite(float(requested)):
+            raise ValueError("timeout must be finite")
         return max(0.1, min(float(requested), self.max_timeout))
 
     def with_languages(self, languages: dict[str, LanguageSpec]) -> "ExecConfig":

@@ -6,10 +6,12 @@ Run over stdio for Claude Code / Claude Desktop / Cursor::
 
 Or over HTTP for a remote client::
 
-    python -m hirarapdf.mcp_server --transport streamable-http
+    python -m hirarapdf.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -19,7 +21,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarapdf",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted PDF tools, no API keys. pdf_read extracts a PDF's text; "
         "pdf_info inspects its structure (pages, metadata, outline, form "
@@ -44,6 +46,7 @@ _toolset = Toolset.from_env()
         "so a scanned PDF with no text layer returns little or no text."
     ),
 )
+@mcp_errors
 async def pdf_read_tool(
     pdf_path: str | None = None,
     pdf_url: str | None = None,
@@ -77,6 +80,7 @@ async def pdf_read_tool(
         "page sizes. Provide one source: pdf_path, pdf_url, or pdf_base64."
     ),
 )
+@mcp_errors
 async def pdf_info_tool(
     pdf_path: str | None = None,
     pdf_url: str | None = None,
@@ -110,6 +114,7 @@ async def pdf_info_tool(
         "grid). page_size is A4, LETTER, LEGAL, A3, or A5."
     ),
 )
+@mcp_errors
 async def pdf_create_tool(
     content: str,
     format: str = "markdown",
@@ -150,6 +155,7 @@ async def pdf_create_tool(
         "Returns pdf_base64."
     ),
 )
+@mcp_errors
 async def html_to_pdf_tool(
     html: str,
     css: str | None = None,
@@ -193,6 +199,8 @@ def main() -> None:
         help="MCP transport to serve on (default: stdio).",
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

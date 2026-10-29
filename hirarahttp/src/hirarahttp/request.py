@@ -11,6 +11,7 @@ import base64
 import logging
 import time
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -384,7 +385,19 @@ async def http_request(
                         ):
                             active_method = "GET"
                             active_body = None
-                        current = str(httpx.URL(current).join(location))
+                        next_url = str(httpx.URL(current).join(location))
+                        old, new = urlsplit(current), urlsplit(next_url)
+                        if old.scheme == "https" and new.scheme == "http":
+                            raise RequestError("HTTPS downgrade redirects are blocked")
+                        def origin(parts):
+                            return (parts.scheme, parts.hostname,
+                                    parts.port or (443 if parts.scheme == "https" else 80))
+                        if origin(old) != origin(new):
+                            # Caller headers have no destination scope. Retain only
+                            # non-sensitive representation headers across origins.
+                            custom = {k: v for k, v in custom.items()
+                                      if k.lower() in {"accept", "accept-language", "user-agent"}}
+                        current = next_url
                         continue
 
                     body_bytes, truncated = await _read_capped(response, body_cap)

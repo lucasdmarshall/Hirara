@@ -70,7 +70,7 @@ async def test_port_scan_happy_path(monkeypatch):
         kwargs = {
             **kwargs,
             "connector": _open_connector,
-            "resolver": lambda h: ("203.0.113.9", True, None),
+            "resolver": lambda h: ("93.184.216.9", True, None),
         }
         return await scan_module.scan_ports(host, **kwargs)
 
@@ -100,7 +100,7 @@ async def test_service_enum_happy_path(monkeypatch):
         kwargs = {
             **kwargs,
             "prober": _prober,
-            "resolver": lambda h: ("203.0.113.9", True, None),
+            "resolver": lambda h: ("93.184.216.9", True, None),
         }
         return await enum_module.enum_services(host, **kwargs)
 

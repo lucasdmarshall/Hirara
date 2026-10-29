@@ -2,11 +2,21 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+COPY constraints-release.txt /app/constraints-release.txt
+ENV PIP_CONSTRAINT=/app/constraints-release.txt
+
+COPY hirara-core ./hirara-core
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ./hirara-core
+
 COPY hiraraops/pyproject.toml hiraraops/README.md \
      hiraraops/LICENSE hiraraops/NOTICE hiraraops/requirements.txt ./
 COPY hiraraops/src ./src
 
-RUN pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir . "uvicorn[standard]" "fastapi" "mcp"
 
 RUN useradd --create-home --uid 10001 app \
     && mkdir -p /logs \

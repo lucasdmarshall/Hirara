@@ -10,6 +10,8 @@ Tools: ``http_request``, ``http_history``, ``inspect_headers``,
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 
@@ -730,6 +732,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=HttpConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [
             HTTP_REQUEST_SCHEMA,
@@ -750,7 +753,7 @@ class Toolset:
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": list(TOOL_NAMES),
             "secrets": sorted(self.secrets),
             "secrets_error": self.secrets_error,
@@ -761,6 +764,7 @@ class Toolset:
             "history_count": len(self.history),
         }
 
+    @tool_permission('http_request')
     async def http_request(
         self,
         *,
@@ -810,6 +814,7 @@ class Toolset:
         return payload
 
 
+    @tool_permission('link_check')
     async def link_check(self, *, url: str, scope: str = "page", max_pages: int = 20,
                          max_links: int = 500, check_external: bool = True,
                          respect_robots: bool = True) -> dict:
@@ -825,6 +830,7 @@ class Toolset:
             return {"url": url, "broken": [], "links_checked": 0,
                     "error": f"link_check failed: {exc}"}
 
+    @tool_permission('site_map')
     async def site_map(self, *, url: str, max_pages: int = 50, max_depth: int = 3,
                        respect_robots: bool = True, keep_query: bool = False) -> dict:
         try:
@@ -837,6 +843,7 @@ class Toolset:
             log.exception("site_map failed")
             return {"url": url, "pages": [], "count": 0, "error": f"site_map failed: {exc}"}
 
+    @tool_permission('web_watch')
     async def web_watch(self, *, action: str = "check", url: str | None = None,
                         watch_id: str | None = None, ignore: list[str] | None = None) -> dict:
         try:
@@ -850,6 +857,7 @@ class Toolset:
             return {"action": action, "url": url, "watch_id": watch_id, "changed": None,
                     "error": f"web_watch failed: {exc}"}
 
+    @tool_permission('secret_list')
     async def secret_list(self) -> dict:
         return {
             "secrets": [spec.public() for spec in self.secrets.values()],
@@ -857,6 +865,7 @@ class Toolset:
             "error": self.secrets_error,
         }
 
+    @tool_permission('http_history')
     async def http_history(
         self,
         *,
@@ -903,6 +912,7 @@ class Toolset:
             log.exception("http_history failed")
             return _history_envelope(error=f"http_history failed: {exc}")
 
+    @tool_permission('inspect_headers')
     async def inspect_headers(
         self,
         *,
@@ -951,6 +961,7 @@ class Toolset:
                 error=f"inspect_headers failed: {exc}",
             )
 
+    @tool_permission('inspect_cookies')
     async def inspect_cookies(
         self,
         *,
@@ -999,6 +1010,7 @@ class Toolset:
                 error=f"inspect_cookies failed: {exc}",
             )
 
+    @tool_permission('inspect_response')
     async def inspect_response(
         self,
         *,
@@ -1045,6 +1057,7 @@ class Toolset:
                 error=f"inspect_response failed: {exc}",
             )
 
+    @tool_permission('directory_enum')
     async def directory_enum(
         self,
         *,
@@ -1074,6 +1087,7 @@ class Toolset:
                 error=f"directory_enum failed: {exc}",
             )
 
+    @tool_permission('request_replay')
     async def request_replay(
         self,
         *,
@@ -1113,6 +1127,7 @@ class Toolset:
                 error=f"request_replay failed: {exc}",
             )
 
+    @tool_permission('parameter_test')
     async def parameter_test(
         self,
         *,
@@ -1162,6 +1177,7 @@ class Toolset:
                 error=f"parameter_test failed: {exc}",
             )
 
+    @tool_permission('response_compare')
     async def response_compare(
         self,
         *,
@@ -1251,5 +1267,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

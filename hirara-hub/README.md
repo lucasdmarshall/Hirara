@@ -24,8 +24,8 @@ torch, a browser-less OCR stack **and** the Docker socket that `execute_code`
 needs — host-root privilege sitting in the same process as everything else. The
 gateway keeps each tool in its **own** container and only *routes* to them:
 
-- **Isolation preserved** — `execute_code`'s Docker-socket privilege stays
-  contained; a crash in one tool doesn't take down the rest.
+- **Isolation preserved** — `execute_code` uses a separate internal network; its Docker socket
+  still grants daemon-level privilege, so use a dedicated execution host; a crash in one tool doesn't take down the rest.
 - **No dependency conflicts** — the gateway depends on `httpx` + `fastapi`, full
   stop.
 - **Honest availability** — `/schemas` aggregates from **live** backends, so the
@@ -127,3 +127,11 @@ and forwarded `office_read` and `pdf_create` end-to-end.
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 Copyright 2026 Lucas D Marshall (Kaung Myat San).
+
+## Security and compatibility
+
+See [the deployment and migration guide](../SECURITY.md). Network MCP transports
+are disabled; use stdio or authenticated HTTP. Set `HIRARA_BACKEND_TOKEN` on
+the hub and backends to protect service-to-service calls. `HIRARA_ALLOWED_TOOLS`
+restricts both discovery and execution. Probes share an overall deadline,
+and `/ready` reports whether at least one backend is healthy.

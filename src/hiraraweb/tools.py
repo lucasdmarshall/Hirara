@@ -6,6 +6,8 @@ never drift apart in behaviour — only in transport.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
@@ -220,6 +222,7 @@ class Toolset:
             )
         return detail if policy == "strict" else None
 
+    @tool_permission('web_search')
     async def search(
         self,
         query: str,
@@ -286,6 +289,7 @@ class Toolset:
             SOURCE_SEARCH,
         )
 
+    @tool_permission('web_fetch')
     async def fetch(
         self,
         url: str,
@@ -393,5 +397,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA]

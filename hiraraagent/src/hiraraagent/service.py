@@ -14,6 +14,8 @@ to answer their own questions.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import hmac
 from html import escape
 from typing import Any
@@ -27,7 +29,9 @@ from .tools import Toolset
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraraagent", version="0.1.0")
+app = FastAPI(title="hiraraagent", version="0.2.0")
+
+install_backend(app)
 
 
 class _Body(BaseModel):

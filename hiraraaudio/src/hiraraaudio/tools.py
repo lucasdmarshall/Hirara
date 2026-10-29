@@ -11,6 +11,8 @@ audio_tones, audio_speak, audio_sonify, audio_watch.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import asyncio
 import base64
 import logging
@@ -357,6 +359,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=AudioConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return list(SCHEMAS)
 
@@ -365,7 +368,7 @@ class Toolset:
 
         return {
             "status": "ok" if shutil.which(self.config.ffmpeg) else "degraded",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": list(TOOL_NAMES),
             "ffmpeg": shutil.which(self.config.ffmpeg),
             "ffprobe": shutil.which(self.config.ffprobe),
@@ -389,6 +392,7 @@ class Toolset:
 
     # --- audio_info -------------------------------------------------------------------
 
+    @tool_permission('audio_info')
     async def audio_info(self, **kw) -> dict:
         async def run():
             _only(kw, "audio")
@@ -400,6 +404,7 @@ class Toolset:
 
     # --- audio_profile ----------------------------------------------------------------
 
+    @tool_permission('audio_profile')
     async def audio_profile(self, *, start: float | None = None, duration: float | None = None,
                             max_segments: int = 40, silence_db: float | None = None,
                             long_silence_s: float = 3.0, **kw) -> dict:
@@ -417,6 +422,7 @@ class Toolset:
 
     # --- audio_check / audio_fix --------------------------------------------------------
 
+    @tool_permission('audio_check')
     async def audio_check(self, *, preset: str | None = "podcast", start: float | None = None,
                           duration: float | None = None, **kw) -> dict:
         async def run():
@@ -431,6 +437,7 @@ class Toolset:
         return await self._guard("audio_check", run, source=None, preset=preset, passed=None,
                                  checks=[], text=None)
 
+    @tool_permission('audio_fix')
     async def audio_fix(self, *, preset: str | None = None, target_lufs: float | None = None,
                         max_true_peak: float | None = None, remove_dc: bool | None = None,
                         dehum: str | None = "auto", highpass_hz: float | None = None,
@@ -485,6 +492,7 @@ class Toolset:
 
     # --- matching --------------------------------------------------------------------------
 
+    @tool_permission('audio_compare')
     async def audio_compare(self, **kw) -> dict:
         async def run():
             _only(kw, "a", "b")
@@ -525,6 +533,7 @@ class Toolset:
 
         return await self._guard("audio_compare", run, aligned=[], changes=[], text=None)
 
+    @tool_permission('audio_find')
     async def audio_find(self, *, clip_start: float | None = None, clip_end: float | None = None,
                          threshold: float = 0.8, max_matches: int = 50, **kw) -> dict:
         async def run():
@@ -565,6 +574,7 @@ class Toolset:
 
         return await self._guard("audio_find", run, source=None, matches=[], text=None)
 
+    @tool_permission('audio_fingerprint')
     async def audio_fingerprint(self, *, audio_paths: list[str] | None = None,
                                 audio_urls: list[str] | None = None) -> dict:
         async def run():
@@ -606,6 +616,7 @@ class Toolset:
 
     # --- editing --------------------------------------------------------------------------
 
+    @tool_permission('audio_split')
     async def audio_split(self, *, min_seconds: float = 10.0, max_seconds: float = 60.0,
                           silence_db: float | None = None, output_dir: str | None = None,
                           output_format: str | None = None, return_audio: bool = False,
@@ -656,6 +667,7 @@ class Toolset:
 
         return await self._guard("audio_split", run, source=None, segments=[], text=None)
 
+    @tool_permission('audio_tighten')
     async def audio_tighten(self, *, min_pause: float = 1.0, keep_pause: float = 0.5,
                             edges: bool = True, silence_db: float | None = None,
                             dry_run: bool = False, output_format: str | None = None,
@@ -723,6 +735,7 @@ class Toolset:
 
     # --- visual and tones ------------------------------------------------------------------
 
+    @tool_permission('audio_spectrogram')
     async def audio_spectrogram(self, *, start: float | None = None, duration: float | None = None,
                                 width: int = 1200, height: int = 400, min_freq: float = 50.0,
                                 max_freq: float = 8000.0, freq_scale: str = "log",
@@ -767,6 +780,7 @@ class Toolset:
 
         return await self._guard("audio_spectrogram", run, source=None, png_base64=None)
 
+    @tool_permission('audio_tones')
     async def audio_tones(self, *, start: float | None = None, duration: float | None = None,
                           detect: list[str] | None = None, **kw) -> dict:
         async def run():
@@ -790,6 +804,7 @@ class Toolset:
 
     # --- synthesis --------------------------------------------------------------------------
 
+    @tool_permission('audio_speak')
     async def audio_speak(self, *, text: str | None = None, voice: str | None = None,
                           speed: int | None = None, pitch: int | None = None, ssml: bool = False,
                           list_voices: bool = False, language: str | None = None,
@@ -815,6 +830,7 @@ class Toolset:
 
         return await self._guard("audio_speak", run, output_path=None, audio_base64=None)
 
+    @tool_permission('audio_sonify')
     async def audio_sonify(self, *, values: list | None = None, series: list[dict] | None = None,
                            duration: float | None = None, min_freq: float = 220.0,
                            max_freq: float = 880.0, scale: str = "musical",
@@ -845,6 +861,7 @@ class Toolset:
 
     # --- audio_watch ------------------------------------------------------------------------
 
+    @tool_permission('audio_watch')
     async def audio_watch(self, *, action: str, stream_url: str | None = None,
                           audio_path: str | None = None, watch_id: str | None = None,
                           cursor: int = 0, max_events: int = 100, dead_air_s: float = 5.0,
@@ -922,5 +939,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return list(SCHEMAS)

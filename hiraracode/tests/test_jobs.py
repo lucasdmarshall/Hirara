@@ -39,8 +39,9 @@ class JobContainer:
             self.err += b"done\n"
             self.attrs["State"]["ExitCode"] = self.exit_code
 
-    def logs(self, stdout=False, stderr=False):
-        return self.out if stdout else self.err
+    def logs(self, stdout=False, stderr=False, stream=False, follow=False):
+        data = self.out if stdout else self.err
+        return iter([data]) if stream else data
 
     def kill(self):
         self.killed = True
@@ -57,6 +58,9 @@ class Images:
 
 
 class Containers:
+    def list(self, **kwargs):
+        return []
+
     def __init__(self, factory):
         self.factory = factory
         self.created: list[dict] = []

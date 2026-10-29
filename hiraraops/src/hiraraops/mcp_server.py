@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import mcp_errors
+
 import argparse
 
 from mcp.server.mcpserver import MCPServer
@@ -13,7 +15,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraraops",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted ops tools, no API keys. Use application_logs to tail or "
         "head a log file, process_list to inspect running processes from "
@@ -32,6 +34,7 @@ _toolset = Toolset.from_env()
         "lines, from_end, pattern regex, and level filter."
     ),
 )
+@mcp_errors
 async def application_logs_tool(
     path: str | None = None,
     source: str | None = None,
@@ -70,6 +73,7 @@ async def application_logs_tool(
         "pattern, user, pid, and max_processes."
     ),
 )
+@mcp_errors
 async def process_list_tool(
     pattern: str | None = None,
     user: str | None = None,
@@ -102,6 +106,7 @@ async def process_list_tool(
         "keys filter, pattern regex on key names, include_values, and redact."
     ),
 )
+@mcp_errors
 async def environment_read_tool(
     pid: int | None = None,
     keys: list[str] | str | None = None,
@@ -138,6 +143,8 @@ def main() -> None:
         choices=["stdio", "sse", "streamable-http"],
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

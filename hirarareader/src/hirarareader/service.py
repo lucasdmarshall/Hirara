@@ -11,6 +11,8 @@ files as this process.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
 
 from fastapi import FastAPI, File, Form, UploadFile
@@ -22,7 +24,9 @@ log = logging.getLogger("hirarareader.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarareader", version="0.1.0")
+app = FastAPI(title="hirarareader", version="0.2.0")
+
+install_backend(app)
 
 
 class ReadRequest(BaseModel):

@@ -1,6 +1,6 @@
 [project]
 name = "hiraraocr"
-version = "0.2.0"
+version = "0.3.0"
 description = "Self-hosted OCR for AI agents — image & scanned-PDF text extraction, form/invoice fields, over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,7 +34,7 @@ dependencies = [
     "httpx>=0.28",
     # Shared SSRF guard + safe downloader. file_url fetches go through this so
     # the tool cannot re-open the egress hole every URL fetcher risks.
-    "hirara-core>=0.1",
+    "hirara-core>=0.2",
 ]
 
 [project.optional-dependencies]
@@ -56,7 +56,7 @@ handwriting = [
     "protobuf>=3.20",
 ]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "pillow>=10.0", "numpy>=1.26"]
 
 [project.urls]

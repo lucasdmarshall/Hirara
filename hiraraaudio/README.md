@@ -85,7 +85,7 @@ curl -X POST localhost:9300/upload/audio_profile \
   -F file=@episode.mp3 -F 'arguments={"max_segments":20}'
 ```
 
-MCP: `python -m hiraraaudio.mcp_server` (stdio) or `--transport streamable-http`.
+MCP: `python -m hiraraaudio.mcp_server` (stdio) or `--transport stdio`.
 
 Python SDK (in-process, no service): `pip install "hirara[audio]"`, then
 `hirara.audio_profile(path="episode.mp3")`.

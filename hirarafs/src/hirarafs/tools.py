@@ -9,6 +9,8 @@ Tools: ``file_read``, ``file_write``, ``file_edit``, ``file_search``,
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 
@@ -287,6 +289,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=FsConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [FILE_READ_SCHEMA, FILE_WRITE_SCHEMA, FILE_EDIT_SCHEMA, FILE_SEARCH_SCHEMA,
                 FILE_LIST_SCHEMA, ARCHIVE_LIST_SCHEMA, ARCHIVE_EXTRACT_SCHEMA]
@@ -294,7 +297,7 @@ class Toolset:
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": list(TOOL_NAMES),
             "max_bytes": self.config.max_bytes,
             "max_write_bytes": self.config.max_write_bytes,
@@ -303,6 +306,7 @@ class Toolset:
             "allow_write": self.config.allow_write,
         }
 
+    @tool_permission('file_read')
     async def file_read(
         self,
         *,
@@ -333,6 +337,7 @@ class Toolset:
                 error=f"file_read failed: {exc}",
             )
 
+    @tool_permission('file_write')
     async def file_write(
         self,
         *,
@@ -380,6 +385,7 @@ class Toolset:
             log.exception("%s failed", name)
             return {**envelope, "error": f"{name} failed: {exc}"}
 
+    @tool_permission('file_edit')
     async def file_edit(self, *, path: str, old_string: str | None = None,
                         new_string: str | None = None, replace_all: bool = False,
                         edits: list[dict] | None = None, dry_run: bool = False) -> dict:
@@ -389,6 +395,7 @@ class Toolset:
             edits=edits, old_string=old_string, new_string=new_string,
             replace_all=replace_all, dry_run=dry_run)
 
+    @tool_permission('file_search')
     async def file_search(self, *, pattern: str, path: str | None = None,
                           glob: str | None = None, regex: bool = True,
                           case_sensitive: bool = False, context: int = 0,
@@ -399,6 +406,7 @@ class Toolset:
             path=path, glob=glob, regex=regex, case_sensitive=case_sensitive,
             context=context, max_results=max_results, include_hidden=include_hidden)
 
+    @tool_permission('file_list')
     async def file_list(self, *, path: str | None = None, pattern: str | None = None,
                         recursive: bool = False, include_hidden: bool = False,
                         max_entries: int = 500) -> dict:
@@ -408,11 +416,13 @@ class Toolset:
             pattern=pattern, recursive=recursive, include_hidden=include_hidden,
             max_entries=max_entries)
 
+    @tool_permission('archive_list')
     async def archive_list(self, *, path: str, max_entries: int = 1000) -> dict:
         return await self._run(
             "archive_list", lambda **kw: list_archive(path, **kw), (ArchiveError,),
             {"path": path, "entries": [], "count": 0}, max_entries=max_entries)
 
+    @tool_permission('archive_extract')
     async def archive_extract(self, *, path: str, dest: str, members: list[str] | None = None,
                               overwrite: bool = False) -> dict:
         return await self._run(
@@ -462,5 +472,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

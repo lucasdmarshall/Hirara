@@ -12,7 +12,11 @@ is sandboxed; the *service* is not.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
+from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
@@ -23,7 +27,17 @@ log = logging.getLogger("hiraracode.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraracode", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(_toolset.jobs.close)
+
+
+app = FastAPI(title="hiraracode", version="0.2.0", lifespan=lifespan)
+
+install_backend(app)
 
 
 class ExecuteRequest(BaseModel):
@@ -60,7 +74,7 @@ class JobStopRequest(BaseModel):
 
 @app.get("/health")
 async def health() -> dict:
-    return _toolset.health()
+    return await asyncio.to_thread(_toolset.health)
 
 
 @app.get("/schemas")

@@ -62,11 +62,11 @@ class FakeContainer:
             raise ReadTimeout("timed out")
         return {"StatusCode": self._spec.exit_code}
 
-    def logs(self, stdout=False, stderr=False):
+    def logs(self, stdout=False, stderr=False, stream=False, follow=False):
         if stdout:
-            return self._spec.stdout
+            return iter([self._spec.stdout]) if stream else self._spec.stdout
         if stderr:
-            return self._spec.stderr
+            return iter([self._spec.stderr]) if stream else self._spec.stderr
         return b""
 
     def reload(self):
@@ -113,6 +113,9 @@ class FakeImages:
 
 
 class FakeContainers:
+    def list(self, **kwargs):
+        return []
+
     def __init__(self, container_spec):
         self.container_spec = container_spec
         self.created_kwargs: dict | None = None
@@ -142,3 +145,31 @@ def make_client():
         )
 
     return _make
+
+
+@pytest.fixture(autouse=True)
+def close_job_managers(monkeypatch):
+    from hiraracode.jobs import JobManager
+    original = JobManager.__init__
+    managers = []
+    def init(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        managers.append(self)
+    monkeypatch.setattr(JobManager, '__init__', init)
+    yield
+    for manager in managers:
+        manager.close()
+
+
+@pytest.fixture(autouse=True)
+def close_runners(monkeypatch):
+    from hiraracode.runner import DockerRunner
+    original = DockerRunner.__init__
+    runners = []
+    def init(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        runners.append(self)
+    monkeypatch.setattr(DockerRunner, '__init__', init)
+    yield
+    for runner in runners:
+        runner.close()

@@ -1,10 +1,12 @@
 """MCP front end — memory, human-in-the-loop, reminders and waiting.
 
     python -m hiraraagent.mcp_server                       # stdio
-    python -m hiraraagent.mcp_server --transport streamable-http
+    python -m hiraraagent.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 from typing import Any
@@ -16,7 +18,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraraagent",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "State for an agent across sessions. memory keeps notes (search before redoing "
         "work). ask_human asks a person a question or for approval and returns a "
@@ -30,6 +32,7 @@ _toolset = Toolset.from_env()
 
 
 @server.tool(name="memory", description=T.MEMORY_SCHEMA["description"])
+@mcp_errors
 async def memory_tool(action: str, key: str | None = None, value: Any = None,
                       tags: list[str] | None = None, ttl_seconds: float | None = None,
                       query: str | None = None, limit: int = 20, offset: int = 0,
@@ -40,6 +43,7 @@ async def memory_tool(action: str, key: str | None = None, value: Any = None,
 
 
 @server.tool(name="ask_human", description=T.ASK_HUMAN_SCHEMA["description"])
+@mcp_errors
 async def ask_human_tool(action: str, question: str | None = None, kind: str = "question",
                          options: list[str] | None = None, allow_free_text: bool = False,
                          context: str | None = None, urgency: str = "normal",
@@ -52,6 +56,7 @@ async def ask_human_tool(action: str, question: str | None = None, kind: str = "
 
 
 @server.tool(name="schedule", description=T.SCHEDULE_SCHEMA["description"])
+@mcp_errors
 async def schedule_tool(action: str, title: str | None = None, note: str | None = None,
                         at: str | None = None, in_seconds: float | None = None,
                         repeat_seconds: float | None = None, reminder_id: str | None = None,
@@ -63,6 +68,7 @@ async def schedule_tool(action: str, title: str | None = None, note: str | None 
 
 
 @server.tool(name="wait_until", description=T.WAIT_UNTIL_SCHEMA["description"])
+@mcp_errors
 async def wait_until_tool(request_id: str | None = None, reminder_due: bool = False,
                           at: str | None = None, in_seconds: float | None = None,
                           max_wait: float | None = None, namespace: str | None = None) -> dict:
@@ -75,6 +81,8 @@ def main() -> None:
     parser.add_argument("--transport", default="stdio",
                         choices=["stdio", "sse", "streamable-http"])
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

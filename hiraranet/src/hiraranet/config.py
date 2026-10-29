@@ -106,6 +106,7 @@ class NetConfig:
     # When True, answers / scan targets are annotated with routable /
     # block_reason via hirara-core.check_ip.
     annotate_ips: bool = True
+    allow_private_targets: bool = False
 
     # --- port_scan / service_enum ---
     default_scan_ports: tuple[int, ...] = DEFAULT_SCAN_PORTS
@@ -125,6 +126,7 @@ class NetConfig:
             max_answers=_env_int("CNET_MAX_ANSWERS", cls.max_answers),
             nameserver=nameserver,
             annotate_ips=_env_bool("CNET_ANNOTATE_IPS", cls.annotate_ips),
+            allow_private_targets=_env_bool("CNET_ALLOW_PRIVATE_TARGETS", cls.allow_private_targets),
             default_scan_ports=_env_ports(
                 "CNET_DEFAULT_SCAN_PORTS", cls.default_scan_ports
             ),

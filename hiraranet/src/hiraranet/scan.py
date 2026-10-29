@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
 from hirara_core import check_ip
+from hirara_core.policy import private_targets_allowed
 
 from .config import DEFAULT_SCAN_PORTS, NetConfig
 
@@ -217,13 +218,16 @@ async def scan_ports(
         )
         resolve = resolver or resolve_host
         ip, routable, block_reason = resolve(target)
+        reason = check_ip(ip)
+        if reason and not private_targets_allowed(cfg.allow_private_targets):
+            raise ScanError(f"target blocked: {reason}")
     except ScanError as exc:
         return ScanResult(host=(host or "").strip(), error=str(exc))
 
     per_port_timeout = cfg.scan_timeout if timeout is None else float(timeout)
     if per_port_timeout <= 0:
         return ScanResult(host=target, ip=ip, error="timeout must be > 0")
-    workers = cfg.scan_concurrency if concurrency is None else int(concurrency)
+    workers = cfg.scan_concurrency if concurrency is None else min(cfg.scan_concurrency, int(concurrency))
     if workers < 1:
         return ScanResult(host=target, ip=ip, error="concurrency must be >= 1")
     workers = min(workers, len(port_list))

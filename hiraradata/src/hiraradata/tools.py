@@ -8,6 +8,8 @@ Tools: ``data_profile``, ``chart_render``, ``diagram_render``.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import asyncio
 import json
 import logging
@@ -157,13 +159,14 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=DataConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return list(SCHEMAS)
 
     def health(self) -> dict:
         import shutil
 
-        return {"status": "ok", "version": "0.1.0", "tools": list(TOOL_NAMES),
+        return {"status": "ok", "version": "0.2.0", "tools": list(TOOL_NAMES),
                 "graphviz": shutil.which(self.config.dot),
                 "allow_local_path": self.config.allow_local_path,
                 "allow_url_fetch": self.config.allow_url_fetch}
@@ -177,6 +180,7 @@ class Toolset:
             log.exception("%s failed", name)
             return {**fields, "error": f"{name} failed: {exc}"}
 
+    @tool_permission('data_profile')
     async def data_profile(self, *, file_path: str | None = None, file_url: str | None = None,
                            file_base64: str | None = None, file_bytes: bytes | None = None,
                            filename: str | None = None, data=None, format: str | None = None,
@@ -213,6 +217,7 @@ class Toolset:
 
         return await self._guard("data_profile", run, column_profiles=[], warnings=[], text=None)
 
+    @tool_permission('chart_render')
     async def chart_render(self, *, type: str, x: list | None = None, series: list | None = None,
                            records: list | None = None, x_field: str | None = None,
                            y_fields: list[str] | None = None, title: str | None = None,
@@ -233,6 +238,7 @@ class Toolset:
 
         return await self._guard("chart_render", run, image_base64=None, svg=None, text=None)
 
+    @tool_permission('diagram_render')
     async def diagram_render(self, *, source: str, language: str = "auto", format: str = "png",
                              engine: str = "dot", output_path: str | None = None) -> dict:
         async def run():
@@ -279,5 +285,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return list(SCHEMAS)

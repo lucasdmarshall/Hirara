@@ -12,6 +12,8 @@ network, an open instance is still someone else's free proxy.
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -30,7 +32,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-web", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="hirara-web", version="0.2.0", lifespan=lifespan)
+
+install_backend(app)
 
 
 class SearchRequest(BaseModel):

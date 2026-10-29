@@ -11,17 +11,24 @@ RUN apt-get update \
 
 WORKDIR /app
 
+COPY constraints-release.txt /app/constraints-release.txt
+ENV PIP_CONSTRAINT=/app/constraints-release.txt
+
 # Build context is the repo root (see docker-compose.yml). Install the shared
 # SSRF guard first so the tool install sees hirara-core already satisfied.
 COPY hirara-core ./hirara-core
-RUN pip install --no-cache-dir ./hirara-core
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ./hirara-core
 
 COPY hiraraocr/pyproject.toml hiraraocr/README.md \
      hiraraocr/LICENSE hiraraocr/NOTICE hiraraocr/requirements.txt ./
 COPY hiraraocr/src ./src
 
 # Both engines baked in, plus the HTTP + MCP front ends.
-RUN pip install --no-cache-dir ".[paddle,tesseract]" \
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    pip install --no-cache-dir ".[paddle,tesseract]" \
     "uvicorn[standard]" "fastapi" "python-multipart" "mcp"
 
 RUN useradd --create-home --uid 10001 app \

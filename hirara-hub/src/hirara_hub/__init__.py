@@ -11,4 +11,4 @@ from .registry import TOOLS, ToolRoute, services
 
 __all__ = ["Gateway", "HubConfig", "TOOLS", "ToolRoute", "services"]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

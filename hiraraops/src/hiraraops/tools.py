@@ -5,6 +5,8 @@ Tools: ``application_logs``, ``process_list``, ``environment_read``.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
 from dataclasses import dataclass
 
@@ -215,6 +217,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=OpsConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [
             APPLICATION_LOGS_SCHEMA,
@@ -225,7 +228,7 @@ class Toolset:
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": ["application_logs", "process_list", "environment_read"],
             "sources": sorted(self.config.resolved_sources()),
             "roots": list(self.config.roots),
@@ -239,6 +242,7 @@ class Toolset:
             "max_env_vars": self.config.max_env_vars,
         }
 
+    @tool_permission('application_logs')
     async def application_logs(
         self,
         *,
@@ -278,6 +282,7 @@ class Toolset:
                 error=f"application_logs failed: {exc}",
             )
 
+    @tool_permission('process_list')
     async def process_list(
         self,
         *,
@@ -310,6 +315,7 @@ class Toolset:
                 error=f"process_list failed: {exc}",
             )
 
+    @tool_permission('environment_read')
     async def environment_read(
         self,
         *,
@@ -378,5 +384,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

@@ -13,9 +13,11 @@ token the gateway is open — run it on loopback only.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import hmac
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
+from hirara_core.policy import install_validation_errors
 
 from . import banner
 from .config import HubConfig
@@ -33,7 +35,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-hub", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="hirara-hub", version="0.2.0", lifespan=lifespan)
+install_validation_errors(app)
 
 
 async def require_auth(authorization: str | None = Header(default=None)) -> None:
@@ -41,7 +44,7 @@ async def require_auth(authorization: str | None = Header(default=None)) -> None
     if not _config.auth_enabled:
         return
     expected = f"Bearer {_config.token}"
-    if authorization != expected:
+    if not hmac.compare_digest((authorization or "").encode(), expected.encode()):
         raise HTTPException(status_code=401, detail="missing or invalid bearer token")
 
 
@@ -60,6 +63,13 @@ async def health() -> dict:
 @app.get("/schemas", dependencies=[Depends(require_auth)])
 async def schemas() -> dict:
     return await _gateway.schemas()
+
+
+@app.get("/ready", dependencies=[Depends(require_auth)])
+async def ready():
+    from fastapi.responses import JSONResponse
+    result = await _gateway.health()
+    return JSONResponse(result, status_code=200 if result["ready"] else 503)
 
 
 @app.post("/call", dependencies=[Depends(require_auth)])

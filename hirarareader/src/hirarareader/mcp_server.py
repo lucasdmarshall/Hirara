@@ -6,10 +6,12 @@ Run over stdio for Claude Code / Claude Desktop / Cursor::
 
 Or over HTTP for a remote client::
 
-    python -m hirarareader.mcp_server --transport streamable-http
+    python -m hirarareader.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -19,7 +21,7 @@ from .tools import EMAIL_READ_SCHEMA, Toolset
 
 server = MCPServer(
     name="hirarareader",
-    version="0.1.0",
+    version="0.2.0",
     instructions=(
         "Self-hosted Office-document reader, no API keys. Use office_read to "
         "read a Word (.docx), PowerPoint (.pptx), or Excel (.xlsx) file into "
@@ -43,6 +45,7 @@ _toolset = Toolset.from_env()
         "supported."
     ),
 )
+@mcp_errors
 async def office_read_tool(
     file_path: str | None = None,
     file_url: str | None = None,
@@ -66,6 +69,7 @@ async def office_read_tool(
 
 
 @server.tool(name="email_read", description=EMAIL_READ_SCHEMA["description"])
+@mcp_errors
 async def email_read_tool(
     file_path: str | None = None,
     file_url: str | None = None,
@@ -90,6 +94,8 @@ def main() -> None:
         help="MCP transport to serve on (default: stdio).",
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import logging
 import time
+import threading
+import atexit
 from dataclasses import asdict, dataclass
 
 from .config import ExecConfig, LanguageSpec
@@ -89,6 +91,75 @@ class DockerRunner:
     def __init__(self, config: ExecConfig, client=None) -> None:
         self.config = config
         self._client = client  # injected in tests; otherwise created lazily
+        self._slots = threading.BoundedSemaphore(config.max_runs)
+        self._lifecycle_lock = threading.Lock()
+        self._prepared = False
+        self._closed = False
+        self._active = {}
+        self._cleanup = {}
+        self._stop = threading.Event()
+        self._reaper = None
+        atexit.register(self.close)
+
+    def prepare(self):
+        """Remove containers left by a previous process with this executor ID.
+
+        One service process owns each ID. Fail closed if daemon cleanup fails.
+        """
+        with self._lifecycle_lock:
+            if self._closed:
+                raise RunnerError("executor is shutting down")
+            if self._prepared:
+                return
+            containers = self.client.containers.list(all=True, filters={"label": [
+                "hiraracode=1", f"hiraracode-owner={self.config.executor_id}"]})
+            for container in containers:
+                container.remove(force=True)
+            self._prepared = True
+            self._reaper = threading.Thread(target=self._maintain,
+                                             name="hiraracode-cleanup", daemon=True)
+            self._reaper.start()
+
+    def _maintain(self):
+        while not self._stop.wait(0.25):
+            self.reap()
+
+    def reap(self):
+        with self._lifecycle_lock:
+            pending = list(self._cleanup.items())
+        for key, container in pending:
+            try:
+                container.remove(force=True)
+            except Exception as exc:
+                from docker.errors import NotFound
+                if not isinstance(exc, NotFound):
+                    continue
+            with self._lifecycle_lock:
+                if self._cleanup.pop(key, None) is not None:
+                    self._active.pop(key, None)
+                    self._slots.release()
+
+    def close(self):
+        with self._lifecycle_lock:
+            if self._closed:
+                return
+            self._closed = True
+            active = list(self._active.values())
+        atexit.unregister(self.close)
+        self._stop.set()
+        if self._reaper is not None:
+            self._reaper.join(timeout=5)
+        for container in active:
+            try:
+                container.remove(force=True)
+            except Exception:
+                log.exception("executor shutdown cleanup failed")
+
+    def validate_input(self, code, stdin):
+        if not code or not code.strip():
+            raise RunnerError("code is empty")
+        if len(code.encode()) + len((stdin or "").encode()) > self.config.max_input_bytes:
+            raise RunnerError("code and stdin exceed CCODE_MAX_INPUT_BYTES")
 
     # -- client / health ------------------------------------------------------
 
@@ -103,7 +174,7 @@ class DockerRunner:
                     "pip install docker"
                 ) from exc
             try:
-                self._client = docker.from_env()
+                self._client = docker.from_env(timeout=5)
             except Exception as exc:  # noqa: BLE001 — daemon unreachable
                 raise RunnerError(
                     f"cannot reach the Docker daemon: {exc}. Is Docker running, "
@@ -177,12 +248,13 @@ class DockerRunner:
             "pids_limit": cfg.pids_limit,
             "cap_drop": ["ALL"],
             "security_opt": ["no-new-privileges:true"],
+            "log_config": {"type": "json-file", "config": {"max-size": "1m", "max-file": "1"}},
             "environment": environment,
             "tmpfs": {
                 "/workspace": f"rw,size={cfg.workspace_size},mode=1777",
                 "/tmp": f"rw,size={cfg.tmp_size},mode=1777",
             },
-            "labels": {"hiraracode": "1"},
+            "labels": {"hiraracode": "1", "hiraracode-owner": cfg.executor_id},
         }
         if cfg.allow_network:
             kwargs["network_mode"] = cfg.network
@@ -204,19 +276,25 @@ class DockerRunner:
             raise RunnerError(
                 f"language '{language}' is not allowed. Allowed: {allowed}"
             )
-        if not code or not code.strip():
-            raise RunnerError("code is empty")
+        self.validate_input(code, stdin)
 
         wall = self.config.clamp_timeout(timeout)
-        self._ensure_image(spec.image)
-
-        kwargs = self._create_kwargs(spec, code, stdin)
-
         container = None
         started = time.monotonic()
+        self.prepare()
+        self.reap()
+        if not self._slots.acquire(blocking=False):
+            raise RunnerError("execution capacity reached (CCODE_MAX_RUNS)")
+        release = True
         try:
+            self._ensure_image(spec.image)
+            kwargs = self._create_kwargs(spec, code, stdin)
             container = self.client.containers.create(**kwargs)
-            container.start()
+            with self._lifecycle_lock:
+                self._active[id(container)] = container
+                if self._closed:
+                    raise RunnerError("executor is shutting down")
+                container.start()
 
             timed_out = False
             exit_code: int | None = None
@@ -231,12 +309,10 @@ class DockerRunner:
                     raise RunnerError(f"waiting on container failed: {exc}") from exc
 
             duration = time.monotonic() - started
-            stdout, t_out = _truncate(
-                container.logs(stdout=True, stderr=False), self.config.max_output_bytes
-            )
-            stderr, t_err = _truncate(
-                container.logs(stdout=False, stderr=True), self.config.max_output_bytes
-            )
+            stdout, t_out = _truncate(read_logs(container, stdout=True,
+                                     limit=self.config.max_output_bytes + 1), self.config.max_output_bytes)
+            stderr, t_err = _truncate(read_logs(container, stdout=False,
+                                     limit=self.config.max_output_bytes + 1), self.config.max_output_bytes)
             oom = _oom_killed(container)
 
             return RunResult(
@@ -254,8 +330,33 @@ class DockerRunner:
             if container is not None and self.config.remove:
                 try:
                     container.remove(force=True)
-                except Exception:  # noqa: BLE001 — best-effort cleanup
-                    log.warning("failed to remove container %s", getattr(container, "id", "?"))
+                except Exception as exc:  # noqa: BLE001
+                    from docker.errors import NotFound
+                    if not isinstance(exc, NotFound):
+                        log.warning("failed to remove container %s", getattr(container, "id", "?"))
+                        with self._lifecycle_lock:
+                            self._cleanup[id(container)] = container
+                        release = False
+            if release:
+                with self._lifecycle_lock:
+                    self._active.pop(id(container), None)
+                self._slots.release()
+
+
+def read_logs(container, *, stdout: bool, limit: int) -> bytes:
+    """Consume at most limit bytes and close the daemon response immediately."""
+    stream = container.logs(stdout=stdout, stderr=not stdout, stream=True, follow=False)
+    result = bytearray()
+    try:
+        for chunk in stream:
+            result.extend(chunk[:limit - len(result)])
+            if len(result) >= limit:
+                break
+    finally:
+        close = getattr(stream, "close", None)
+        if close:
+            close()
+    return bytes(result)
 
 def _is_timeout(exc: Exception) -> bool:
     # container.wait(timeout=...) surfaces its timeout in different shapes across

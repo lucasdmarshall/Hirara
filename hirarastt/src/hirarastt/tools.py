@@ -6,6 +6,8 @@ never drift apart in behaviour — only in transport.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import base64
 import logging
 import mimetypes
@@ -126,12 +128,13 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=TranscribeConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [TRANSCRIBE_SCHEMA]
 
     def health(self) -> dict:
         info = self.engine.info()
-        return {"status": "ok", "version": "0.1.0", "engine": info}
+        return {"status": "ok", "version": "0.2.0", "engine": info}
 
     async def _resolve_to_path(
         self,
@@ -228,6 +231,7 @@ class Toolset:
         path = write_temp_audio(result.content, suffix=_suffix_for(name, result.content_type))
         return path, audio_url, True
 
+    @tool_permission('transcribe')
     async def transcribe(
         self,
         *,
@@ -302,5 +306,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await _backend().transcribe(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return [TRANSCRIBE_SCHEMA]

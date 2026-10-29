@@ -1,21 +1,19 @@
-"""Federating MCP server — one MCP endpoint for the whole hub.
+"""Federated stdio MCP, using backend schemas and explicit tool-error results.
 
-Agents connect here and see every hub tool as a first-class MCP tool. On each
-call the server forwards to the tool's backend over HTTP (via the Gateway),
-exactly like the /call endpoint. Tools whose backend is unreachable at startup
-are still registered from the static registry, so transient backend downtime
-does not drop them from the tool list; a call to a down backend returns an
-error body.
-
-    python -m hirara_hub.mcp_server
+Network MCP is deliberately disabled until an authenticated transport is
+implemented. HUB_TOKEN protects the HTTP API; it is not a stdio credential.
 """
-
 from __future__ import annotations
 
 import argparse
 import asyncio
+import json
+import sys
 
-from mcp.server.mcpserver import MCPServer
+from mcp import types
+from mcp.server.lowlevel import Server
+from mcp.server.stdio import stdio_server
+from jsonschema import Draft202012Validator
 
 from . import banner
 from .config import HubConfig
@@ -24,56 +22,59 @@ from .registry import TOOLS
 
 _config = HubConfig.from_env()
 _gateway = Gateway(_config)
-
-server = MCPServer(
-    name="hirara-hub",
-    version="0.1.0",
-    instructions=(
-        "The Hirara tool hub — one endpoint for web search/fetch, code "
-        "execution, PDF, OCR, form extraction, and Office-document reading. "
-        "Each tool is self-hosted and key-free. Call a tool directly; the hub "
-        "forwards it to the right backend."
-    ),
-)
+_schemas: dict[str, dict] = {}
 
 
-def _register(route) -> None:
-    """Register one hub tool as an MCP tool that forwards to its backend."""
-
-    async def handler(arguments: dict | None = None) -> dict:
-        return await _gateway.call(route.tool, arguments or {})
-
-    handler.__name__ = route.tool
-    label = "[experimental] " if route.experimental else ""
-    server.tool(
-        name=route.tool,
-        description=f"{label}Forwarded to the {route.service} backend. "
-        f"See the hub /schemas for this tool's arguments.",
-    )(handler)
-
-
-for _route in TOOLS.values():
-    _register(_route)
+async def list_tools(context=None, params=None):
+    payload = await _gateway.schemas()
+    tools = []
+    for schema in payload["tools"]:
+        name = schema["name"]
+        contract = schema.get("input_schema", {"type": "object"})
+        Draft202012Validator.check_schema(contract)
+        _schemas[name] = contract
+        # Advertise native arguments and accept the previous nested wire shape.
+        compatible = {"type": "object", "anyOf": [contract, {
+            "type": "object", "properties": {"arguments": contract},
+            "required": ["arguments"], "additionalProperties": False}]}
+        tools.append(types.Tool(name=name, description=schema.get("description", ""),
+                                inputSchema=compatible))
+    return types.ListToolsResult(tools=tools)
 
 
-def main() -> None:
+async def call_tool(context, params):
+    arguments = params.arguments or {}
+    if set(arguments) == {"arguments"} and isinstance(arguments["arguments"], dict):
+        arguments = arguments["arguments"]
+    if params.name not in TOOLS:
+        payload = {"error": f"unknown tool: {params.name}"}
+    else:
+        contract = _schemas.get(params.name)
+        error = next(Draft202012Validator(contract).iter_errors(arguments), None) if contract else None
+        if error:
+            payload = {"error": f"invalid arguments: {error.message}", "tool": params.name}
+        else:
+            payload = await _gateway.call(params.name, arguments)
+    return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(payload))],
+                                structuredContent=payload, isError=bool(payload.get("error")))
+
+
+server = Server("hirara-hub", version="0.2.0", on_list_tools=list_tools, on_call_tool=call_tool)
+
+
+async def run_stdio():
+    async with stdio_server() as (read, write):
+        await server.run(read, write, server.create_initialization_options())
+
+
+def main():
     parser = argparse.ArgumentParser(description="Hirara hub MCP server")
-    parser.add_argument(
-        "--transport",
-        default="stdio",
-        choices=["stdio", "sse", "streamable-http"],
-        help="MCP transport to serve on (default: stdio).",
-    )
+    parser.add_argument("--transport", default="stdio", choices=["stdio", "sse", "streamable-http"])
     args = parser.parse_args()
-    # Banner + which backends are reachable at boot (informational only).
-    sub = f"hub | MCP {args.transport}"
-    try:
-        health = asyncio.run(_gateway.health())
-        sub += f" | backends {health['services_up']}/{health['services_total']}"
-    except Exception:  # noqa: BLE001
-        pass
-    banner.show(sub)
-    server.run(transport=args.transport)
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled: use stdio or the authenticated HTTP hub")
+    print(banner.render("hub | MCP stdio"), file=sys.stderr, flush=True)
+    asyncio.run(run_stdio())
 
 
 if __name__ == "__main__":

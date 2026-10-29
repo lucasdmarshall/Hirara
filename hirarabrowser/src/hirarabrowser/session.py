@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
+import inspect
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -29,6 +30,7 @@ class SessionStore:
         self.max_sessions = max_sessions
         self.session_ttl = session_ttl
         self._sessions: dict[str, Session] = {}
+        self._closing: list[Session] = []
 
     def __len__(self) -> int:
         return len(self._sessions)
@@ -71,18 +73,26 @@ class SessionStore:
         session = self._sessions.pop(session_id, None)
         if session is None:
             return
-        # Best-effort close; tests use plain objects.
-        for obj in (session.page, session.context, session.browser):
-            close = getattr(obj, "close", None)
-            if callable(close):
-                try:
-                    result = close()
-                    # playwright close is async — fire-and-forget from sync path
-                    # is handled by the browser engine's close_session.
-                    if hasattr(result, "close"):
+        self._closing.append(session)
+
+    async def drain(self) -> None:
+        self._evict_expired()
+        closing, self._closing = self._closing, []
+        for session in closing:
+            for obj in (session.page, session.context, session.browser):
+                close = getattr(obj, "close", None)
+                if callable(close):
+                    try:
+                        result = close()
+                        if inspect.isawaitable(result):
+                            await result
+                    except Exception:
                         pass
-                except Exception:  # noqa: BLE001
-                    pass
+
+    async def close(self) -> None:
+        for sid in list(self._sessions):
+            self.discard(sid)
+        await self.drain()
 
     def _evict_expired(self) -> None:
         now = time.monotonic()

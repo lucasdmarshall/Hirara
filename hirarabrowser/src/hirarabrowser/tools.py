@@ -5,8 +5,11 @@ Tools: ``browser_open``, ``browser_click``, ``browser_type``, ``browser_screensh
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import asyncio
 
 from .browser import (
     browser_click,
@@ -263,6 +266,7 @@ class Toolset:
     config: BrowserConfig
     store: SessionStore
     engine: object | None = None
+    _open_lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False)
 
     @classmethod
     def from_env(cls) -> "Toolset":
@@ -274,6 +278,12 @@ class Toolset:
             ),
         )
 
+    async def close(self):
+        await self.store.close()
+        if self.engine is not None and callable(getattr(self.engine, "close", None)):
+            await self.engine.close()
+
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [
             BROWSER_OPEN_SCHEMA,
@@ -285,7 +295,7 @@ class Toolset:
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": [
                 "browser_open",
                 "browser_click",
@@ -296,6 +306,7 @@ class Toolset:
             "headless": self.config.headless,
         }
 
+    @tool_permission('browser_open')
     async def browser_open(
         self,
         *,
@@ -305,20 +316,25 @@ class Toolset:
         include_text: bool = False,
     ) -> dict:
         try:
-            result = await browser_open(
-                url,
-                session_id=session_id,
-                timeout=timeout,
-                include_text=include_text,
-                config=self.config,
-                store=self.store,
-                engine=self.engine,  # type: ignore[arg-type]
-            )
+            async with self._open_lock:
+                if self.engine is None:
+                    from .browser import PlaywrightEngine
+                    self.engine = PlaywrightEngine(self.config)
+                result = await browser_open(
+                    url,
+                    session_id=session_id,
+                    timeout=timeout,
+                    include_text=include_text,
+                    config=self.config,
+                    store=self.store,
+                    engine=self.engine,  # type: ignore[arg-type]
+                )
             return open_result_to_dict(result)
         except Exception as exc:  # noqa: BLE001
             log.exception("browser_open failed")
             return _open_envelope(error=f"browser_open failed: {exc}")
 
+    @tool_permission('browser_click')
     async def browser_click(
         self,
         *,
@@ -347,6 +363,7 @@ class Toolset:
                 error=f"browser_click failed: {exc}",
             )
 
+    @tool_permission('browser_type')
     async def browser_type(
         self,
         *,
@@ -380,6 +397,7 @@ class Toolset:
                 error=f"browser_type failed: {exc}",
             )
 
+    @tool_permission('browser_screenshot')
     async def browser_screenshot(
         self,
         *,
@@ -452,5 +470,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()

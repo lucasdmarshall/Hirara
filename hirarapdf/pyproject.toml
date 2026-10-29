@@ -1,6 +1,6 @@
 [project]
 name = "hirarapdf"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted PDF read / parse / create tools for AI agents — HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -31,16 +31,16 @@ dependencies = [
     "reportlab>=4.0",
     # HTML -> PDF. Pure-Python, renders on top of reportlab — no browser
     # engine, no cairo/pango system libraries.
-    "xhtml2pdf>=0.2.11",
+    "xhtml2pdf>=0.2.28,<0.3",
     "httpx>=0.28",
     # The shared SSRF guard + safe downloader. pdf_url fetches go through this
     # so the tool cannot re-open the egress hole every URL fetcher risks.
-    "hirara-core>=0.1",
+    "hirara-core>=0.2",
 ]
 
 [project.optional-dependencies]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "python-multipart>=0.0.9"]
-mcp = ["mcp>=2.0"]
+mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]

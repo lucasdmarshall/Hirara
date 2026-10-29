@@ -6,10 +6,12 @@ Run over stdio for Claude Code / Claude Desktop / Cursor::
 
 Or over HTTP for a remote client::
 
-    python -m hiraraocr.mcp_server --transport streamable-http
+    python -m hiraraocr.mcp_server --transport stdio
 """
 
 from __future__ import annotations
+
+from hirara_core.policy import mcp_errors
 
 import argparse
 
@@ -19,7 +21,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraraocr",
-    version="0.2.0",
+    version="0.3.0",
     instructions=(
         "Self-hosted OCR, no API keys. Use ocr_read to read the text out of an "
         "image or a scanned PDF; use form_extract to pull structured fields and "
@@ -44,6 +46,7 @@ _toolset = Toolset.from_env()
         "handwriting."
     ),
 )
+@mcp_errors
 async def ocr_read_tool(
     file_path: str | None = None,
     file_url: str | None = None,
@@ -86,6 +89,7 @@ async def ocr_read_tool(
         "or override fields for a known layout, e.g. {\"po_number\": [\"po #\"]}."
     ),
 )
+@mcp_errors
 async def form_extract_tool(
     file_path: str | None = None,
     file_url: str | None = None,
@@ -123,6 +127,8 @@ def main() -> None:
         help="MCP transport to serve on (default: stdio).",
     )
     args = parser.parse_args()
+    if args.transport != "stdio":
+        parser.error("network MCP is disabled; use stdio or the authenticated HTTP hub")
     server.run(transport=args.transport)
 
 

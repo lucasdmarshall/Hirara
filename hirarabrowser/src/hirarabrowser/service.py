@@ -5,7 +5,12 @@
 
 from __future__ import annotations
 
+from hirara_core.policy import install_backend
+
 import logging
+from contextlib import asynccontextmanager
+import asyncio
+from contextlib import suppress
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -16,7 +21,25 @@ log = logging.getLogger("hirarabrowser.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarabrowser", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    async def sweep():
+        while True:
+            await asyncio.sleep(1)
+            await _toolset.store.drain()
+    sweeper = asyncio.create_task(sweep())
+    try:
+        yield
+    finally:
+        sweeper.cancel()
+        with suppress(asyncio.CancelledError):
+            await sweeper
+        await _toolset.close()
+
+
+app = FastAPI(title="hirarabrowser", version="0.2.0", lifespan=lifespan)
+
+install_backend(app)
 
 
 class BrowserOpenRequest(BaseModel):

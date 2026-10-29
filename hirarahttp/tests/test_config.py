@@ -8,7 +8,7 @@ def test_defaults():
     assert cfg.timeout == 30.0
     assert cfg.max_bytes == 2_000_000
     assert cfg.max_redirects == 5
-    assert cfg.allow_private_ips is True
+    assert cfg.allow_private_ips is False
     assert cfg.history_size == 100
     assert cfg.history_body_chars == 32_768
     assert cfg.enum_concurrency == 8

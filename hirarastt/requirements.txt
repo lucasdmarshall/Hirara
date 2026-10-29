@@ -6,7 +6,7 @@ httpx>=0.28
 
 # Shared SSRF guard + safe downloader (repo-local package).
 # From this directory: pip install -e ../../hirara-core
-hirara-core>=0.1
+hirara-core>=0.2
 
 # HTTP service
 fastapi>=0.115
@@ -14,7 +14,7 @@ uvicorn[standard]>=0.30
 python-multipart>=0.0.9
 
 # MCP front end (Claude Desktop / Cursor / agent runtimes)
-mcp>=2.0
+mcp>=2.3,<3
 
 # Optional alternate backend (heavier; prefer faster-whisper)
 # openai-whisper>=20240930

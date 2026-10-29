@@ -8,6 +8,8 @@ Tools: ``video_profile``, ``image_compare``, ``barcode_read``, ``qr_generate``.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import asyncio
 import base64
 import logging
@@ -133,6 +135,7 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=MediaConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return list(SCHEMAS)
 
@@ -142,7 +145,7 @@ class Toolset:
 
         return {
             "status": "ok" if shutil.which(self.config.ffmpeg) else "degraded",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "tools": list(TOOL_NAMES),
             "ffmpeg": shutil.which(self.config.ffmpeg),
             "zbar": importlib.util.find_spec("pyzbar") is not None,
@@ -158,6 +161,7 @@ class Toolset:
             log.exception("%s failed", name)
             return {**fields, "error": f"{name} failed: {exc}"}
 
+    @tool_permission('video_profile')
     async def video_profile(self, *, max_keyframes: int = 12, frame_width: int = 480,
                             scene_threshold: float = 0.3, include_audio: bool = True,
                             include_frames: bool = False, output_dir: str | None = None,
@@ -189,6 +193,7 @@ class Toolset:
 
         return await self._guard("video_profile", run, source=None, keyframes=[], text=None)
 
+    @tool_permission('image_compare')
     async def image_compare(self, *, threshold: float = 0.1, min_region: int = 16,
                             ignore: list | None = None, resize: bool = True,
                             include_diff_image: bool = True, output_path: str | None = None,
@@ -213,6 +218,7 @@ class Toolset:
 
         return await self._guard("image_compare", run, regions=[], text=None)
 
+    @tool_permission('barcode_read')
     async def barcode_read(self, **kw) -> dict:
         async def run():
             _only(kw, "file")
@@ -228,6 +234,7 @@ class Toolset:
 
         return await self._guard("barcode_read", run, codes=[], count=0)
 
+    @tool_permission('qr_generate')
     async def qr_generate(self, *, data: str, error_correction: str = "M", scale: int = 8,
                           border: int = 4, format: str = "png", dark: str = "#000000",
                           light: str = "#ffffff", output_path: str | None = None) -> dict:
@@ -274,5 +281,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), name)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return list(SCHEMAS)

@@ -9,6 +9,8 @@ One tool in v1: ``ocr_read`` — an image or scanned PDF in, text + markdown
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import base64
 import logging
 from dataclasses import dataclass, field
@@ -168,11 +170,12 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=OcrConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [OCR_READ_SCHEMA, FORM_EXTRACT_SCHEMA]
 
     def health(self) -> dict:
-        return {"status": "ok", "version": "0.2.0", "engine": self.engine.info()}
+        return {"status": "ok", "version": "0.3.0", "engine": self.engine.info()}
 
     # --- source resolution ---
 
@@ -304,6 +307,7 @@ class Toolset:
             )
         return pages
 
+    @tool_permission('ocr_read')
     async def read(
         self,
         *,
@@ -374,6 +378,7 @@ class Toolset:
             log.exception("ocr_read failed")
             return _envelope(error=f"ocr_read failed: {exc}", source=source, languages=langs)
 
+    @tool_permission('form_extract')
     async def extract(
         self,
         *,
@@ -471,5 +476,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     raise KeyError(f"unknown tool: {name}")
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return [OCR_READ_SCHEMA, FORM_EXTRACT_SCHEMA]

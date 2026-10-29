@@ -27,9 +27,18 @@ from __future__ import annotations
 
 import asyncio
 import re
+import atexit
+import threading
+import weakref
+import inspect
+import logging
 from importlib.metadata import entry_points
 
 _GROUP = "hirara.backends"
+_INSTANCES = weakref.WeakSet()
+_RUN_LOCK = threading.Lock()
+_LOOP = None
+_THREAD = None
 
 
 class LocalBackends:
@@ -40,6 +49,7 @@ class LocalBackends:
     """
 
     def __init__(self) -> None:
+        _INSTANCES.add(self)
         self._routes: dict[str, object] = {}  # tool name -> backend module
         self._modules: list[object] = []
         self._loaded = False
@@ -128,18 +138,55 @@ def _iter_entry_points(group: str):
 
 
 def _run(coro):
-    """Drive an async ``call_tool`` from the SDK's synchronous surface.
+    """Keep stateful backends on one owned loop, including notebook callers.
 
-    The common case — no event loop running — is a plain ``asyncio.run``. If the
-    caller is already inside a loop (e.g. a notebook or an async app), we run the
-    coroutine on a private loop in a worker thread so we never touch theirs.
+    Per-call asyncio.run closes Playwright's loop while sessions still refer to
+    it. A single background loop also avoids creating a thread pool per call.
     """
+    global _LOOP, _THREAD
+    with _RUN_LOCK:
+        if _LOOP is None:
+            _LOOP = asyncio.new_event_loop()
+            def serve():
+                asyncio.set_event_loop(_LOOP)
+                _LOOP.run_forever()
+            _THREAD = threading.Thread(target=serve, name="hirara-local", daemon=True)
+            _THREAD.start()
+            atexit.register(_shutdown)
+        loop, thread = _LOOP, _THREAD
+    if threading.current_thread() is thread:
+        coro.close()
+        raise RuntimeError("use async tool methods inside a local backend, not the synchronous SDK")
+    return asyncio.run_coroutine_threadsafe(coro, loop).result()
+
+
+def _shutdown():
+    if _LOOP is None or not _LOOP.is_running():
+        return
+    async def close_backends():
+        seen = set()
+        for backends in list(_INSTANCES):
+            for module in backends._modules:
+                toolset = getattr(module, "_local_toolset", None)
+                close = getattr(toolset, "close", None)
+                if close and id(toolset) not in seen:
+                    seen.add(id(toolset))
+                    try:
+                        result = close()
+                        if inspect.isawaitable(result):
+                            await result
+                    except Exception:
+                        logging.getLogger(__name__).exception("local backend shutdown failed")
+        tasks = asyncio.all_tasks() - {asyncio.current_task()}
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
     try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-
-    import concurrent.futures
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(lambda: asyncio.run(coro)).result()
+        asyncio.run_coroutine_threadsafe(close_backends(), _LOOP).result(timeout=5)
+    except Exception:
+        logging.getLogger(__name__).warning("local backend shutdown did not finish")
+    finally:
+        _LOOP.call_soon_threadsafe(_LOOP.stop)
+        _THREAD.join(timeout=5)
+        if not _THREAD.is_alive():
+            _LOOP.close()

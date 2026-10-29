@@ -9,6 +9,8 @@ plain text out — and ``email_read`` for .eml / .msg / mbox mail.
 
 from __future__ import annotations
 
+from hirara_core.policy import tool_permission, visible_schemas
+
 import base64
 import logging
 from dataclasses import dataclass
@@ -116,13 +118,14 @@ class Toolset:
     def from_env(cls) -> "Toolset":
         return cls(config=ReaderConfig.from_env())
 
+    @visible_schemas
     def schemas(self) -> list[dict]:
         return [OFFICE_READ_SCHEMA, EMAIL_READ_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "formats": ["docx", "pptx", "xlsx", "eml", "msg", "mbox"],
             "tools": list(TOOL_NAMES),
         }
@@ -194,6 +197,7 @@ class Toolset:
         if size > self.config.max_bytes:
             raise ReaderError(f"file exceeds CRDR_MAX_BYTES ({self.config.max_bytes} bytes)")
 
+    @tool_permission('office_read')
     async def read(
         self,
         *,
@@ -244,6 +248,7 @@ class Toolset:
             return _envelope(error=f"office_read failed: {exc}", source=source)
 
 
+    @tool_permission('email_read')
     async def email_read(
         self,
         *,
@@ -313,5 +318,6 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     return await getattr(_backend(), method)(**(arguments or {}))
 
 
+@visible_schemas
 def tool_schemas() -> list[dict]:
     return _backend().schemas()
