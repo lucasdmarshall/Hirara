@@ -258,7 +258,7 @@ def database_query(
             error=str(exc),
         )
 
-    limit = cfg.max_rows if max_rows is None else int(max_rows)
+    limit = cfg.max_rows if max_rows is None else min(int(max_rows), cfg.max_rows)
     if limit <= 0:
         return QueryResult(
             database=name,

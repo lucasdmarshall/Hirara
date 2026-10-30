@@ -198,7 +198,7 @@ def database_schema(
             error=str(exc),
         )
 
-    cap = cfg.max_rows if max_tables is None else int(max_tables)
+    cap = cfg.max_rows if max_tables is None else min(int(max_tables), cfg.max_rows)
     if cap <= 0:
         return SchemaResult(
             database=name,

@@ -16,7 +16,7 @@ def main():
         projects[project['name']] = (file.parent, project)
     selected = set(projects)
     if '--sdk' in sys.argv[1:]:
-        selected = {'hirara', 'hirara-core', 'hirara-hub'}
+        selected = {'hirara', 'hirara-core', 'hirara-hub', 'hirara-native'}
         selected.update(re.split(r'[<>=!~\[]', dependency, maxsplit=1)[0]
                         for dependency in projects['hirara'][1]['optional-dependencies']['local'])
     args = [sys.executable, '-m', 'pip', 'install', '-c', str(ROOT / 'constraints-release.txt')]

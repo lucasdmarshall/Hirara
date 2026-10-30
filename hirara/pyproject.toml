@@ -1,6 +1,6 @@
 [project]
 name = "hirara"
-version = "0.3.0"
+version = "0.4.0"
 description = "Python SDK for Hirara agent tools — run web/PDF/Office tools in-process, or call a self-hosted hub"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,23 +17,24 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
-    "hirara-core>=0.2",
+    "hirara-core>=0.3",
     "httpx>=0.28",
 ]
 
 [project.optional-dependencies]
+native = ["hirara-native>=0.1,<0.2", "hirara-web>=0.3.0", "hirarafs>=0.3.0", "hirarautil>=0.3.0", "hiraradb>=0.3.0"]
 dev = ["pytest>=8.0"]
 # Local mode: run the pure-library tools in this process, no hub required.
 # Each package pulls hirara-core (the shared SSRF guard) transitively.
 local = [
-    "hirara-web>=0.2.0",
+    "hirara-web>=0.3.0",
     "hirarapdf>=0.2.0",
     "hirarareader>=0.2.0",
     "hiraranet>=0.2.0",
     "hirarahttp>=0.2.0",
-    "hirarafs>=0.2.0",
-    "hirarautil>=0.2.0",
-    "hiraradb>=0.2.0",
+    "hirarafs>=0.3.0",
+    "hirarautil>=0.3.0",
+    "hiraradb>=0.3.0",
     "hiraraops>=0.2.0",
     "hiraraagent>=0.2.0",
 ]

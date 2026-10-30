@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "hirara-native"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "Rust implementations of Hirara filesystem, JSON, research and SQL tools"
+license = "Apache-2.0"
+authors = [{name = "Kaung Myat San", email = "dev.kaungmyatsan@gmail.com"}]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "hirara_native"
+locked = true

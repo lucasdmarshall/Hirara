@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-hub", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="hirara-hub", version="0.3.0", lifespan=lifespan)
 install_validation_errors(app)
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "hiraradb"
-version = "0.2.0"
+version = "0.3.0"
 description = "Self-hosted database tools for AI agents — database_query / database_schema over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -23,9 +23,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Database",
 ]
-dependencies = ["hirara-core>=0.2"]
+dependencies = ["hirara-core>=0.3"]
 
 [project.optional-dependencies]
+native = ["hirara-native>=0.1,<0.2"]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
 mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]

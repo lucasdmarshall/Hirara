@@ -59,7 +59,7 @@ async def call_tool(context, params):
                                 structuredContent=payload, isError=bool(payload.get("error")))
 
 
-server = Server("hirara-hub", version="0.2.0", on_list_tools=list_tools, on_call_tool=call_tool)
+server = Server("hirara-hub", version="0.3.0", on_list_tools=list_tools, on_call_tool=call_tool)
 
 
 async def run_stdio():

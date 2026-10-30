@@ -983,6 +983,27 @@ class Client:
 
     # --- files (hirarafs): paths are on the backend's filesystem ---
 
+    def file_copy(self, path: str, dest: str, **extra) -> dict:
+        return self.call("file_copy", {"path": path, "dest": dest, **extra})
+
+    def file_move(self, path: str, dest: str, **extra) -> dict:
+        return self.call("file_move", {"path": path, "dest": dest, **extra})
+
+    def file_rename(self, path: str, name: str, **extra) -> dict:
+        return self.call("file_rename", {"path": path, "name": name, **extra})
+
+    def file_delete(self, path: str) -> dict:
+        return self.call("file_delete", {"path": path})
+
+    def json_query(self, input, expression: str, **extra) -> dict:
+        return self.call("json_query", {"input": input, "expression": expression, **extra})
+
+    def arxiv_search(self, query: str, **extra) -> dict:
+        return self.call("arxiv_search", {"query": query, **extra})
+
+    def pubmed_search(self, query: str, **extra) -> dict:
+        return self.call("pubmed_search", {"query": query, **extra})
+
     def file_edit(self, path: str, old_string: str | None = None,
                   new_string: str | None = None, **extra) -> dict:
         args = {"path": path, **extra}
@@ -1141,6 +1162,14 @@ def _delegate(name):
     return method
 
 
+file_copy = _delegate("file_copy")
+file_move = _delegate("file_move")
+file_rename = _delegate("file_rename")
+file_delete = _delegate("file_delete")
+json_query = _delegate("json_query")
+arxiv_search = _delegate("arxiv_search")
+pubmed_search = _delegate("pubmed_search")
+
 web_search = _delegate("web_search")
 web_fetch = _delegate("web_fetch")
 pdf_read = _delegate("pdf_read")
@@ -1226,6 +1255,14 @@ health = _delegate("health")
 
 
 __all__ = [
+    "file_copy",
+    "file_move",
+    "file_rename",
+    "file_delete",
+    "json_query",
+    "arxiv_search",
+    "pubmed_search",
+
     "Client",
     "HiraraError",
     "HiraraToolError",

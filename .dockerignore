@@ -1,6 +1,9 @@
 # Keep the build context minimal — anything copied in becomes an immutable
 # image layer, so a secret that lands here is not removed by deleting it later.
 .venv/
+**/target/
+*.whl
+
 __pycache__/
 *.py[cod]
 .pytest_cache/

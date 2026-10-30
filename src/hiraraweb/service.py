@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-web", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="hirara-web", version="0.3.0", lifespan=lifespan)
 
 install_backend(app)
 
@@ -66,7 +66,7 @@ async def health() -> dict:
 @app.get("/schemas")
 async def schemas() -> dict:
     """Tool definitions, ready to drop into an Anthropic API tools array."""
-    return {"tools": [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA]}
+    return {"tools": _toolset.schemas()}
 
 
 @app.post("/web_search")
@@ -100,3 +100,20 @@ async def register_urls(request: RegisterUrlsRequest) -> dict:
     """
     added = _toolset.register_urls(request.session_id, request.urls)
     return {"session_id": request.session_id, "registered": added, "error": None}
+
+
+class ResearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=4000)
+    max_results: int = Field(5, ge=1, le=20)
+    start: int = Field(0, ge=0, le=10000)
+    session_id: str | None = None
+
+
+@app.post("/arxiv_search")
+async def arxiv_search(request: ResearchRequest) -> dict:
+    return await _toolset.arxiv_search(**request.model_dump())
+
+
+@app.post("/pubmed_search")
+async def pubmed_search(request: ResearchRequest) -> dict:
+    return await _toolset.pubmed_search(**request.model_dump())

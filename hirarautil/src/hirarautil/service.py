@@ -20,7 +20,7 @@ log = logging.getLogger("hirarautil.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarautil", version="0.2.0")
+app = FastAPI(title="hirarautil", version="0.3.0")
 
 install_backend(app)
 
@@ -156,3 +156,14 @@ async def schema_validate_endpoint(request: SchemaValidateRequest) -> dict:
         check_formats=request.check_formats,
         max_errors=request.max_errors,
     )
+
+
+class JsonQueryRequest(BaseModel):
+    input: object
+    expression: str
+    syntax: str = "jmespath"
+
+
+@app.post("/json_query")
+async def json_query_endpoint(request: JsonQueryRequest) -> dict:
+    return await _toolset.json_query(**request.model_dump())

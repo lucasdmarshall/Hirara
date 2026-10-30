@@ -25,7 +25,7 @@ progress in this repo (hub + SDK + packages).
 | 18 | `file_write` | ✅ shipped | `hirarafs` |
 | 19 | `decode` | ✅ shipped | `hirarautil` |
 | 20 | `hash` | ✅ shipped | `hirarautil` |
-| 21 | `database_query` | ✅ shipped | `hiraradb` (SQLite) |
+| 21 | `database_query` | ✅ shipped | `hiraradb` (SQLite; PostgreSQL/MySQL with optional Rust backend) |
 | 22 | `database_schema` | ✅ shipped | `hiraradb` |
 | 23 | `application_logs` | ✅ shipped | `hiraraops` |
 | 24 | `process_list` | ✅ shipped | `hiraraops` |
@@ -152,3 +152,14 @@ Same patterns as the rest of Hirara:
 - Errors return in the JSON envelope (`"error": …`), not as HTTP 5xx.
 - Hub registration: `hirara-hub` `DEFAULT_PORTS` + `TOOLS`, plus compose `HUB_*_URL`.
 - Local SDK: `hirara.backends` entry point with `TOOL_NAMES` / `call_tool` / `tool_schemas`.
+
+## Additional Rust tools
+
+Implemented in this checkout; see [native tools setup and examples](docs/native-tools.md).
+
+| Tool | Package |
+|---|---|
+| `file_copy`, `file_move`, `file_rename`, `file_delete` | `hirarafs` + `hirara-native` |
+| `json_query` (JMESPath / JSON Pointer) | `hirarautil` + `hirara-native` |
+| `arxiv_search`, `pubmed_search` | `hirara-web` + `hirara-native` |
+| PostgreSQL / MySQL `database_query`, `database_schema` | `hiraradb` + `hirara-native` |

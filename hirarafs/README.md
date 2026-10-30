@@ -144,3 +144,6 @@ CFS_DATA=/path/to/workspace docker compose up -d --build
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+
+See [the Rust tools guide](../docs/native-tools.md) for the new tools, installation, permissions and examples.

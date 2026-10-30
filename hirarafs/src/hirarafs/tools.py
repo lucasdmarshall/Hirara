@@ -246,6 +246,21 @@ ARCHIVE_EXTRACT_SCHEMA = {
 }
 
 
+
+def _mutation_schema(name, description, properties, required):
+    return {"name": name, "description": description,
+            "input_schema": {"type": "object", "properties": properties,
+                             "required": required, "additionalProperties": False}}
+
+FILE_COPY_SCHEMA = _mutation_schema("file_copy", "Copy one regular file within CFS_ROOTS. Requires CFS_ALLOW_WRITE. No directories or symlinks. Size capped by CFS_MAX_WRITE_BYTES. Existing destination is kept unless overwrite=true.",
+    {"path": {"type": "string"}, "dest": {"type": "string"}, "overwrite": {"type": "boolean"}}, ["path", "dest"])
+FILE_MOVE_SCHEMA = _mutation_schema("file_move", "Move one regular file within CFS_ROOTS. Requires CFS_ALLOW_WRITE. No directories or symlinks. Destination parent must exist; cross-filesystem moves fail safely. Default overwrite=false.",
+    {"path": {"type": "string"}, "dest": {"type": "string"}, "overwrite": {"type": "boolean"}}, ["path", "dest"])
+FILE_RENAME_SCHEMA = _mutation_schema("file_rename", "Rename one regular file in its current directory. name must be a filename, without directories. Requires CFS_ALLOW_WRITE. Default overwrite=false.",
+    {"path": {"type": "string"}, "name": {"type": "string"}, "overwrite": {"type": "boolean"}}, ["path", "name"])
+FILE_DELETE_SCHEMA = _mutation_schema("file_delete", "Permanently delete one regular file within CFS_ROOTS. Requires CFS_ALLOW_WRITE. Directories and symlinks are refused. No recursive deletion.",
+    {"path": {"type": "string"}}, ["path"])
+
 def _read_envelope(**overrides) -> dict:
     envelope = {
         "path": None,
@@ -292,12 +307,13 @@ class Toolset:
     @visible_schemas
     def schemas(self) -> list[dict]:
         return [FILE_READ_SCHEMA, FILE_WRITE_SCHEMA, FILE_EDIT_SCHEMA, FILE_SEARCH_SCHEMA,
-                FILE_LIST_SCHEMA, ARCHIVE_LIST_SCHEMA, ARCHIVE_EXTRACT_SCHEMA]
+                FILE_LIST_SCHEMA, ARCHIVE_LIST_SCHEMA, ARCHIVE_EXTRACT_SCHEMA,
+                FILE_COPY_SCHEMA, FILE_MOVE_SCHEMA, FILE_RENAME_SCHEMA, FILE_DELETE_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "tools": list(TOOL_NAMES),
             "max_bytes": self.config.max_bytes,
             "max_write_bytes": self.config.max_write_bytes,
@@ -374,6 +390,36 @@ class Toolset:
             )
 
 
+    async def _mutate(self, action: str, **args) -> dict:
+        from hirara_core.native import native_call
+        from .paths import require_roots, PathError
+        if not self.config.allow_write:
+            return {"error": "filesystem mutations disabled (CFS_ALLOW_WRITE=false)"}
+        try:
+            roots = [str(root) for root in require_roots(self.config)]
+        except PathError as exc:
+            return {"error": str(exc)}
+        return await native_call(action, **args, roots=roots,
+                                 allow_any_path=self.config.allow_any_path,
+                                 allow_write=self.config.allow_write,
+                                 max_bytes=self.config.max_write_bytes)
+
+    @tool_permission("file_copy")
+    async def file_copy(self, *, path: str, dest: str, overwrite: bool = False) -> dict:
+        return await self._mutate("file_copy", path=path, dest=dest, overwrite=overwrite)
+
+    @tool_permission("file_move")
+    async def file_move(self, *, path: str, dest: str, overwrite: bool = False) -> dict:
+        return await self._mutate("file_move", path=path, dest=dest, overwrite=overwrite)
+
+    @tool_permission("file_rename")
+    async def file_rename(self, *, path: str, name: str, overwrite: bool = False) -> dict:
+        return await self._mutate("file_rename", path=path, name=name, overwrite=overwrite)
+
+    @tool_permission("file_delete")
+    async def file_delete(self, *, path: str) -> dict:
+        return await self._mutate("file_delete", path=path)
+
     async def _run(self, name: str, fn, errors: tuple, envelope: dict, **kwargs) -> dict:
         import asyncio
 
@@ -447,6 +493,7 @@ __all__ = [
 
 
 TOOL_NAMES = (
+    "file_copy", "file_move", "file_rename", "file_delete",
     "file_read",
     "file_write",
     "file_edit",

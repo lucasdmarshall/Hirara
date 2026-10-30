@@ -16,7 +16,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hiraradb",
-    version="0.2.0",
+    version="0.3.0",
     instructions=(
         "Self-hosted database tools, no API keys. Use database_query to run "
         "one SQL statement, and database_schema to list tables/columns. "

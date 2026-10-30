@@ -23,7 +23,7 @@ log = logging.getLogger("hirarafs.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarafs", version="0.2.0")
+app = FastAPI(title="hirarafs", version="0.3.0")
 
 install_backend(app)
 
@@ -158,3 +158,45 @@ async def archive_list_endpoint(request: ArchiveListRequest) -> dict:
 @app.post("/archive_extract")
 async def archive_extract_endpoint(request: ArchiveExtractRequest) -> dict:
     return await _toolset.archive_extract(**request.model_dump())
+
+
+class FileCopyRequest(BaseModel):
+    path: str
+    dest: str
+    overwrite: bool = False
+
+
+@app.post("/file_copy")
+async def file_copy_endpoint(request: FileCopyRequest) -> dict:
+    return await _toolset.file_copy(**request.model_dump())
+
+
+class FileMoveRequest(BaseModel):
+    path: str
+    dest: str
+    overwrite: bool = False
+
+
+@app.post("/file_move")
+async def file_move_endpoint(request: FileMoveRequest) -> dict:
+    return await _toolset.file_move(**request.model_dump())
+
+
+class FileRenameRequest(BaseModel):
+    path: str
+    name: str
+    overwrite: bool = False
+
+
+@app.post("/file_rename")
+async def file_rename_endpoint(request: FileRenameRequest) -> dict:
+    return await _toolset.file_rename(**request.model_dump())
+
+
+class FileDeleteRequest(BaseModel):
+    path: str
+
+
+@app.post("/file_delete")
+async def file_delete_endpoint(request: FileDeleteRequest) -> dict:
+    return await _toolset.file_delete(**request.model_dump())

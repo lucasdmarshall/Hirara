@@ -19,6 +19,14 @@ keep working via the hub.
 """
 
 from .client import (
+    file_copy,
+    file_move,
+    file_rename,
+    file_delete,
+    json_query,
+    arxiv_search,
+    pubmed_search,
+
     Client,
     HiraraError,
     HiraraToolError,
@@ -108,6 +116,14 @@ from .client import (
 )
 
 __all__ = [
+    "file_copy",
+    "file_move",
+    "file_rename",
+    "file_delete",
+    "json_query",
+    "arxiv_search",
+    "pubmed_search",
+
     "Client",
     "HiraraError",
     "HiraraToolError",
@@ -196,7 +212,7 @@ __all__ = [
     "wait_until",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __banner__ = (
     "    __  __________  ___    ____  ___ \n"

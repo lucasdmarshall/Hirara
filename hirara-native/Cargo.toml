@@ -1,0 +1,30 @@
+[package]
+name = "hirara-native"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[profile.release]
+strip = "debuginfo"
+
+[lib]
+name = "hirara_native"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.27", features = ["abi3-py311"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+cap-std = "3"
+rustix = { version = "1", features = ["fs"] }
+jmespath = { version = "0.5", features = ["sync"] }
+roxmltree = "0.21"
+url = "2"
+sqlparser = "0.59"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls-ring", "postgres", "mysql", "chrono", "bigdecimal", "json"] }
+tokio = { version = "1", features = ["rt", "time", "net"] }
+futures-util = "0.3"
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"

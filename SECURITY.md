@@ -123,3 +123,23 @@ containers use unique owner labels and never target unrelated host workloads.
 `/health` is liveness plus backend diagnostics; authenticated `/ready` returns
 503 when no backend is healthy. Partial backend availability is reported as
 `degraded`, with individual service states.
+
+
+### Optional Rust tools
+
+The new file mutations reuse `CFS_ROOTS`, `CFS_ALLOW_ANY_PATH`, `CFS_ALLOW_WRITE`
+and central tool permissions. They operate on regular files through root-relative
+capabilities and do not provide recursive deletion. Copy limits cannot be widened
+by a request. `json_query` has no executable extensions or external resources.
+Research requests use fixed provider endpoints through the existing HTTP SSRF
+guard, with redirects disabled and response caps.
+
+PostgreSQL/MySQL endpoints are explicit administrator-configured network grants,
+selected by database name. A request cannot supply a network DSN via `path=`.
+These SQL connections are not governed by the public-HTTP private-address switch.
+Use network restrictions and least-privilege database roles; a read-only SQL
+transaction does not restrict privileged functions, FILE access or external
+network extensions. No user transaction/session commands, COPY, SELECT INTO/export
+or MySQL executable comments are accepted. DSNs are not returned in envelopes.
+A timeout during a write can leave the outcome unknown and must not trigger a
+blind retry. See [native tool limitations](docs/native-tools.md).

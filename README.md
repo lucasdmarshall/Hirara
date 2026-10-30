@@ -36,6 +36,7 @@ to be inspected.
 | Tool | Status | What it does |
 |---|---|---|
 | **`web_search`** | ✅ shipped | Ranked search results via your own SearXNG — titles, URLs, snippets |
+| **`arxiv_search`**, **`pubmed_search`** | ✅ implemented | Research search with citation metadata — [Rust tools setup](docs/native-tools.md) |
 | **`web_fetch`** | ✅ shipped | Fetch one URL as clean markdown, through an SSRF-hardened perimeter |
 | **`transcribe`** | 🚧 scaffold | Free open-source Whisper STT — [`hirarastt/`](hirarastt/) |
 | **`pdf_read`** | ✅ shipped | Extract a PDF's text + metadata — [`hirarapdf/`](hirarapdf/) |
@@ -63,13 +64,15 @@ to be inspected.
 | **`parameter_test`** | ✅ shipped | Vary one parameter across values — [`hirarahttp/`](hirarahttp/) |
 | **`response_compare`** | ✅ shipped | Diff two HTTP responses — [`hirarahttp/`](hirarahttp/) |
 | **`file_read`** | ✅ shipped | Read a local file (text or base64) — [`hirarafs/`](hirarafs/) |
+| **`file_copy`**, **`file_move`**, **`file_rename`**, **`file_delete`** | ✅ implemented | Root-gated regular-file operations — [Rust tools setup](docs/native-tools.md) |
+| **`json_query`** | ✅ implemented | JMESPath and JSON Pointer — [Rust tools setup](docs/native-tools.md) |
 | **`file_write`** | ✅ shipped | Write / create / append a local file — [`hirarafs/`](hirarafs/) |
 | **`decode`** | ✅ shipped | Decode base64 / hex / url / html / unicode — [`hirarautil/`](hirarautil/) |
 | **`hash`** | ✅ shipped | Message digests (md5 / sha* / blake2) — [`hirarautil/`](hirarautil/) |
 | **`jwt_inspect`** | ✅ shipped | Inspect JWT header / claim keys / expiry — [`hirarautil/`](hirarautil/) |
 | **`jwt_decode`** | ✅ shipped | Decode JWT header + payload (optional HS* verify) — [`hirarautil/`](hirarautil/) |
-| **`database_query`** | ✅ shipped | Run SQL on SQLite (read-only by default) — [`hiraradb/`](hiraradb/) |
-| **`database_schema`** | ✅ shipped | List tables / columns on SQLite — [`hiraradb/`](hiraradb/) |
+| **`database_query`** | ✅ shipped | Run SQL on SQLite, PostgreSQL or MySQL (read-only by default; network drivers need the Rust package) — [`hiraradb/`](hiraradb/) |
+| **`database_schema`** | ✅ shipped | Inspect tables / columns on SQLite, PostgreSQL or MySQL — [`hiraradb/`](hiraradb/) |
 | **`application_logs`** | ✅ shipped | Tail / head / grep application logs — [`hiraraops/`](hiraraops/) |
 | **`process_list`** | ✅ shipped | List running processes — [`hiraraops/`](hiraraops/) |
 | **`environment_read`** | ✅ shipped | Read process environment — [`hiraraops/`](hiraraops/) |
@@ -116,7 +119,9 @@ to be inspected.
 | **`wait_until`** | ✅ shipped | Block until a time, an answer or a due reminder (capped) — [`hiraraagent/`](hiraraagent/) |
 | _more_ | 🚧 planned | See [`TOOLS.md`](TOOLS.md) for the full roadmap |
 
-Network tools share destination validation through [`hirara-core`](hirara-core/).
+New Rust tools are optional in Python installations; see [installation, examples and limits](docs/native-tools.md). Docker builds include them.
+
+Public HTTP tools share destination validation through [`hirara-core`](hirara-core/).
 Browser connections use a pinned transport while Chromium stays offline;
 HTML rendering rejects external resources. Conversation URL provenance applies
 specifically to `web_fetch`. See [security boundaries and migration notes](SECURITY.md)

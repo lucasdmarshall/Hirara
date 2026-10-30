@@ -27,6 +27,15 @@ from .timecalc import TimeError, date_calc as run_date_calc, time_now as run_tim
 log = logging.getLogger(__name__)
 
 
+JSON_QUERY_SCHEMA = {
+    "name": "json_query",
+    "description": "Query a JSON value or JSON string using JMESPath (filters, projections, functions) or RFC 6901 JSON Pointer. No code execution, files or network. Output is capped; narrow the query if too large. JMESPath missing keys return null; missing JSON Pointers return an error.",
+    "input_schema": {"type": "object", "properties": {
+        "input": {"description": "JSON value, or a string containing serialized JSON."},
+        "expression": {"type": "string", "maxLength": 4096},
+        "syntax": {"type": "string", "enum": ["jmespath", "pointer"], "default": "jmespath"}},
+        "required": ["input", "expression"], "additionalProperties": False}}
+
 DECODE_SCHEMA = {
     "name": "decode",
     "description": (
@@ -338,16 +347,25 @@ class Toolset:
 
     @visible_schemas
     def schemas(self) -> list[dict]:
-        return [DECODE_SCHEMA, HASH_SCHEMA, JWT_INSPECT_SCHEMA, JWT_DECODE_SCHEMA]
+        return [JSON_QUERY_SCHEMA, DECODE_SCHEMA, HASH_SCHEMA, JWT_INSPECT_SCHEMA, JWT_DECODE_SCHEMA,
+                TIME_NOW_SCHEMA, DATE_CALC_SCHEMA, SCHEMA_VALIDATE_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "tools": list(TOOL_NAMES),
             "max_input_chars": self.config.max_input_chars,
             "max_output_bytes": self.config.max_output_bytes,
         }
+
+    @tool_permission("json_query")
+    async def json_query(self, *, input, expression: str, syntax: str = "jmespath") -> dict:
+        from hirara_core.native import native_call
+        return {"result": None, **await native_call(
+            "json_query", input=input, expression=expression, syntax=syntax,
+            max_input_chars=self.config.max_input_chars,
+            max_output_bytes=self.config.max_output_bytes)}
 
     @tool_permission('decode')
     async def decode(
@@ -535,6 +553,7 @@ __all__ = [
 
 
 TOOL_NAMES = (
+    "json_query",
     "decode",
     "hash",
     "jwt_inspect",

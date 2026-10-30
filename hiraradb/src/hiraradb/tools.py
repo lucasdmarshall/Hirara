@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .config import DbConfig
+from . import network
 from .query import QueryError, database_query as run_query
 from .query import result_to_dict as query_result_to_dict
 from .schema import database_schema as run_schema
@@ -23,10 +24,10 @@ log = logging.getLogger(__name__)
 DATABASE_QUERY_SCHEMA = {
     "name": "database_query",
     "description": (
-        "Run one SQL statement against a configured SQLite database. "
+        "Run one SQL statement against configured SQLite, PostgreSQL or MySQL. "
         "Read-only by default (CDB_READONLY). Pass params as a list or object "
         "for placeholders. Results are capped by max_rows. Multiple statements "
-        "are rejected. v1 supports sqlite paths / sqlite:/// URLs only."
+        "are rejected. Network databases require the Rust backend and a server-configured name. PostgreSQL uses $1 placeholders; MySQL uses ?. Network params are positional lists only."
     ),
     "input_schema": {
         "type": "object",
@@ -69,7 +70,7 @@ DATABASE_QUERY_SCHEMA = {
 DATABASE_SCHEMA_TOOL = {
     "name": "database_schema",
     "description": (
-        "Inspect SQLite schema: list tables/views and their columns. "
+        "Inspect SQLite, PostgreSQL or MySQL schema: tables/views and columns. "
         "Optional table= filters to one object; include_indexes / "
         "include_foreign_keys / include_sql add detail. Always read-only."
     ),
@@ -164,7 +165,7 @@ class Toolset:
         dbs = self.config.resolved_databases()
         return {
             "status": "ok",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "tools": ["database_query", "database_schema"],
             "databases": sorted(dbs),
             "readonly": self.config.readonly,
@@ -184,6 +185,10 @@ class Toolset:
     ) -> dict:
         import asyncio
 
+        if network.is_network(database, path, self.config):
+            return _query_envelope(sql=sql, **await network.call(
+                "database_query", config=self.config, database=database, path=path,
+                sql=sql, params=params, max_rows=max_rows, readonly=readonly))
         try:
             result = await asyncio.to_thread(
                 run_query,
@@ -221,6 +226,12 @@ class Toolset:
     ) -> dict:
         import asyncio
 
+        if network.is_network(database, path, self.config):
+            return _schema_envelope(**await network.call(
+                "database_schema", config=self.config, database=database, path=path,
+                table=table, include_views=include_views, include_indexes=include_indexes,
+                include_foreign_keys=include_foreign_keys, include_sql=include_sql,
+                max_tables=max_tables))
         try:
             result = await asyncio.to_thread(
                 run_schema,

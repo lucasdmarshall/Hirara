@@ -22,7 +22,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarafs",
-    version="0.2.0",
+    version="0.3.0",
     instructions=(
         "Self-hosted filesystem tools, no API keys. Find files with file_list / "
         "file_search, read with file_read, change a file with file_edit (exact "
@@ -166,6 +166,34 @@ async def archive_extract_tool(
 ) -> dict:
     return await _toolset.archive_extract(path=path, dest=dest, members=members,
                                           overwrite=overwrite)
+
+
+
+@server.tool(name="file_copy", description=T.FILE_COPY_SCHEMA["description"])
+@mcp_errors
+async def file_copy_tool(path: str, dest: str, overwrite: bool = False) -> dict:
+    return await _toolset.file_copy(path=path, dest=dest, overwrite=overwrite)
+
+
+
+@server.tool(name="file_move", description=T.FILE_MOVE_SCHEMA["description"])
+@mcp_errors
+async def file_move_tool(path: str, dest: str, overwrite: bool = False) -> dict:
+    return await _toolset.file_move(path=path, dest=dest, overwrite=overwrite)
+
+
+
+@server.tool(name="file_rename", description=T.FILE_RENAME_SCHEMA["description"])
+@mcp_errors
+async def file_rename_tool(path: str, name: str, overwrite: bool = False) -> dict:
+    return await _toolset.file_rename(path=path, name=name, overwrite=overwrite)
+
+
+
+@server.tool(name="file_delete", description=T.FILE_DELETE_SCHEMA["description"])
+@mcp_errors
+async def file_delete_tool(path: str) -> dict:
+    return await _toolset.file_delete(path=path)
 
 
 def main() -> None:

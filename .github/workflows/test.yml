@@ -22,6 +22,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust tool implementations
+        if: contains(fromJSON('[".", "hirarafs", "hirarautil", "hiraradb", "hirara"]'), matrix.package)
+        run: python -m pip install ./hirara-native
       - name: Native test dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg graphviz espeak-ng libzbar0 libsndfile1 poppler-utils
       - name: Install package and shared test dependencies
@@ -47,6 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - uses: dtolnay/rust-toolchain@stable
       - run: python scripts/install_dev.py --sdk
       - run: |
           for package in hirara-core hirara-hub hirara; do
@@ -66,3 +71,45 @@ jobs:
         env:
           HIRARA_INTEGRATION: '1'
         run: python -m pytest -q integration -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function
+
+  native:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: hirara-test
+          POSTGRES_DB: hirara
+        ports: [15432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: hirara-test
+          MYSQL_DATABASE: hirara
+        ports: [13306:3306]
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -phirara-test"
+          --health-interval 5s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path hirara-native/Cargo.toml --check
+      - run: cargo clippy --manifest-path hirara-native/Cargo.toml --locked --all-targets -- -D warnings
+      - run: cargo test --manifest-path hirara-native/Cargo.toml --locked
+      - run: python -m pip install -c constraints-release.txt ./hirara-native -e './hirara-core[dev]' -e './hiraradb[dev]' -e './hirarafs[mcp]' -e './hirarautil[mcp]' -e '.[mcp]'
+      - name: PostgreSQL and MySQL integration
+        env:
+          HIRARA_DATABASE_INTEGRATION: '1'
+        run: python -m pytest -q integration/test_native_databases.py -o asyncio_mode=auto
+      - name: Native tools over MCP stdio
+        env:
+          HIRARA_NATIVE_INTEGRATION: '1'
+        run: python -m pytest -q integration/test_native_mcp.py -o asyncio_mode=auto

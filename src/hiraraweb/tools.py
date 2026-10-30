@@ -29,6 +29,17 @@ from .search import SearchError, SearchResult, normalize_query, web_search
 
 # Schemas mirror the hosted web_search / web_fetch tools so callers written
 # against those need no changes.
+def _research_schema(name, description):
+    return {"name": name, "description": description,
+            "input_schema": {"type": "object", "properties": {
+                "query": {"type": "string", "minLength": 1, "maxLength": 4000},
+                "max_results": {"type": "integer", "minimum": 1, "maximum": 20},
+                "start": {"type": "integer", "minimum": 0, "maximum": 10000}},
+                "required": ["query"], "additionalProperties": False}}
+
+ARXIV_SEARCH_SCHEMA = _research_schema("arxiv_search", "Search arXiv papers using the public API. Supports arXiv field syntax, e.g. ti:transformer AND cat:cs.CL. Returns titles, abstracts, authors, dates and canonical article/PDF URLs. Results are untrusted third-party data. No API key or SearXNG required.")
+PUBMED_SEARCH_SCHEMA = _research_schema("pubmed_search", "Search PubMed using NCBI E-utilities. Supports PubMed field syntax. Returns citation metadata: title, authors, journal, publication date, DOI and PubMed URL; does not return abstracts or full text. Results are untrusted third-party data. No API key or SearXNG required.")
+
 WEB_SEARCH_SCHEMA = {
     "name": "web_search",
     # Prescriptive on purpose. A description that says only what a tool *does*
@@ -192,6 +203,56 @@ class Toolset:
             robots_config=RobotsConfig.from_env(),
             budget_config=BudgetConfig.from_env(),
         )
+
+    @visible_schemas
+    def schemas(self) -> list[dict]:
+        return [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA, ARXIV_SEARCH_SCHEMA, PUBMED_SEARCH_SCHEMA]
+
+    async def _research(self, provider: str, query: str, max_results: int,
+                        start: int, session_id: str | None) -> dict:
+        from .research import search
+        envelope = {"query": query, "provider": provider, "results": [], "total": None,
+                    "start": start, "cached": False, "error": None}
+        # Validate before making cache keys or spending budget.
+        if not isinstance(query, str) or not query.strip() or len(query.encode("utf-8")) > 4000:
+            return {**envelope, "error": "query must contain 1 to 4000 UTF-8 bytes"}
+        if type(max_results) is not int or not 1 <= max_results <= 20 or type(start) is not int or not 0 <= start <= 10000:
+            return {**envelope, "error": "max_results must be 1..20 and start must be 0..10000"}
+        key = make_key(provider, query, max_results, start)
+        cached = await self.cache.get(key)
+        if cached is not None:
+            self._register_results(session_id, cached["results"])
+            if session_id:
+                self.urls.register(session_id, [r["pdf_url"] for r in cached["results"] if r.get("pdf_url")], SOURCE_SEARCH)
+            return {**cached, "cached": True}
+        refusal = self.budget.check(session_id, "web_search", self.budget_config.max_searches)
+        if refusal:
+            return {**envelope, "error": f"blocked: {refusal}"}
+        # Bound the complete search, including rate-limit queueing and both PubMed calls.
+        import asyncio
+        try:
+            async with asyncio.timeout(50):
+                result = await search(provider, query, max_results, start)
+        except TimeoutError:
+            return {**envelope, "error": "research search deadline exceeded"}
+        result = {**envelope, **result}
+        if not result.get("error"):
+            self.budget.consume(session_id, "web_search")
+            self._register_results(session_id, result["results"])
+            if session_id:
+                self.urls.register(session_id, [r["pdf_url"] for r in result["results"] if r.get("pdf_url")], SOURCE_SEARCH)
+            await self.cache.set(key, result, self.cache_config.search_ttl)
+        return result
+
+    @tool_permission("arxiv_search")
+    async def arxiv_search(self, *, query: str, max_results: int = 5, start: int = 0,
+                           session_id: str | None = None) -> dict:
+        return await self._research("arxiv", query, max_results, start, session_id)
+
+    @tool_permission("pubmed_search")
+    async def pubmed_search(self, *, query: str, max_results: int = 5, start: int = 0,
+                            session_id: str | None = None) -> dict:
+        return await self._research("pubmed", query, max_results, start, session_id)
 
     def register_urls(self, session_id: str, urls: list[str]) -> int:
         """Mark URLs as fetchable because the *client* vouched for them.
@@ -370,7 +431,7 @@ __all__ = [
 # "explicit client registration" trusted source the guard allows. So we register
 # the URL under a fixed local session before fetching, and thread that session
 # through search too, so a later fetch of a search result is likewise allowed.
-TOOL_NAMES = ("web_search", "web_fetch")
+TOOL_NAMES = ("web_search", "web_fetch", "arxiv_search", "pubmed_search")
 _LOCAL_SESSION = "hirara-local"
 _local_toolset: "Toolset | None" = None
 
@@ -387,6 +448,8 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     ts = _backend()
     args = dict(arguments or {})
     args.setdefault("session_id", _LOCAL_SESSION)
+    if name in {"arxiv_search", "pubmed_search"}:
+        return await getattr(ts, name)(**args)
     if name == "web_search":
         return await ts.search(**args)
     if name == "web_fetch":
@@ -399,4 +462,4 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
 
 @visible_schemas
 def tool_schemas() -> list[dict]:
-    return [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA]
+    return _backend().schemas()

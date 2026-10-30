@@ -140,3 +140,15 @@ with no hub running.
   During a GitHub Actions incident the `v*` tag push spawned no run at all;
   a manual dispatch worked once Actions recovered. Check
   https://www.githubstatus.com/ if nothing starts.
+
+## Rust tool package
+
+The new optional `hirara-native` distribution must be released before recommending
+the Python `native` extras. Source/Docker development builds already install it
+locally. Build with `maturin build --release --locked --manifest-path
+hirara-native/Cargo.toml`; produce portable wheels in a suitable manylinux builder
+for the platforms you intend to support, and build an sdist with `maturin sdist`.
+Configure a separate PyPI Trusted Publisher for this new distribution before its
+first upload. The existing Python-only publishing matrix does not publish native
+wheels. Do not publish a wheel built for the development host's Linux ABI as a
+portable manylinux artifact.

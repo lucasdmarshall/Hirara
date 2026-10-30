@@ -85,7 +85,7 @@ class Gateway:
                 status[service] = "degraded"
         up = sum(value == "up" for value in status.values())
         return {"status": "ok" if up == len(status) else "degraded",
-                "version": "0.2.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
+                "version": "0.3.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
                 "services": status, "services_up": up, "services_total": len(status),
                 "ready": up > 0}
 

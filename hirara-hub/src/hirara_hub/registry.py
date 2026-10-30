@@ -45,6 +45,14 @@ class ToolRoute:
 # tool name -> route. Multiple tools can share one service (it exposes them all
 # via its own /schemas), which is why schema aggregation is per *service*.
 TOOLS: dict[str, ToolRoute] = {
+    "file_copy": ToolRoute("file_copy", "hirarafs", "/file_copy"),
+    "file_move": ToolRoute("file_move", "hirarafs", "/file_move"),
+    "file_rename": ToolRoute("file_rename", "hirarafs", "/file_rename"),
+    "file_delete": ToolRoute("file_delete", "hirarafs", "/file_delete"),
+    "json_query": ToolRoute("json_query", "hirarautil", "/json_query"),
+    "arxiv_search": ToolRoute("arxiv_search", "websearch", "/arxiv_search"),
+    "pubmed_search": ToolRoute("pubmed_search", "websearch", "/pubmed_search"),
+
     "web_search": ToolRoute("web_search", "websearch", "/web_search"),
     "web_fetch": ToolRoute("web_fetch", "websearch", "/web_fetch"),
     "transcribe": ToolRoute("transcribe", "hirarastt", "/transcribe", experimental=True),

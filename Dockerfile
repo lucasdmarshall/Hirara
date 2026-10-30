@@ -1,3 +1,16 @@
+FROM rust:1-slim-bookworm AS native-builder
+WORKDIR /native
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /native-venv
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export PIP_CERT=/run/secrets/proxy_ca; fi; \
+    /native-venv/bin/pip install 'maturin>=1.7,<2'
+COPY hirara-native /native
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export CARGO_HTTP_CAINFO=/run/secrets/proxy_ca; fi; \
+    /native-venv/bin/maturin build --release --locked --out /wheels
+
 FROM python:3.13-slim
 
 # lxml (via trafilatura) needs these at build time on slim.
@@ -6,6 +19,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+COPY --from=native-builder /wheels /native-wheels
+RUN pip install --no-cache-dir /native-wheels/*.whl && rm -rf /native-wheels
 
 COPY constraints-release.txt /app/constraints-release.txt
 ENV PIP_CONSTRAINT=/app/constraints-release.txt

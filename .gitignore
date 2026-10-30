@@ -1,4 +1,7 @@
 .venv/
+**/target/
+*.whl
+
 __pycache__/
 *.py[cod]
 .pytest_cache/

@@ -6,7 +6,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGES = [ROOT, *(p.parent for p in sorted(ROOT.glob('*/pyproject.toml')))]
+PACKAGES = [ROOT, *(p.parent for p in sorted(ROOT.glob('*/pyproject.toml'))
+                    if (p.parent / 'tests').is_dir())]
 
 
 def main():

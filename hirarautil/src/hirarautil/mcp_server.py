@@ -18,7 +18,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarautil",
-    version="0.2.0",
+    version="0.3.0",
     instructions=(
         "Self-hosted utility tools, no API keys. Use decode for base64/hex/url/"
         "html/unicode_escape, hash for md5/sha*/blake2 digests, jwt_inspect for "
@@ -169,6 +169,13 @@ async def schema_validate_tool(
 ) -> dict:
     return await _toolset.schema_validate(instance=instance, schema=schema,
                                           check_formats=check_formats, max_errors=max_errors)
+
+
+
+@server.tool(name="json_query", description=T.JSON_QUERY_SCHEMA["description"])
+@mcp_errors
+async def json_query_tool(input: object, expression: str, syntax: str = "jmespath") -> dict:
+    return await _toolset.json_query(input=input, expression=expression, syntax=syntax)
 
 
 def main() -> None:

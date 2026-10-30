@@ -19,7 +19,7 @@ log = logging.getLogger("hiraradb.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hiraradb", version="0.2.0")
+app = FastAPI(title="hiraradb", version="0.3.0")
 
 install_backend(app)
 
