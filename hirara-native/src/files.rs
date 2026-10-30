@@ -74,6 +74,35 @@ fn regular(dir: &Dir, name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Bounded input for indexing; uses the same root capabilities as file mutations.
+pub(crate) fn index_source(v: &Value) -> Result<(Vec<u8>, PathBuf), String> {
+    let (dir, name, path) = parent(v, "path")?;
+    regular(&dir, &name)?;
+    let cap = number(v, "max_file_bytes", 2_000_000)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use cap_std::fs::OpenOptionsExt;
+        options.custom_flags(
+            (rustix::fs::OFlags::NONBLOCK | rustix::fs::OFlags::NOFOLLOW).bits() as i32,
+        );
+    }
+    let input = dir.open_with(&name, &options).map_err(|e| e.to_string())?;
+    if !input.metadata().map_err(|e| e.to_string())?.is_file() {
+        return Err("source is not a regular file".into());
+    }
+    let mut data = Vec::new();
+    input
+        .take(cap + 1)
+        .read_to_end(&mut data)
+        .map_err(|e| e.to_string())?;
+    if data.len() as u64 > cap {
+        return Err("source exceeds CFS_MAX_BYTES".into());
+    }
+    Ok((data, path))
+}
+
 pub fn run(action: &str, v: &Value) -> Result<Value, String> {
     if v["allow_write"] != true {
         return Err("filesystem mutations disabled (CFS_ALLOW_WRITE=false)".into());

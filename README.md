@@ -36,6 +36,9 @@ to be inspected.
 | Tool | Status | What it does |
 |---|---|---|
 | **`web_search`** | ✅ shipped | Ranked search results via your own SearXNG — titles, URLs, snippets |
+| **`document_index`**, **`document_search`**, **`document_remove`** | ✅ implemented | Gyrfalcon hybrid document retrieval with source/page citations — [setup](docs/search-and-math.md) |
+| **`stackexchange_search`**, **`books_search`**, **`weather`** | ✅ implemented | Q&A, books and current weather/forecast — [setup](docs/search-and-math.md) |
+| **`symbolic_math`** | ✅ implemented | Rust simplification, calculus, evaluation and linear/quadratic solving — [setup](docs/search-and-math.md) |
 | **`arxiv_search`**, **`pubmed_search`** | ✅ implemented | Research search with citation metadata — [Rust tools setup](docs/native-tools.md) |
 | **`web_fetch`** | ✅ shipped | Fetch one URL as clean markdown, through an SSRF-hardened perimeter |
 | **`transcribe`** | 🚧 scaffold | Free open-source Whisper STT — [`hirarastt/`](hirarastt/) |

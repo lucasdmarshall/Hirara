@@ -7,9 +7,9 @@ pytestmark = pytest.mark.skipif(os.getenv("HIRARA_NATIVE_INTEGRATION") != "1", r
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("module,names", [
-    ("hirarafs.mcp_server",{"file_copy","file_move","file_rename","file_delete"}),
-    ("hirarautil.mcp_server",{"json_query"}),
-    ("hiraraweb.mcp_server",{"arxiv_search","pubmed_search"}),
+    ("hirarafs.mcp_server",{"file_copy","file_move","file_rename","file_delete","document_index","document_search","document_remove"}),
+    ("hirarautil.mcp_server",{"json_query","symbolic_math"}),
+    ("hiraraweb.mcp_server",{"arxiv_search","pubmed_search","stackexchange_search","books_search","weather"}),
 ])
 async def test_native_stdio(module,names,tmp_path):
     from mcp import ClientSession
@@ -25,6 +25,9 @@ async def test_native_stdio(module,names,tmp_path):
             result=await session.call_tool("json_query",{"input":{"a":1},"expression":"a"})
             assert not result.is_error
             assert json.loads(result.content[0].text)["result"] == 1
+            result=await session.call_tool("symbolic_math",{"operation":"solve","expression":"x^2 - 1 = 0"})
+            assert not result.is_error
+            assert json.loads(result.content[0].text)["solutions"] == [-1.0,1.0]
         elif module.startswith("hirarafs"):
             path=tmp_path/"a";path.write_text("data")
             result=await session.call_tool("file_copy",{"path":str(path),"dest":str(tmp_path/"b")})

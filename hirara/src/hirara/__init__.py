@@ -19,6 +19,14 @@ keep working via the hub.
 """
 
 from .client import (
+    document_index,
+    document_search,
+    document_remove,
+    symbolic_math,
+    stackexchange_search,
+    books_search,
+    weather,
+
     file_copy,
     file_move,
     file_rename,
@@ -116,6 +124,14 @@ from .client import (
 )
 
 __all__ = [
+    "document_index",
+    "document_search",
+    "document_remove",
+    "symbolic_math",
+    "stackexchange_search",
+    "books_search",
+    "weather",
+
     "file_copy",
     "file_move",
     "file_rename",
@@ -212,7 +228,7 @@ __all__ = [
     "wait_until",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __banner__ = (
     "    __  __________  ___    ____  ___ \n"

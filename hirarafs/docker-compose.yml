@@ -12,6 +12,11 @@ services:
       dockerfile: hirarafs/Dockerfile
     restart: unless-stopped
     environment:
+      - CRAG_COLLECTIONS
+      - CRAG_MODEL_DIR
+      - CRAG_TIER
+      - CRAG_ALLOW_WRITE
+      - CRAG_MAX_INPUT_BYTES
       - CFS_MAX_BYTES=${CFS_MAX_BYTES:-2000000}
       - CFS_MAX_WRITE_BYTES=${CFS_MAX_WRITE_BYTES:-2000000}
       - CFS_ROOTS=${CFS_ROOTS:-/data}
@@ -20,6 +25,8 @@ services:
       - CFS_DEFAULT_ENCODING=${CFS_DEFAULT_ENCODING:-auto}
     volumes:
       - ${CFS_DATA:-./data}:/data
+      - rag-indexes:/indexes
+      - rag-models:/models:ro
     ports:
       - "127.0.0.1:${CFS_PORT:-8900}:8900"
     networks:
@@ -39,3 +46,7 @@ services:
 networks:
   internal:
     driver: bridge
+
+volumes:
+  rag-indexes:
+  rag-models:

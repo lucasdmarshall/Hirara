@@ -983,6 +983,28 @@ class Client:
 
     # --- files (hirarafs): paths are on the backend's filesystem ---
 
+    def document_index(self, path: str | None = None, *, collection: str = "default", text: str | None = None, doc_id: str | None = None, source: str | None = None, metadata: dict | None = None, **extra) -> dict:
+        return self.call("document_index", {key: value for key, value in {'collection': collection, 'path': path, 'text': text, 'doc_id': doc_id, 'source': source, 'metadata': metadata, **extra}.items() if value is not None})
+
+    def document_search(self, query: str, collection: str = "default", max_results: int = 5, filter: dict | None = None, **extra) -> dict:
+        return self.call("document_search", {key: value for key, value in {'query': query, 'collection': collection, 'max_results': max_results, 'filter': filter, **extra}.items() if value is not None})
+
+    def document_remove(self, doc_id: str, collection: str = "default", **extra) -> dict:
+        return self.call("document_remove", {key: value for key, value in {'doc_id': doc_id, 'collection': collection, **extra}.items() if value is not None})
+
+    def symbolic_math(self, operation: str, expression: str, variable: str = "x", variables: dict[str, float] | None = None, order: int = 1, **extra) -> dict:
+        return self.call("symbolic_math", {key: value for key, value in {'operation': operation, 'expression': expression, 'variable': variable, 'variables': variables, 'order': order, **extra}.items() if value is not None})
+
+    def stackexchange_search(self, query: str, site: str = "stackoverflow", max_results: int = 5, page: int = 1, include_answers: bool = True, **extra) -> dict:
+        return self.call("stackexchange_search", {key: value for key, value in {'query': query, 'site': site, 'max_results': max_results, 'page': page, 'include_answers': include_answers, **extra}.items() if value is not None})
+
+    def books_search(self, query: str, max_results: int = 5, start: int = 0, **extra) -> dict:
+        return self.call("books_search", {key: value for key, value in {'query': query, 'max_results': max_results, 'start': start, **extra}.items() if value is not None})
+
+    def weather(self, location: str | None = None, latitude: float | None = None, longitude: float | None = None, forecast_days: int = 3, units: str = "metric", **extra) -> dict:
+        return self.call("weather", {key: value for key, value in {'location': location, 'latitude': latitude, 'longitude': longitude, 'forecast_days': forecast_days, 'units': units, **extra}.items() if value is not None})
+
+
     def file_copy(self, path: str, dest: str, **extra) -> dict:
         return self.call("file_copy", {"path": path, "dest": dest, **extra})
 
@@ -1162,6 +1184,14 @@ def _delegate(name):
     return method
 
 
+document_index = _delegate("document_index")
+document_search = _delegate("document_search")
+document_remove = _delegate("document_remove")
+symbolic_math = _delegate("symbolic_math")
+stackexchange_search = _delegate("stackexchange_search")
+books_search = _delegate("books_search")
+weather = _delegate("weather")
+
 file_copy = _delegate("file_copy")
 file_move = _delegate("file_move")
 file_rename = _delegate("file_rename")
@@ -1255,6 +1285,14 @@ health = _delegate("health")
 
 
 __all__ = [
+    "document_index",
+    "document_search",
+    "document_remove",
+    "symbolic_math",
+    "stackexchange_search",
+    "books_search",
+    "weather",
+
     "file_copy",
     "file_move",
     "file_rename",

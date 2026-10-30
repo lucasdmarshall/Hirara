@@ -19,10 +19,14 @@ def main():
         selected = {'hirara', 'hirara-core', 'hirara-hub', 'hirara-native'}
         selected.update(re.split(r'[<>=!~\[]', dependency, maxsplit=1)[0]
                         for dependency in projects['hirara'][1]['optional-dependencies']['local'])
+    if '--skip-native' in sys.argv[1:]:
+        selected.discard('hirara-native')
     args = [sys.executable, '-m', 'pip', 'install', '-c', str(ROOT / 'constraints-release.txt')]
     for name in sorted(selected):
         path, project = projects[name]
         extras = sorted({'dev', 'service', 'mcp'} & set(project.get('optional-dependencies', {})))
+        if name == 'hirara-native':
+            extras.append('pdf')
         spec = str(path) + ('[' + ','.join(extras) + ']' if extras else '')
         args.extend(['-e', spec])
     subprocess.run(args, check=True)

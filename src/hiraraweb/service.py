@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-web", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="hirara-web", version="0.4.0", lifespan=lifespan)
 
 install_backend(app)
 
@@ -117,3 +117,43 @@ async def arxiv_search(request: ResearchRequest) -> dict:
 @app.post("/pubmed_search")
 async def pubmed_search(request: ResearchRequest) -> dict:
     return await _toolset.pubmed_search(**request.model_dump())
+
+
+class StackexchangeSearchRequest(BaseModel):
+    query: str
+    site: str = "stackoverflow"
+    max_results: int = 5
+    page: int = 1
+    include_answers: bool = True
+    session_id: str | None = None
+
+
+@app.post("/stackexchange_search")
+async def stackexchange_search_endpoint(request: StackexchangeSearchRequest) -> dict:
+    return await _toolset.stackexchange_search(**request.model_dump())
+
+
+class BooksSearchRequest(BaseModel):
+    query: str
+    max_results: int = 5
+    start: int = 0
+    session_id: str | None = None
+
+
+@app.post("/books_search")
+async def books_search_endpoint(request: BooksSearchRequest) -> dict:
+    return await _toolset.books_search(**request.model_dump())
+
+
+class WeatherRequest(BaseModel):
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    forecast_days: int = 3
+    units: str = "metric"
+    session_id: str | None = None
+
+
+@app.post("/weather")
+async def weather_endpoint(request: WeatherRequest) -> dict:
+    return await _toolset.weather(**request.model_dump())

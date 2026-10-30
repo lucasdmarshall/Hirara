@@ -75,7 +75,7 @@ async def test_toolset_jwt():
 
 @pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("json_query", "decode", "hash", "jwt_inspect", "jwt_decode", "time_now",
+    assert TOOL_NAMES == ("symbolic_math", "json_query", "decode", "hash", "jwt_inspect", "jwt_decode", "time_now",
                           "date_calc", "schema_validate")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

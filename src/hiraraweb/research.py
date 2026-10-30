@@ -12,7 +12,15 @@ from hirara_core.native import native_call
 _limits: dict[tuple[asyncio.AbstractEventLoop, str], tuple[asyncio.Lock, float]] = {}
 
 
+def defer(provider: str, seconds: int) -> None:
+    key = (asyncio.get_running_loop(), provider)
+    lock, last = _limits.setdefault(key, (asyncio.Lock(), 0.0))
+    _limits[key] = (lock, max(last, time.monotonic() + seconds))
+
+
 async def _download(provider: str, url: str) -> str:
+    if provider == "stackexchange_answers":
+        provider = "stackexchange"
     key = (asyncio.get_running_loop(), provider)
     lock, _ = _limits.setdefault(key, (asyncio.Lock(), 0.0))
     async with lock:

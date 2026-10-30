@@ -8,7 +8,23 @@ on:
 permissions:
   contents: read
 jobs:
+  native-wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install 'maturin>=1.7,<2'
+      - run: maturin build --release --locked --manifest-path hirara-native/Cargo.toml --out native-dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hirara-native-linux
+          path: native-dist/*.whl
+          if-no-files-found: error
   unit:
+    needs: native-wheel
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -22,10 +38,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
+        if: contains(fromJSON('[".", "hirarafs", "hirarautil", "hiraradb", "hirara"]'), matrix.package)
+        with:
+          name: hirara-native-linux
+          path: native-wheel
       - name: Install Rust tool implementations
         if: contains(fromJSON('[".", "hirarafs", "hirarautil", "hiraradb", "hirara"]'), matrix.package)
-        run: python -m pip install ./hirara-native
+        run: python -m pip install native-wheel/*.whl 'pypdfium2>=4'
       - name: Native test dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg graphviz espeak-ng libzbar0 libsndfile1 poppler-utils
       - name: Install package and shared test dependencies
@@ -34,7 +54,7 @@ jobs:
         run: |
           python -m pip install -c constraints-release.txt -e './hirara-core[dev]' 'mcp>=2.3,<3' fastapi python-multipart
           if [ "$PACKAGE" = hirara ]; then
-            python scripts/install_dev.py --sdk
+            python scripts/install_dev.py --sdk --skip-native
           else
             python -m pip install -c constraints-release.txt -e "./$PACKAGE[dev,service,mcp]"
           fi
@@ -42,6 +62,7 @@ jobs:
         working-directory: ${{ matrix.package }}
         run: python -m pytest -q -o asyncio_default_fixture_loop_scope=function
   compatibility:
+    needs: native-wheel
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -51,8 +72,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - uses: dtolnay/rust-toolchain@stable
-      - run: python scripts/install_dev.py --sdk
+      - uses: actions/download-artifact@v4
+        with:
+          name: hirara-native-linux
+          path: native-wheel
+      - run: python -m pip install native-wheel/*.whl 'pypdfium2>=4'
+      - run: python scripts/install_dev.py --sdk --skip-native
       - run: |
           for package in hirara-core hirara-hub hirara; do
             (cd "$package" && python -m pytest -q -o asyncio_default_fixture_loop_scope=function)
@@ -73,6 +98,7 @@ jobs:
         run: python -m pytest -q integration -o asyncio_mode=auto -o asyncio_default_fixture_loop_scope=function
 
   native:
+    needs: native-wheel
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -104,7 +130,11 @@ jobs:
       - run: cargo fmt --manifest-path hirara-native/Cargo.toml --check
       - run: cargo clippy --manifest-path hirara-native/Cargo.toml --locked --all-targets -- -D warnings
       - run: cargo test --manifest-path hirara-native/Cargo.toml --locked
-      - run: python -m pip install -c constraints-release.txt ./hirara-native -e './hirara-core[dev]' -e './hiraradb[dev]' -e './hirarafs[mcp]' -e './hirarautil[mcp]' -e '.[mcp]'
+      - uses: actions/download-artifact@v4
+        with:
+          name: hirara-native-linux
+          path: native-wheel
+      - run: python -m pip install -c constraints-release.txt native-wheel/*.whl 'pypdfium2>=4'  -e './hirara-core[dev]' -e './hiraradb[dev]' -e './hirarafs[mcp]' -e './hirarautil[mcp]' -e '.[mcp]'
       - name: PostgreSQL and MySQL integration
         env:
           HIRARA_DATABASE_INTEGRATION: '1'

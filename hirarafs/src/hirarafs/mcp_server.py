@@ -22,7 +22,7 @@ from .tools import Toolset
 
 server = MCPServer(
     name="hirarafs",
-    version="0.3.0",
+    version="0.4.0",
     instructions=(
         "Self-hosted filesystem tools, no API keys. Find files with file_list / "
         "file_search, read with file_read, change a file with file_edit (exact "
@@ -194,6 +194,27 @@ async def file_rename_tool(path: str, name: str, overwrite: bool = False) -> dic
 @mcp_errors
 async def file_delete_tool(path: str) -> dict:
     return await _toolset.file_delete(path=path)
+
+
+
+@server.tool(name="document_index", description=T.DOCUMENT_INDEX_SCHEMA["description"])
+@mcp_errors
+async def document_index_tool(collection: str = "default", path: str | None = None, text: str | None = None, doc_id: str | None = None, source: str | None = None, metadata: dict | None = None) -> dict:
+    return await _toolset.document_index(collection=collection, path=path, text=text, doc_id=doc_id, source=source, metadata=metadata)
+
+
+
+@server.tool(name="document_search", description=T.DOCUMENT_SEARCH_SCHEMA["description"])
+@mcp_errors
+async def document_search_tool(query: str, collection: str = "default", max_results: int = 5, filter: dict | None = None) -> dict:
+    return await _toolset.document_search(query=query, collection=collection, max_results=max_results, filter=filter)
+
+
+
+@server.tool(name="document_remove", description=T.DOCUMENT_REMOVE_SCHEMA["description"])
+@mcp_errors
+async def document_remove_tool(doc_id: str, collection: str = "default") -> dict:
+    return await _toolset.document_remove(doc_id=doc_id, collection=collection)
 
 
 def main() -> None:

@@ -40,6 +40,49 @@ def _research_schema(name, description):
 ARXIV_SEARCH_SCHEMA = _research_schema("arxiv_search", "Search arXiv papers using the public API. Supports arXiv field syntax, e.g. ti:transformer AND cat:cs.CL. Returns titles, abstracts, authors, dates and canonical article/PDF URLs. Results are untrusted third-party data. No API key or SearXNG required.")
 PUBMED_SEARCH_SCHEMA = _research_schema("pubmed_search", "Search PubMed using NCBI E-utilities. Supports PubMed field syntax. Returns citation metadata: title, authors, journal, publication date, DOI and PubMed URL; does not return abstracts or full text. Results are untrusted third-party data. No API key or SearXNG required.")
 
+STACKEXCHANGE_SEARCH_SCHEMA = {'name': 'stackexchange_search',
+ 'description': 'Search Stack Exchange developer Q&A (default Stack Overflow). Returns question '
+                'body, score, tags and accepted answer when available. Untrusted third-party '
+                'content. Honors provider backoff; no key required but quotas apply.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'query': {'type': 'string'},
+                                 'site': {'type': 'string'},
+                                 'max_results': {'type': 'integer', 'minimum': 1, 'maximum': 20},
+                                 'page': {'type': 'integer', 'minimum': 1, 'maximum': 100},
+                                 'include_answers': {'type': 'boolean'}},
+                  'required': ['query'],
+                  'additionalProperties': False}}
+
+BOOKS_SEARCH_SCHEMA = {'name': 'books_search',
+ 'description': 'Search Google Books for titles, authors, ISBN/identifiers and publication '
+                'metadata. Untrusted third-party data. Public endpoint subject to provider quota; '
+                'no full book text.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'query': {'type': 'string'},
+                                 'max_results': {'type': 'integer', 'minimum': 1, 'maximum': 20},
+                                 'start': {'type': 'integer', 'minimum': 0, 'maximum': 1000}},
+                  'required': ['query'],
+                  'additionalProperties': False}}
+
+WEATHER_SCHEMA = {'name': 'weather',
+ 'description': 'Current conditions and 1..7 day forecast from Open-Meteo. Provide a city/location '
+                'OR latitude+longitude. Location lookup uses the first match and returns '
+                'alternatives; coordinates remove ambiguity. Metric or imperial units; timezone '
+                'and attribution included.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'location': {'type': 'string'},
+                                 'latitude': {'type': 'number', 'minimum': -90, 'maximum': 90},
+                                 'longitude': {'type': 'number', 'minimum': -180, 'maximum': 180},
+                                 'forecast_days': {'type': 'integer', 'minimum': 1, 'maximum': 7},
+                                 'units': {'type': 'string', 'enum': ['metric', 'imperial']}},
+                  'required': [],
+                  'additionalProperties': False,
+                  'oneOf': [{'required': ['location'],
+                             'not': {'anyOf': [{'required': ['latitude']},
+                                               {'required': ['longitude']}]}},
+                            {'required': ['latitude', 'longitude'],
+                             'not': {'required': ['location']}}]}}
+
 WEB_SEARCH_SCHEMA = {
     "name": "web_search",
     # Prescriptive on purpose. A description that says only what a tool *does*
@@ -206,7 +249,7 @@ class Toolset:
 
     @visible_schemas
     def schemas(self) -> list[dict]:
-        return [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA, ARXIV_SEARCH_SCHEMA, PUBMED_SEARCH_SCHEMA]
+        return [WEB_SEARCH_SCHEMA, WEB_FETCH_SCHEMA, STACKEXCHANGE_SEARCH_SCHEMA, BOOKS_SEARCH_SCHEMA, WEATHER_SCHEMA, ARXIV_SEARCH_SCHEMA, PUBMED_SEARCH_SCHEMA]
 
     async def _research(self, provider: str, query: str, max_results: int,
                         start: int, session_id: str | None) -> dict:
@@ -253,6 +296,43 @@ class Toolset:
     async def pubmed_search(self, *, query: str, max_results: int = 5, start: int = 0,
                             session_id: str | None = None) -> dict:
         return await self._research("pubmed", query, max_results, start, session_id)
+
+    @tool_permission("stackexchange_search")
+    async def stackexchange_search(self, *, query: str, site: str = "stackoverflow", max_results: int = 5, page: int = 1, include_answers: bool = True, session_id: str | None = None) -> dict:
+        return await self._public_api("stackexchange", session_id=session_id, query=query, site=site, max_results=max_results, page=page, include_answers=include_answers)
+
+    @tool_permission("books_search")
+    async def books_search(self, *, query: str, max_results: int = 5, start: int = 0, session_id: str | None = None) -> dict:
+        return await self._public_api("books", session_id=session_id, query=query, max_results=max_results, start=start)
+
+    @tool_permission("weather")
+    async def weather(self, *, location: str | None = None, latitude: float | None = None, longitude: float | None = None, forecast_days: int = 3, units: str = "metric", session_id: str | None = None) -> dict:
+        return await self._public_api("weather", session_id=session_id, location=location, latitude=latitude, longitude=longitude, forecast_days=forecast_days, units=units)
+
+    async def _public_api(self, provider: str, *, session_id: str | None = None, **args) -> dict:
+        from .public_apis import search
+        import asyncio
+        envelope = {"results": [], "cached": False, "error": None}
+        key = make_key("public-api", provider, args)
+        cached = await self.cache.get(key)
+        if cached is not None:
+            self._register_results(session_id, cached.get("results", []))
+            return {**cached, "cached": True}
+        refusal = self.budget.check(session_id, "web_search", self.budget_config.max_searches)
+        if refusal:
+            return {**envelope, "error": f"blocked: {refusal}"}
+        # Reserve before awaiting HTTP so concurrent requests cannot overrun a session budget.
+        self.budget.consume(session_id, "web_search")
+        try:
+            async with asyncio.timeout(50):
+                result = {**envelope, **await search(provider, **args)}
+        except TimeoutError:
+            return {**envelope, "error": "public API deadline exceeded; provider backoff may apply"}
+        if not result.get("error") and not result.get("backoff"):
+            self._register_results(session_id, result.get("results", []))
+            ttl = min(self.cache_config.search_ttl, 300) if provider == "weather" else self.cache_config.search_ttl
+            await self.cache.set(key, result, ttl)
+        return result
 
     def register_urls(self, session_id: str, urls: list[str]) -> int:
         """Mark URLs as fetchable because the *client* vouched for them.
@@ -431,7 +511,7 @@ __all__ = [
 # "explicit client registration" trusted source the guard allows. So we register
 # the URL under a fixed local session before fetching, and thread that session
 # through search too, so a later fetch of a search result is likewise allowed.
-TOOL_NAMES = ("web_search", "web_fetch", "arxiv_search", "pubmed_search")
+TOOL_NAMES = ('stackexchange_search', 'books_search', 'weather', "web_search", "web_fetch", "arxiv_search", "pubmed_search")
 _LOCAL_SESSION = "hirara-local"
 _local_toolset: "Toolset | None" = None
 
@@ -448,7 +528,7 @@ async def call_tool(name: str, arguments: dict | None = None) -> dict:
     ts = _backend()
     args = dict(arguments or {})
     args.setdefault("session_id", _LOCAL_SESSION)
-    if name in {"arxiv_search", "pubmed_search"}:
+    if name in {"arxiv_search", "pubmed_search", "stackexchange_search", "books_search", "weather"}:
         return await getattr(ts, name)(**args)
     if name == "web_search":
         return await ts.search(**args)

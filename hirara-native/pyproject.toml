@@ -4,11 +4,14 @@ build-backend = "maturin"
 
 [project]
 name = "hirara-native"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.11"
-description = "Rust implementations of Hirara filesystem, JSON, research and SQL tools"
+description = "Rust implementations of Hirara files, documents, search, math and SQL tools"
 license = "Apache-2.0"
 authors = [{name = "Kaung Myat San", email = "dev.kaungmyatsan@gmail.com"}]
+
+[project.optional-dependencies]
+pdf = ["pypdfium2>=4"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

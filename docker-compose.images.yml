@@ -109,12 +109,17 @@ services:
 
   hirarafs:
     environment:
+      - CRAG_COLLECTIONS
+      - CRAG_MODEL_DIR
+      - CRAG_TIER
+      - CRAG_ALLOW_WRITE
+      - CRAG_MAX_INPUT_BYTES
       - HIRARA_BACKEND_TOKEN=${HIRARA_BACKEND_TOKEN:-${HUB_TOKEN:-}}
       - HIRARA_ALLOWED_TOOLS
       - HIRARA_ALLOW_PRIVATE_IPS=${HIRARA_ALLOW_PRIVATE_IPS:-false}
     image: ghcr.io/lucasdmarshall/hirara-fs:${HIRARA_TAG:-latest}
     restart: unless-stopped
-    volumes: [fs-data:/data]
+    volumes: [fs-data:/data, rag-indexes:/indexes, rag-models:/models:ro]
     networks: [hirara]
 
   hirarautil:
@@ -230,6 +235,8 @@ networks:
     driver: bridge
 
 volumes:
+  rag-indexes:
+  rag-models:
   websearch-cache:
   ocr-models:
   fs-data:

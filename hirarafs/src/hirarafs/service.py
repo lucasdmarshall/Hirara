@@ -23,7 +23,16 @@ log = logging.getLogger("hirarafs.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarafs", version="0.3.0")
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app):
+    try:
+        yield
+    finally:
+        await _toolset.close()
+
+app = FastAPI(title="hirarafs", version="0.4.0", lifespan=lifespan)
 
 install_backend(app)
 
@@ -200,3 +209,39 @@ class FileDeleteRequest(BaseModel):
 @app.post("/file_delete")
 async def file_delete_endpoint(request: FileDeleteRequest) -> dict:
     return await _toolset.file_delete(**request.model_dump())
+
+
+class DocumentIndexRequest(BaseModel):
+    collection: str = "default"
+    path: str | None = None
+    text: str | None = None
+    doc_id: str | None = None
+    source: str | None = None
+    metadata: dict | None = None
+
+
+@app.post("/document_index")
+async def document_index_endpoint(request: DocumentIndexRequest) -> dict:
+    return await _toolset.document_index(**request.model_dump())
+
+
+class DocumentSearchRequest(BaseModel):
+    query: str
+    collection: str = "default"
+    max_results: int = 5
+    filter: dict | None = None
+
+
+@app.post("/document_search")
+async def document_search_endpoint(request: DocumentSearchRequest) -> dict:
+    return await _toolset.document_search(**request.model_dump())
+
+
+class DocumentRemoveRequest(BaseModel):
+    doc_id: str
+    collection: str = "default"
+
+
+@app.post("/document_remove")
+async def document_remove_endpoint(request: DocumentRemoveRequest) -> dict:
+    return await _toolset.document_remove(**request.model_dump())

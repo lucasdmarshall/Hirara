@@ -45,7 +45,7 @@ async def test_toolset_roundtrip(tmp_path):
 
 @pytest.mark.asyncio
 async def test_call_tool_unknown():
-    assert TOOL_NAMES == ("file_copy", "file_move", "file_rename", "file_delete", "file_read", "file_write", "file_edit", "file_search",
+    assert TOOL_NAMES == ("document_index", "document_search", "document_remove", "file_copy", "file_move", "file_rename", "file_delete", "file_read", "file_write", "file_edit", "file_search",
                           "file_list", "archive_list", "archive_extract")
     with pytest.raises(KeyError):
         await call_tool("nope", {})

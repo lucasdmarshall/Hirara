@@ -1,5 +1,8 @@
 # Rust tools
 
+For Gyrfalcon document collections, Stack Exchange, books, weather and symbolic
+math, see [the search and math guide](search-and-math.md).
+
 The optional `hirara-native` package implements file mutations, JSON queries,
 research query construction/parsing, and PostgreSQL/MySQL access in Rust. The
 existing Python SDK, HTTP services and MCP servers provide their usual interfaces

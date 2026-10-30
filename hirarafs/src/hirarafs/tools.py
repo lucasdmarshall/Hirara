@@ -12,7 +12,8 @@ from __future__ import annotations
 from hirara_core.policy import tool_permission, visible_schemas
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from .documents import DocumentConfig
 
 from .archive import ArchiveError, archive_extract as extract_archive
 from .archive import archive_list as list_archive
@@ -247,6 +248,52 @@ ARCHIVE_EXTRACT_SCHEMA = {
 
 
 
+DOCUMENT_INDEX_SCHEMA = {'name': 'document_index',
+ 'description': 'Index or atomically replace one document using pinned Gyrfalcon hybrid retrieval. '
+                'Provide a CFS_ROOTS-gated PDF/HTML/text/Markdown path, or text plus a stable '
+                'doc_id. No automatic model downloads. Requires CRAG_ALLOW_WRITE.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'collection': {'type': 'string',
+                                                'description': 'Administrator-configured '
+                                                               'collection name, default default. '
+                                                               'No index paths accepted.'},
+                                 'path': {'type': 'string'},
+                                 'text': {'type': 'string'},
+                                 'doc_id': {'type': 'string'},
+                                 'source': {'type': 'string'},
+                                 'metadata': {'type': 'object'}},
+                  'required': [],
+                  'additionalProperties': False,
+                  'oneOf': [{'required': ['path'], 'not': {'required': ['text']}},
+                            {'required': ['text', 'doc_id'], 'not': {'required': ['path']}}]}}
+
+DOCUMENT_SEARCH_SCHEMA = {'name': 'document_search',
+ 'description': 'Search a named Gyrfalcon document collection with BM25+dense retrieval. Returns '
+                'untrusted text chunks, source, page for PDFs and UTF-8 byte offsets. Metadata '
+                'filters narrow retrieval; they are not authorization. No LLM answer generation.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'query': {'type': 'string'},
+                                 'collection': {'type': 'string',
+                                                'description': 'Administrator-configured '
+                                                               'collection name, default default. '
+                                                               'No index paths accepted.'},
+                                 'max_results': {'type': 'integer', 'minimum': 1, 'maximum': 20},
+                                 'filter': {'type': 'object'}},
+                  'required': ['query'],
+                  'additionalProperties': False}}
+
+DOCUMENT_REMOVE_SCHEMA = {'name': 'document_remove',
+ 'description': 'Remove one document from a named Gyrfalcon collection. Original source file is '
+                'untouched. Requires CRAG_ALLOW_WRITE.',
+ 'input_schema': {'type': 'object',
+                  'properties': {'doc_id': {'type': 'string'},
+                                 'collection': {'type': 'string',
+                                                'description': 'Administrator-configured '
+                                                               'collection name, default default. '
+                                                               'No index paths accepted.'}},
+                  'required': ['doc_id'],
+                  'additionalProperties': False}}
+
 def _mutation_schema(name, description, properties, required):
     return {"name": name, "description": description,
             "input_schema": {"type": "object", "properties": properties,
@@ -299,6 +346,7 @@ class Toolset:
     """Filesystem tools sharing one config."""
 
     config: FsConfig
+    document_config: DocumentConfig = field(default_factory=DocumentConfig.from_env)
 
     @classmethod
     def from_env(cls) -> "Toolset":
@@ -308,12 +356,12 @@ class Toolset:
     def schemas(self) -> list[dict]:
         return [FILE_READ_SCHEMA, FILE_WRITE_SCHEMA, FILE_EDIT_SCHEMA, FILE_SEARCH_SCHEMA,
                 FILE_LIST_SCHEMA, ARCHIVE_LIST_SCHEMA, ARCHIVE_EXTRACT_SCHEMA,
-                FILE_COPY_SCHEMA, FILE_MOVE_SCHEMA, FILE_RENAME_SCHEMA, FILE_DELETE_SCHEMA]
+                DOCUMENT_INDEX_SCHEMA, DOCUMENT_SEARCH_SCHEMA, DOCUMENT_REMOVE_SCHEMA, FILE_COPY_SCHEMA, FILE_MOVE_SCHEMA, FILE_RENAME_SCHEMA, FILE_DELETE_SCHEMA]
 
     def health(self) -> dict:
         return {
             "status": "ok",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "tools": list(TOOL_NAMES),
             "max_bytes": self.config.max_bytes,
             "max_write_bytes": self.config.max_write_bytes,
@@ -389,6 +437,25 @@ class Toolset:
                 error=f"file_write failed: {exc}",
             )
 
+
+    @tool_permission("document_index")
+    async def document_index(self, *, collection: str = "default", path: str | None = None, text: str | None = None, doc_id: str | None = None, source: str | None = None, metadata: dict | None = None) -> dict:
+        from .documents import call
+        return await call("document_index", config=self.document_config, fs_config=self.config, collection=collection, path=path, text=text, doc_id=doc_id, source=source, metadata=metadata)
+
+    @tool_permission("document_search")
+    async def document_search(self, *, query: str, collection: str = "default", max_results: int = 5, filter: dict | None = None) -> dict:
+        from .documents import call
+        return await call("document_search", config=self.document_config, fs_config=self.config, query=query, collection=collection, max_results=max_results, filter=filter)
+
+    @tool_permission("document_remove")
+    async def document_remove(self, *, doc_id: str, collection: str = "default") -> dict:
+        from .documents import call
+        return await call("document_remove", config=self.document_config, fs_config=self.config, doc_id=doc_id, collection=collection)
+
+    async def close(self) -> None:
+        from .documents import close
+        await close(self.document_config)
 
     async def _mutate(self, action: str, **args) -> dict:
         from hirara_core.native import native_call
@@ -493,6 +560,7 @@ __all__ = [
 
 
 TOOL_NAMES = (
+    'document_index', 'document_search', 'document_remove',
     "file_copy", "file_move", "file_rename", "file_delete",
     "file_read",
     "file_write",

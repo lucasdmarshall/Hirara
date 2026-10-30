@@ -20,7 +20,7 @@ log = logging.getLogger("hirarautil.service")
 
 _toolset = Toolset.from_env()
 
-app = FastAPI(title="hirarautil", version="0.3.0")
+app = FastAPI(title="hirarautil", version="0.4.0")
 
 install_backend(app)
 
@@ -167,3 +167,16 @@ class JsonQueryRequest(BaseModel):
 @app.post("/json_query")
 async def json_query_endpoint(request: JsonQueryRequest) -> dict:
     return await _toolset.json_query(**request.model_dump())
+
+
+class SymbolicMathRequest(BaseModel):
+    operation: str
+    expression: str
+    variable: str = "x"
+    variables: dict[str, float] | None = None
+    order: int = 1
+
+
+@app.post("/symbolic_math")
+async def symbolic_math_endpoint(request: SymbolicMathRequest) -> dict:
+    return await _toolset.symbolic_math(**request.model_dump())

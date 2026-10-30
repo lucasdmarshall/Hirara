@@ -163,3 +163,13 @@ Implemented in this checkout; see [native tools setup and examples](docs/native-
 | `json_query` (JMESPath / JSON Pointer) | `hirarautil` + `hirara-native` |
 | `arxiv_search`, `pubmed_search` | `hirara-web` + `hirara-native` |
 | PostgreSQL / MySQL `database_query`, `database_schema` | `hiraradb` + `hirara-native` |
+
+## Documents, public APIs and symbolic math
+
+| Tool | Package |
+|---|---|
+| `document_index`, `document_search`, `document_remove` | `hirarafs` + pinned Rust Gyrfalcon |
+| `stackexchange_search`, `books_search`, `weather` | `hirara-web` + Rust API adapters |
+| `symbolic_math` | `hirarautil` + Rust CAS |
+
+See [setup, examples and limits](docs/search-and-math.md).

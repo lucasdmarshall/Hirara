@@ -1,7 +1,10 @@
 //! Tool logic only. Python owns tool permissions, transports and shared HTTP egress.
 mod database;
+mod documents;
+mod external;
 mod files;
 mod json_query;
+mod math;
 mod research;
 
 use pyo3::prelude::*;
@@ -14,6 +17,12 @@ fn dispatch(request: Value) -> Result<Value, String> {
         "json_query" => json_query::run(&request),
         "research_request" => research::request(&request),
         "research_parse" => research::parse(&request),
+        "external_request" => external::request(&request),
+        "external_parse" => external::parse(&request),
+        "symbolic_math" => math::run(&request),
+        "document_index" | "document_search" | "document_remove" | "document_close" => {
+            documents::run(action, &request)
+        }
         "database_query" | "database_schema" => database::run(action, &request),
         _ => Err("unknown native action".into()),
     }

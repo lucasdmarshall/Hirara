@@ -1,6 +1,6 @@
 [project]
 name = "hirarautil"
-version = "0.3.0"
+version = "0.4.0"
 description = "Self-hosted utility tools for AI agents — decode / hash / JWT over HTTP and MCP"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-native = ["hirara-native>=0.1,<0.2"]
+native = ["hirara-native>=0.2,<0.3"]
 service = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
 mcp = ["mcp>=2.3,<3"]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]

@@ -1,6 +1,6 @@
 [package]
 name = "hirara-native"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "Apache-2.0"
 
@@ -25,6 +25,8 @@ sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio",
 tokio = { version = "1", features = ["rt", "time", "net"] }
 futures-util = "0.3"
 base64 = "0.22"
-
-[dev-dependencies]
+scraper = "0.24"
+tpt-math-symbolic = "=0.2.0"
+gyrfalcon = { git = "https://github.com/lucasdmarshall/Gyrfalcon.git", rev = "c4851100aa8f21e20395be3f59120dd8459ed622" }
+gyrfalcon-ingest = { git = "https://github.com/lucasdmarshall/Gyrfalcon.git", rev = "c4851100aa8f21e20395be3f59120dd8459ed622" }
 tempfile = "3"

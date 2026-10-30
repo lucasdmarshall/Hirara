@@ -143,3 +143,24 @@ network extensions. No user transaction/session commands, COPY, SELECT INTO/expo
 or MySQL executable comments are accepted. DSNs are not returned in envelopes.
 A timeout during a write can leave the outcome unknown and must not trigger a
 blind retry. See [native tool limitations](docs/native-tools.md).
+
+
+### Document collections and public API adapters
+
+Gyrfalcon code is pinned to a Git revision. Model/collection paths come only
+from administrator configuration; models and index internals must be trusted
+and kept outside source-file roots. Source ingestion uses CFS capabilities
+and byte limits. A collection grants access to retained indexed copies; source
+file removal or root changes do not revoke those copies. Metadata filters are
+not authorization. `CRAG_ALLOW_WRITE` controls collection mutations separately
+from source-file writes. Only one process may own each collection.
+
+Public Q&A/books/weather APIs use fixed endpoints and the shared HTTP guard,
+including caps and redirect/private-target denial. Model-supplied credentials
+and endpoints are not accepted. Provider backoff and search session budgets
+apply; cached results remain subject to tool permissions. Public content is
+untrusted, including accepted answers and document chunks.
+
+Symbolic math parses a bounded expression grammar in Rust; it does not evaluate
+Python, scripts, commands or filesystem/network operations. Its floating-point
+CAS is not a proof system. See [operational limits](docs/search-and-math.md).
