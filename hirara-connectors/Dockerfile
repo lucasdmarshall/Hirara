@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm -rf /var/lib/apt/lists/*
 COPY hirara-connectors/Cargo.toml hirara-connectors/Cargo.lock ./
 COPY hirara-connectors/src ./src
+COPY hirara-connectors/ui ./ui
 RUN --mount=type=secret,id=proxy_ca \
     if [ -f /run/secrets/proxy_ca ]; then export CARGO_HTTP_CAINFO=/run/secrets/proxy_ca; fi; \
     cargo build --release --locked

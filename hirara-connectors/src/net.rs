@@ -141,7 +141,7 @@ impl Net {
             .redirect(reqwest::redirect::Policy::none())
             .connect_timeout(Duration::from_secs(10))
             .timeout(Duration::from_secs(40))
-            .user_agent("Hirara-Connectors/0.2");
+            .user_agent("Hirara-Connectors/0.2.1");
         // An explicitly trusted proxy is mandatory for every external HTTPS request.
         // No NO_PROXY/direct fallback can evade the proxy's destination/DNS policy.
         if let Some(proxy) = &proxy {

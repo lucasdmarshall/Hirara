@@ -341,9 +341,10 @@ pub fn router(state: State) -> Router {
     Router::new()
         .route(
             "/health",
-            get(|| async { Json(json!({"status":"ok","version":"0.2.0"})) }),
+            get(|| async { Json(json!({"status":"ok","version":"0.2.1"})) }),
         )
         .route("/local", get(crate::portal::home))
+        .route("/local/assets/{name}", get(crate::portal::asset))
         .route("/local/session", post(crate::portal::session))
         .route("/local/open", post(crate::portal::open))
         .route("/local/proof", post(crate::portal::proof_handler))
@@ -442,7 +443,7 @@ fn page(html: String) -> Response {
     response
 }
 use axum::http::HeaderValue;
-fn escape(s: &str) -> String {
+pub(crate) fn escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
@@ -460,18 +461,16 @@ async fn approval_page(
     else {
         return error(StatusCode::NOT_FOUND, "approval expired or absent");
     };
-    let mut html = format!(
+    if state.browser.is_some() {
+        return crate::portal::approval(&p.connection.title, &p.connection.endpoint);
+    }
+    let html = format!(
         "<!doctype html><meta charset=utf-8><title>Connect through Hirara</title><h1>Connect through Hirara</h1><p>Account: {}</p><p>Server: {}</p><p>Endpoint: {}</p><p>Hirara has not audited or endorsed this server. Tool access can disclose data or perform writes.</p><form method=post><label>Operator approval token <input required type=password name=admin autocomplete=off></label><p><label>Authentication <select name=mode><option value=none>No authentication</option><option value=bearer>Bearer token</option><option value=api_key>API key header</option><option value=oauth>OAuth</option></select></label></p><p><label>Bearer token or API key (if needed) <input type=password name=bearer autocomplete=off></label></p><p><label>API key header name (if needed) <input name=header_name placeholder=x-api-key></label></p><p><label>OAuth client ID (optional) <input name=client_id></label></p><p><label>Allowed tool names, comma separated. Explicit * permits all present and future tools. <input required name=tools></label></p><button>Approve connection</button></form>",
         escape(&p.connection.owner),
         escape(&p.connection.title),
         escape(&p.connection.endpoint)
     );
-    if state.browser.is_some() {
-        html=html.replace("<label>Operator approval token <input required type=password name=admin autocomplete=off></label>","").replace("<label>Allowed tool names, comma separated. Explicit * permits all present and future tools. <input required name=tools></label>","<label><input type=checkbox name=all_tools value=yes> Allow all current and future tools from this server</label><details><summary>Limit access to specific tools</summary><label>Tool names, comma separated <input name=tools placeholder=\"read, search\"></label></details>").replace("<button>Approve connection</button>","<button>Connect</button>").replace("<option value=none>No authentication</option>","<option value=none>Public server (no login)</option>").replace("<option value=oauth>OAuth</option>","<option value=oauth>Sign in with provider (OAuth)</option>");
-        crate::portal::page(&html)
-    } else {
-        page(html)
-    }
+    page(html)
 }
 #[derive(Deserialize)]
 struct ApprovalForm {
@@ -569,9 +568,16 @@ async fn approve(
     drop(approvals);
     if state.browser.is_some() && connection.mode == "oauth" {
         match state.runtime.authorize(&connection).await {
-            Ok(result)=>if let Some(url)=result["authorization_url"].as_str() {return page(format!("<h1>Continue connecting</h1><p>Hirara will keep this connection for future chats.</p><a href=\"{}\">Sign in with the provider</a>",escape(url)));},
+            Ok(result)=>if let Some(url)=result["authorization_url"].as_str() {return page(crate::portal::result("One more step.","Sign in with your provider to finish this connection.",Some((url,"Sign in with provider"))));},
             Err(_)=>return page("<h1>Connection saved</h1><p>OAuth setup needs attention. Ask your agent to reconnect for the provider setup requirements.</p>".into())
         }
+    }
+    if state.browser.is_some() {
+        return page(crate::portal::result(
+            "Connection approved",
+            "Access is approved. Return to your AI agent to finish connecting.",
+            None,
+        ));
     }
     page("<!doctype html><title>Hirara connection approved</title><h1>Connection approved</h1><p>Return to your agent and call connector_connect with the connection ID again. OAuth connections will provide a login link.</p>".into())
 }
@@ -588,9 +594,27 @@ async fn callback(AxumState(state): AxumState<State>, Query(query): Query<Callba
             "authorization was cancelled or callback is invalid",
         );
     };
-    match tokio::time::timeout(Duration::from_secs(45),state.runtime.callback(&csrf,&code,query.iss.as_deref())).await {
-        Ok(Ok(()))=>page("<!doctype html><title>Hirara connected</title><h1>Account connected through Hirara</h1><p>You can close this page and return to your agent.</p>".into()),
-        _=>error(StatusCode::BAD_REQUEST,"authorization failed or expired; restart connection authorization")
+    match tokio::time::timeout(
+        Duration::from_secs(45),
+        state.runtime.callback(&csrf, &code, query.iss.as_deref()),
+    )
+    .await
+    {
+        Ok(Ok(())) => {
+            if state.browser.is_some() {
+                crate::portal::page(&crate::portal::result(
+                    "You're connected.",
+                    "Your account is connected through Hirara. You can return to your AI agent.",
+                    Some(("/local", "Your connections")),
+                ))
+            } else {
+                page("<!doctype html><title>Hirara connected</title><h1>Account connected through Hirara</h1><p>You can close this page and return to your agent.</p>".into())
+            }
+        }
+        _ => error(
+            StatusCode::BAD_REQUEST,
+            "authorization failed or expired; restart connection authorization",
+        ),
     }
 }
 fn safe_key_header(name: &str) -> bool {

@@ -203,7 +203,7 @@ impl Runtime {
         let transport = StreamableHttpClientTransport::with_client(self.net.clone(), config);
         let info = ClientConfig::new(
             Default::default(),
-            Implementation::new("hirara-connectors", "0.2.0"),
+            Implementation::new("hirara-connectors", "0.2.1"),
         )
         .with_protocol_version(ProtocolVersion::V_2025_11_25);
         let client = info

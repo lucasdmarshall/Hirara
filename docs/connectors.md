@@ -340,3 +340,13 @@ The Chromium browser UI was exercised through its actual HTTP bootstrap and
 cross-tab approval flow. Native browser launching and macOS/Windows integration
 have not been verified end to end; managed browsers can prohibit opening local
 launch files.
+
+## Browser appearance
+
+The local browser companion uses the repository's Hirara logo, bundled Poppins
+fonts and a responsive borderless layout. Authentication selection, permission
+checkboxes and the tool-scope disclosure have custom styling and keyboard support.
+Ambient background motion and interaction effects respect `prefers-reduced-motion`.
+Fonts, branding, CSS and scripts are embedded in the Rust binary; no third-party
+font/image requests are needed. See `hirara-connectors/ui/README.md` for asset
+sources and the Poppins license.

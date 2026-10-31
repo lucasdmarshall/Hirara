@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
     let state = api::State::from_env()?;
     let listener = tokio::net::TcpListener::bind(&state.bind).await?;
-    eprintln!("hirara-connectors 0.2.0 listening on {}", state.bind);
+    eprintln!("hirara-connectors 0.2.1 listening on {}", state.bind);
     axum::serve(listener, api::router(state))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;

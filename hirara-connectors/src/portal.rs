@@ -85,7 +85,7 @@ pub async fn home(State(state): State<App>) -> Response {
         return StatusCode::NOT_FOUND.into_response();
     }
     page(
-        "<h1>Hirara connectors</h1><p id=status>Preparing your browser session…</p><p>Return to your AI agent to search for a connector. Open its connection link here to review permissions.</p><div id=connections></div>",
+        "<p class=page-kicker>YOUR CONNECTIONS</p><h1>A place for your tools.</h1><p class=intro>Find a connector with your AI agent, then open its connection link here to choose what it can access.</p><p id=status class=home-state>Preparing your browser session…</p><div id=connections></div>",
     )
 }
 pub async fn session(
@@ -143,9 +143,11 @@ pub async fn connections(State(state): State<App>, headers: HeaderMap) -> Respon
 }
 pub fn page(content: &str) -> Response {
     let nonce = random_id();
-    let html = format!(
-        "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Hirara connectors</title><style nonce=\"{nonce}\">body{{font:16px system-ui;background:#101419;color:#e6edf3;margin:0;padding:40px 20px}}main{{max-width:660px;margin:auto;background:#192129;padding:32px;border:1px solid #34414e;border-radius:16px}}label{{display:block;margin:16px 0}}input,select,button{{font:inherit;padding:10px;border-radius:6px;max-width:95%}}input:not([type=checkbox]){{display:block;width:95%}}button{{background:#7ee787;border:0;cursor:pointer;margin-top:16px}}a{{color:#7ee787}}p{{overflow-wrap:anywhere;line-height:1.6}}#status{{color:#b8c7d6}}</style><main><div id=content>{content}</div><p id=notice role=status></p></main><script nonce=\"{nonce}\">{SCRIPT}</script>"
-    );
+    let html = include_str!("../ui/frame.html")
+        .replace("{{STYLE}}", include_str!("../ui/portal.css"))
+        .replace("{{SCRIPT}}", include_str!("../ui/portal.js"))
+        .replace("{{NONCE}}", &nonce)
+        .replace("{{CONTENT}}", content);
     let mut response = Html(html).into_response();
     let h = response.headers_mut();
     h.insert("cache-control", HeaderValue::from_static("no-store"));
@@ -154,21 +156,101 @@ pub fn page(content: &str) -> Response {
         "x-content-type-options",
         HeaderValue::from_static("nosniff"),
     );
-    h.insert("content-security-policy",HeaderValue::from_str(&format!("default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")).unwrap());
+    h.insert("content-security-policy",HeaderValue::from_str(&format!("default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; connect-src 'self'; img-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")).unwrap());
     response
 }
-const SCRIPT: &str = r#"(async()=>{
-const notice=document.getElementById('notice');const key='hirara-browser-session';
-try{
- const ticket=location.hash.slice(1);history.replaceState(null,'',location.pathname);
- if(ticket){const r=await fetch('/local/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket})});if(!r.ok)throw Error('Browser link expired. Run hirara-connectors open again.');localStorage.setItem(key,(await r.json()).token);}
- const token=localStorage.getItem(key);
- if(!token){notice.textContent='Open your browser session first: run hirara-connectors open on this computer, then reload this page.';const b=document.querySelector('button');if(b)b.disabled=true;return;}
- const form=document.querySelector('form');
- if(form){const mode=form.elements.mode;function fields(){for(const [name,show] of [['bearer',['bearer','api_key'].includes(mode.value)],['header_name',mode.value==='api_key'],['client_id',mode.value==='oauth']]){const p=form.elements[name].closest('p');if(p)p.hidden=!show;}}mode.addEventListener('change',fields);fields();form.addEventListener('submit',async(event)=>{event.preventDefault();const button=form.querySelector('button');button.disabled=true;try{const r=await fetch(location.pathname,{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem(key),'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(form))});if(!r.ok){const error=await r.json();throw Error(error.error||'Connection could not be approved.');}document.getElementById('content').innerHTML=await r.text();notice.textContent='';}catch(e){notice.textContent=e.message;button.disabled=false;}});}
- else{const r=await fetch('/local/connections',{headers:{Authorization:'Bearer '+token}});if(!r.ok){localStorage.removeItem(key);throw Error('Browser session expired. Run hirara-connectors open again.');}document.getElementById('status').textContent='Ready. Your browser can approve connections without entering an operator token.';const data=await r.json();for(const c of data.connections){const p=document.createElement('p');p.textContent=c.title+' — saved';document.getElementById('connections').append(p);}}
-}catch(e){notice.textContent=e.message;}
-})();"#;
+
+pub async fn asset(axum::extract::Path(name): axum::extract::Path<String>) -> Response {
+    let (bytes, mime): (&'static [u8], &str) = match name.as_str() {
+        "hirara-logo.png" => (include_bytes!("../ui/assets/hirara-logo.png"), "image/png"),
+        "poppins-regular.ttf" => (
+            include_bytes!("../ui/assets/poppins-regular.ttf"),
+            "font/ttf",
+        ),
+        "poppins-medium.ttf" => (
+            include_bytes!("../ui/assets/poppins-medium.ttf"),
+            "font/ttf",
+        ),
+        "poppins-semibold.ttf" => (
+            include_bytes!("../ui/assets/poppins-semibold.ttf"),
+            "font/ttf",
+        ),
+        "poppins-license.txt" => (
+            include_bytes!("../ui/assets/poppins-license.txt"),
+            "text/plain; charset=utf-8",
+        ),
+        _ => return StatusCode::NOT_FOUND.into_response(),
+    };
+    let mut response = bytes.into_response();
+    let headers = response.headers_mut();
+    headers.insert("content-type", HeaderValue::from_str(mime).unwrap());
+    headers.insert(
+        "cache-control",
+        HeaderValue::from_static("public, max-age=3600"),
+    );
+    headers.insert(
+        "x-content-type-options",
+        HeaderValue::from_static("nosniff"),
+    );
+    response
+}
+const SERVER: &str = r#"<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="2"/><rect x="4" y="14" width="16" height="6" rx="2"/><path d="M8 7h.01M8 17h.01M15 7h2M15 17h2"/></svg>"#;
+const PUBLIC: &str = r#"<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c5 4 5 12 0 16-5-4-5-12 0-16Z"/></svg>"#;
+const LOGIN: &str = r#"<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M4 12h10m-4-4 4 4-4 4"/></svg>"#;
+const TOKEN: &str = r#"<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>"#;
+const KEY: &str = r#"<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="4"/><path d="m11 12 8 8m-3-3 3-3m-6 0 2-2"/></svg>"#;
+const CHECK: &str = r#"<svg class="option-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>"#;
+const CHEVRON: &str = r#"<svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>"#;
+const ARROW: &str =
+    r#"<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>"#;
+pub fn result(title: &str, message: &str, link: Option<(&str, &str)>) -> String {
+    let title = crate::api::escape(title);
+    let message = crate::api::escape(message);
+    let action = link
+        .map(|(url, label)| {
+            format!(
+                r#"<a class="connect-button" href="{}">{}{ARROW}</a>"#,
+                crate::api::escape(url),
+                crate::api::escape(label)
+            )
+        })
+        .unwrap_or_default();
+    format!(
+        r#"<div class="result-body"><div class="success-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><p class="page-kicker">YOUR CONNECTION</p><h1>{title}</h1><p class="intro">{message}</p>{action}</div>"#
+    )
+}
+
+pub fn approval(title: &str, endpoint: &str) -> Response {
+    let title = crate::api::escape(title);
+    let endpoint = crate::api::escape(endpoint);
+    let options=[("none","Public access","No account required",PUBLIC),("oauth","Sign in with OAuth","Continue with your provider",LOGIN),("bearer","Access token","Use a personal access token",TOKEN),("api_key","API key","Use a provider API key",KEY)].into_iter().map(|(value,label,description,icon)|format!(r#"<button type="button" role="option" tabindex="-1" aria-selected="{}" data-value="{value}" class="select-option">{icon}<span class="select-copy"><span class="select-value">{label}</span><span class="select-description">{description}</span></span>{CHECK}</button>"#,value=="none")).collect::<String>();
+    page(&format!(
+        r#"
+<p class="page-kicker">A NEW CONNECTION {ARROW}</p>
+<h1>Make the connection.</h1>
+<p class="intro">Give your AI agent a little more to work with.<br>Choose how you'd like to connect this server.</p>
+<div class="server"><span class="server-icon">{SERVER}</span><div class="server-info"><span class="server-title">{title}</span><span class="server-address">{endpoint}</span></div><span class="protocol">MCP</span></div>
+<form novalidate>
+  <span class="field-label" id="auth-label">Authentication</span>
+  <div class="auth-picker">
+    <input type="hidden" name="mode" value="none">
+    <button type="button" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="auth-options" aria-labelledby="auth-label auth-value" class="select-trigger"><span class="select-icon">{PUBLIC}</span><span class="select-copy"><span class="select-value" id="auth-value">Public access</span><span class="select-description">No account required</span></span>{CHEVRON}</button>
+    <div role="listbox" id="auth-options" aria-labelledby="auth-label" class="select-menu" hidden>{options}</div>
+  </div>
+  <div class="field" hidden><label class="field-label" for="provider-secret">Provider token or API key</label><input id="provider-secret" type="password" name="bearer" autocomplete="off" placeholder="Enter your provider credential" spellcheck="false"></div>
+  <div class="field" hidden><label class="field-label" for="key-header">API key header</label><input id="key-header" name="header_name" placeholder="x-api-key" autocomplete="off" spellcheck="false"></div>
+  <div class="field" hidden><label class="field-label" for="oauth-client">OAuth client ID <span class="field-hint">(optional)</span></label><input id="oauth-client" name="client_id" placeholder="Only if your provider requires one" autocomplete="off" spellcheck="false"></div>
+  <div class="permissions"><p class="permissions-label">You're in control</p>
+    <label class="permission-choice"><input class="check-input" type="checkbox" name="all_tools" value="yes"><span><span class="choice-title">Allow this server's tools</span><span class="choice-description">Includes tools the provider adds in the future.</span></span></label>
+    <button type="button" class="disclosure" aria-expanded="false" aria-controls="tool-scope">{CHEVRON}Choose specific tools instead</button>
+    <div id="tool-scope" hidden><div class="field"><label class="field-label" for="tool-names">Permitted tool names</label><input id="tool-names" name="tools" placeholder="read, search" spellcheck="false" autocomplete="off"><p class="field-hint">Use names from the provider's tool documentation.</p></div></div>
+  </div>
+  <button type="submit" class="connect-button"><span class="button-label">Connect</span>{ARROW}</button>
+  <p class="connection-note">Hirara provides the connection, not an endorsement of this server. Connect to providers you trust.</p>
+</form>"#
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
