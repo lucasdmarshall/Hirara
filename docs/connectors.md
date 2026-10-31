@@ -6,7 +6,77 @@ tools. The connection runtime, catalog adapters, OAuth and encrypted persistence
 are Rust in `hirara-connectors/`; the existing Python SDK and hub are thin
 transports.
 
-## Run locally
+## Normal local setup: one command
+
+Install the Rust binary once, then start the local connector runtime:
+
+```sh
+cargo install --path hirara-connectors --locked
+hirara-connectors local
+```
+
+No connector environment variables, operator passwords, token copying or manual
+key generation are needed. Keep the runtime running alongside your existing
+Hirara hub. It opens a small browser page; the hub/SDK discover the local service
+automatically when the native hub/SDK share the same OS user and filesystem.
+Container/server deployments retain the operator-managed setup below. Existing MCP stdio clients use this through
+the hub too. This is a browser companion to a tool, not a desktop application or
+a requirement for a chat host to implement an embedded UI.
+
+The user flow is:
+
+1. Ask the agent to search for a connector.
+2. Open the `approval_url` returned by `connector_connect`.
+3. Choose authentication and permitted tools, then click **Connect**.
+4. For OAuth, follow **Sign in with the provider** and give provider consent.
+5. Return to the agent; saved connections survive chat/service restarts.
+
+The local approval page has no operator-token field. Provider login or an
+API-key-only provider's key is still needed; Hirara cannot create those accounts
+or credentials for you. Secrets belong in the browser form, never in chat.
+`hirara-connectors open` reopens browser authorization after it expires (eight
+hours) or if you use another browser. New approvals do not require restarting the
+runtime. Browser sessions are separate from saved provider account connections.
+
+The runtime generates private secrets and an encrypted vault under:
+
+- Linux: `$XDG_DATA_HOME/hirara/connectors`, or `~/.local/share/hirara/connectors`.
+- macOS: `~/Library/Application Support/Hirara/connectors`.
+- Windows: `%LOCALAPPDATA%/Hirara/connectors`.
+
+The encrypted-file credential backend remains in use; OS Keychain/Secret Service
+storage is not part of this release. Unix directories/files use 0700/0600. Keep
+this application data outside agent filesystem roots. This protects separation
+between MCP/browser credentials, not against an agent given unrestricted host
+file access, arbitrary host code execution, or access to the user's browser
+profile. Those capabilities need their own OS/tool isolation.
+
+Internal agent credentials rotate on every runtime start. Discovery is restricted
+to the user's private loopback metadata file; the hub verifies an HMAC challenge
+before sending credentials or tool arguments, and the SDK verifies the local
+HTTP hub before authenticating automatically. Unauthenticated HTTP hub callers
+cannot use these automatically connected accounts. Explicit deployment settings
+continue to take precedence over automatic local discovery.
+
+Browser authorization uses a two-minute, single-use bootstrap ticket and an
+origin-scoped browser credential, separate from the agent credential. No cookies
+are used because localhost cookies are shared across ports. The bootstrap ticket
+is kept in a private launch file and URL fragment, not printed or passed in
+browser-launcher process arguments. Approval requires the authorized browser
+credential and an exact matching Origin. Pages use nonce-based CSP and no third
+party scripts. Browser storage contains no provider OAuth/API tokens.
+
+For headless/local testing, use `local --no-browser`. For a different private data
+directory, use `--data-dir DIRECTORY`; the hub can use the same absolute directory
+through `HIRARA_CONNECTOR_LOCAL_DIR`. These are advanced options. If a proxy is
+configured, the runtime requires explicit `--trust-proxy` acknowledgement of the
+proxy destination policy described below. It does not bypass network policy.
+
+The browser and runtime must be on the same computer in local mode. A hosted
+Hirara deployment still needs the operator-managed HTTPS configuration below;
+end users should receive a browser-accessible approval URL from that deployment.
+
+## Operator-managed deployment (advanced)
 
 Use the current stable Rust toolchain and the repository's normal Python development setup.
 From the repository root:
@@ -262,3 +332,11 @@ success does not establish live provider compatibility or marketplace uptime.
 The public Cursor repository GitHub listing/search were also verified live,
 including logo URL, category, endpoint and raw metadata. Website HTML adapters
 and live account OAuth have not been verified end to end.
+
+Local-mode tests additionally cover zero-env discovery, authenticated SDK access,
+forged listener identity/Host rejection, cross-origin and agent-only approval
+rejection, bootstrap replay rejection, credential rotation and restart persistence.
+The Chromium browser UI was exercised through its actual HTTP bootstrap and
+cross-tab approval flow. Native browser launching and macOS/Windows integration
+have not been verified end to end; managed browsers can prohibit opening local
+launch files.

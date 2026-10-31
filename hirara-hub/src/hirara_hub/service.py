@@ -15,13 +15,15 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 import hmac
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 from hirara_core.policy import install_validation_errors
 
 from . import banner
 from .config import HubConfig
 from .gateway import Gateway
+from .registry import TOOLS
+from hirara_core.local_connectors import hub_proof
 
 _config = HubConfig.from_env()
 _gateway = Gateway(_config)
@@ -35,7 +37,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="hirara-hub", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="hirara-hub", version="0.6.0", lifespan=lifespan)
 install_validation_errors(app)
 
 
@@ -73,5 +75,26 @@ async def ready():
 
 
 @app.post("/call", dependencies=[Depends(require_auth)])
-async def call(request: CallRequest) -> dict:
+async def call(request: CallRequest, authorization: str | None = Header(default=None)) -> dict:
+    route = TOOLS.get(request.name)
+    local = _gateway._local_connector() if route and route.service == "hiraraconnectors" else None
+    if local and not _config.auth_enabled:
+        if not hmac.compare_digest((authorization or "").encode(), f"Bearer {local.token}".encode()):
+            raise HTTPException(status_code=401, detail="local connector authentication required; use the Hirara SDK or MCP stdio")
     return await _gateway.call(request.name, request.arguments)
+
+
+@app.post("/connectors/local-proof")
+async def local_connector_proof(body: dict, request: Request):
+    local = _gateway._local_connector()
+    challenge = body.get("challenge")
+    if not local:
+        raise HTTPException(status_code=404, detail="local connectors not running")
+    if not isinstance(challenge, str) or not 32 <= len(challenge) <= 128 or any(c not in "0123456789abcdef" for c in challenge):
+        raise HTTPException(status_code=422, detail="invalid challenge")
+    # Bind to the actual listener port, never the caller-controlled Host header.
+    address, port = request.scope["server"]
+    if address != "127.0.0.1":
+        raise HTTPException(status_code=403, detail="local identity proof requires an IPv4 loopback listener")
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"proof": hub_proof(local.token, port, challenge)}, headers={"Cache-Control": "no-store"})

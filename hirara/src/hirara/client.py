@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import base64 as _b64
 import os
+from urllib.parse import urlsplit
 
 import httpx
 from hirara_core.policy import tool_allowed
+from hirara_core.local_connectors import discover, verify_hub
 
 from ._local import LocalBackends
 
@@ -81,11 +83,15 @@ class Client:
         self._client: httpx.Client | None = None
 
     # allow dependency injection in tests
-    def _http(self) -> httpx.Client:
+    def _http(self, *, pin_local: bool = False) -> httpx.Client:
         if self._client is not None:
             return self._client
         headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
-        return httpx.Client(base_url=self.url, headers=headers, timeout=self.timeout)
+        base_url = httpx.URL(self.url)
+        if pin_local and base_url.scheme == "http" and base_url.host == "localhost":
+            base_url = base_url.copy_with(host="127.0.0.1")
+        return httpx.Client(base_url=base_url, headers=headers, timeout=self.timeout,
+                            trust_env=urlsplit(self.url).hostname not in {"localhost", "127.0.0.1", "::1"})
 
     # --- low level ---
 
@@ -126,9 +132,15 @@ class Client:
         return self._call_http(name, arguments, raise_on_error=raise_on_error)
 
     def _call_http(self, name: str, arguments: dict | None = None, *, raise_on_error: bool = True) -> dict:
-        client = self._http()
+        local = (discover() if name.startswith("connector_") and not self.token
+                 and urlsplit(self.url).hostname in {"localhost", "127.0.0.1"} else None)
+        client = self._http(pin_local=True) if local else self._http()
         try:
-            resp = client.post("/call", json={"name": name, "arguments": arguments or {}})
+            headers = {}
+            if local:
+                verify_hub(client, local, self.url)
+                headers["Authorization"] = f"Bearer {local.token}"
+            resp = client.post("/call", json={"name": name, "arguments": arguments or {}}, headers=headers)
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as exc:

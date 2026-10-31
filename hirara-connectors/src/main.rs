@@ -1,6 +1,8 @@
 mod api;
 mod catalog;
+mod local;
 mod net;
+mod portal;
 mod runtime;
 mod store;
 
@@ -17,12 +19,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ))?;
         return Ok(());
     }
+    if matches!(args.get(1).map(String::as_str), Some("local" | "open")) {
+        return local::run(&args[1..]).await;
+    }
     if args.len() > 1 {
-        return Err(net::fail("usage: hirara-connectors [init DIRECTORY]"));
+        return Err(net::fail(
+            "usage: hirara-connectors [local|open] [--data-dir DIRECTORY] [--no-browser] [--trust-proxy], or init DIRECTORY",
+        ));
     }
     let state = api::State::from_env()?;
     let listener = tokio::net::TcpListener::bind(&state.bind).await?;
-    eprintln!("hirara-connectors 0.1.0 listening on {}", state.bind);
+    eprintln!("hirara-connectors 0.2.0 listening on {}", state.bind);
     axum::serve(listener, api::router(state))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;

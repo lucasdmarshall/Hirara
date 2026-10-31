@@ -15,6 +15,7 @@ import httpx
 
 from .config import HubConfig
 from .registry import TOOLS, services
+from hirara_core.local_connectors import discover, verify
 
 log = logging.getLogger(__name__)
 
@@ -24,11 +25,26 @@ class Gateway:
         self.config = config
         self._client = client  # injected in tests; else made per-call
 
-    def _aclient(self, timeout: float) -> tuple[httpx.AsyncClient, bool]:
+    def _aclient(self, timeout: float, *, local: bool = False) -> tuple[httpx.AsyncClient, bool]:
         """Return (client, should_close)."""
         if self._client is not None:
             return self._client, False
-        return httpx.AsyncClient(timeout=timeout), True
+        return httpx.AsyncClient(timeout=timeout, trust_env=not local), True
+
+    def _local_connector(self):
+        import os
+        if any(os.getenv(k) for k in ("HIRARA_CONNECTOR_TOKEN", "HIRARA_CONNECTOR_TOKEN_FILE", "HUB_HIRARACONNECTORS_URL")):
+            return None
+        configured = self.config.service_urls.get("hiraraconnectors")
+        if configured and configured not in {"http://localhost:9700", "http://127.0.0.1:9700"}:
+            return None
+        return discover()
+
+    def _target(self, service, path):
+        local = self._local_connector() if service == "hiraraconnectors" else None
+        if local:
+            return local.url + path, {"Authorization": f"Bearer {local.token}"}, local
+        return self._url(service, path), self._headers(service), None
 
     def _url(self, service: str, path: str) -> str:
         base = self.config.service_urls.get(service, f"http://{service}")
@@ -45,6 +61,9 @@ class Gateway:
                     token = Path(path).read_text().strip()
                 except (OSError, UnicodeError):
                     return {}
+        if service == "hiraraconnectors" and not token:
+            local = self._local_connector()
+            token = local.token if local else ""
         if service == "hiraraconnectors" and (not token.isascii() or any(c.isspace() for c in token)):
             return {}
         return {"Authorization": f"Bearer {token}"} if token else {}
@@ -57,10 +76,17 @@ class Gateway:
                 return service, None
             async def request():
                 async with slots:
-                    resp = await client.get(self._url(service, path), headers=self._headers(service),
-                                            timeout=self.config.probe_timeout)
-                    resp.raise_for_status()
-                    return resp.json() if resp.content else {}
+                    url, headers, local = self._target(service, path)
+                    active, own = (self._aclient(self.config.probe_timeout, local=True) if local else (client, False))
+                    try:
+                        if local:
+                            await verify(active, local, self.config.probe_timeout)
+                        resp = await active.get(url, headers=headers, timeout=self.config.probe_timeout)
+                        resp.raise_for_status()
+                        return resp.json() if resp.content else {}
+                    finally:
+                        if own:
+                            await active.aclose()
             try:
                 return service, await asyncio.wait_for(request(), self.config.probe_timeout)
             except Exception:
@@ -98,7 +124,7 @@ class Gateway:
                 status[service] = "degraded"
         up = sum(value == "up" for value in status.values())
         return {"status": "ok" if up == len(status) else "degraded",
-                "version": "0.5.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
+                "version": "0.6.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
                 "services": status, "services_up": up, "services_total": len(status),
                 "ready": up > 0}
 
@@ -114,12 +140,14 @@ class Gateway:
         route = TOOLS.get(name)
         if route is None:
             return {"error": f"unknown tool: {name}", "tool": name}
-        if route.service == "hiraraconnectors" and not self._headers(route.service):
-            return {"error": "connectors are not configured: set HIRARA_CONNECTOR_TOKEN", "tool": name}
-        url = self._url(route.service, route.path)
-        client, close = self._aclient(self.config.timeout)
+        url, headers, local = self._target(route.service, route.path)
+        if route.service == "hiraraconnectors" and not headers:
+            return {"error": "connectors are not configured: run hirara-connectors local or set HIRARA_CONNECTOR_TOKEN", "tool": name}
+        client, close = self._aclient(self.config.timeout, local=bool(local))
         try:
-            resp = await client.post(url, json=arguments or {}, headers=self._headers(route.service), timeout=self.config.timeout)
+            if local:
+                await verify(client, local, self.config.probe_timeout)
+            resp = await client.post(url, json=arguments or {}, headers=headers, timeout=self.config.timeout)
             if resp.status_code >= 500:
                 return {
                     "error": f"backend {route.service} error (HTTP {resp.status_code})",

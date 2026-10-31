@@ -98,3 +98,26 @@ def test_connector_mcp_attribution_is_instruction_not_endorsement():
     assert server.instructions == CONNECTOR_INSTRUCTIONS
     assert 'provided through Hirara' in server.instructions
     assert 'not an audit or endorsement' in server.instructions
+
+
+@pytest.mark.asyncio
+async def test_auto_discovery_does_not_send_credentials_or_arguments_to_a_fake_runtime(monkeypatch, tmp_path):
+    import json
+    monkeypatch.setenv('HIRARA_CONNECTOR_LOCAL_DIR', str(tmp_path))
+    for name in ('HIRARA_CONNECTOR_TOKEN', 'HIRARA_CONNECTOR_TOKEN_FILE', 'HUB_HIRARACONNECTORS_URL'):
+        monkeypatch.delenv(name, raising=False)
+    tmp_path.chmod(0o700)
+    path = tmp_path / 'local.json'
+    path.write_text(json.dumps({'version': 1, 'url': 'http://127.0.0.1:9701', 'token': 'b' * 48}))
+    path.chmod(0o600)
+    requests = []
+    def handler(req):
+        requests.append(req)
+        assert req.url.path == '/local/proof'
+        assert not req.headers.get('authorization')
+        assert b'private-query' not in req.content
+        return httpx.Response(200, json={'proof': 'invalid'})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await Gateway(HubConfig(), client).call('connector_call', {'connection_id': 'private-query'})
+    assert 'identity verification failed' in result['error']
+    assert len(requests) == 1

@@ -158,8 +158,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install -c constraints-release.txt -e './hirara-core[dev]' -e './hirara-hub[mcp]'
+      - run: python -m pip install -c constraints-release.txt -e './hirara-core[dev]' -e './hirara-hub[mcp]' -e './hirara'
       - name: Rust connectors over the MCP hub
         env:
           HIRARA_CONNECTOR_INTEGRATION: '1'
-        run: python -m pytest -q integration/test_connectors_mcp.py -o asyncio_mode=auto
+        run: python -m pytest -q integration/test_connectors_mcp.py integration/test_connectors_local.py -o asyncio_mode=auto

@@ -112,7 +112,10 @@ pub struct Net {
 }
 impl Net {
     pub fn new() -> Result<Self, Error> {
-        let proxy = if std::env::var("HCONNECT_TRUST_PROXY").as_deref() == Ok("true") {
+        Self::with_proxy_trust(std::env::var("HCONNECT_TRUST_PROXY").as_deref() == Ok("true"))
+    }
+    pub fn with_proxy_trust(trust: bool) -> Result<Self, Error> {
+        let proxy = if trust {
             ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"]
                 .iter()
                 .filter_map(|k| std::env::var(k).ok())
@@ -138,7 +141,7 @@ impl Net {
             .redirect(reqwest::redirect::Policy::none())
             .connect_timeout(Duration::from_secs(10))
             .timeout(Duration::from_secs(40))
-            .user_agent("Hirara-Connectors/0.1");
+            .user_agent("Hirara-Connectors/0.2");
         // An explicitly trusted proxy is mandatory for every external HTTPS request.
         // No NO_PROXY/direct fallback can evade the proxy's destination/DNS policy.
         if let Some(proxy) = &proxy {

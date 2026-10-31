@@ -28,9 +28,10 @@ use tokio::sync::{Mutex, Semaphore};
 #[derive(Clone)]
 pub struct State {
     pub bind: String,
-    public_url: String,
+    pub(crate) public_url: String,
     clients: Arc<HashMap<String, String>>,
     admin: String,
+    pub(crate) browser: Option<Arc<crate::portal::BrowserSession>>,
     allowed: Option<Arc<HashSet<String>>>,
     pub runtime: Runtime,
     catalog: Catalog,
@@ -122,6 +123,7 @@ impl State {
             bind: std::env::var("HCONNECT_BIND").unwrap_or_else(|_| "127.0.0.1:9700".into()),
             public_url: public_url.clone(),
             clients: Arc::new(clients),
+            browser: None,
             admin,
             allowed: std::env::var("HIRARA_ALLOWED_TOOLS")
                 .ok()
@@ -131,6 +133,35 @@ impl State {
             approvals: Default::default(),
             slots: Arc::new(Semaphore::new(16)),
         })
+    }
+    pub(crate) fn local(dir: &Path, url: String, net: Net, token: String) -> Result<Self, Error> {
+        let secret = dir.join("secrets");
+        let key: [u8; 32] = std::fs::read(secret.join("vault-key"))?
+            .try_into()
+            .map_err(|_| fail("invalid local vault key"))?;
+        let admin = std::fs::read_to_string(secret.join("admin-token"))?;
+        let store = Store::open(&dir.join("vault"), &key)?;
+        Ok(Self {
+            bind: url.trim_start_matches("http://").into(),
+            public_url: url.clone(),
+            clients: Arc::new(HashMap::from([(token.clone(), "local".into())])),
+            admin,
+            browser: Some(Arc::new(crate::portal::BrowserSession::new(token))),
+            allowed: std::env::var("HIRARA_ALLOWED_TOOLS")
+                .ok()
+                .map(|v| Arc::new(v.split(',').map(|s| s.trim().to_string()).collect())),
+            runtime: Runtime::new(net.clone(), store, format!("{url}/oauth/callback")),
+            catalog: Catalog::new(net),
+            approvals: Default::default(),
+            slots: Arc::new(Semaphore::new(16)),
+        })
+    }
+    pub(crate) fn operator(&self, headers: &HeaderMap) -> bool {
+        headers
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .is_some_and(|v| equal(v, &self.admin))
     }
     fn owner(&self, headers: &HeaderMap) -> Option<String> {
         let given = headers
@@ -225,7 +256,7 @@ impl State {
                     },
                 );
                 Ok(
-                    json!({"status":"approval_required","approval_url":format!("{}/approve/{approval_id}",self.public_url),"connection_id":id,"expires_in_seconds":600,"message":"Open the approval URL in your browser. The operator supplies credentials and allowed tool names there; never paste secrets into chat."}),
+                    json!({"status":"approval_required","approval_url":format!("{}/approve/{approval_id}",self.public_url),"connection_id":id,"expires_in_seconds":600,"message":if self.browser.is_some(){"Show the approval URL to the user. They can choose access and connect in their authorized browser. Hirara handles local credentials automatically; never paste provider secrets into chat."}else{"Open the approval URL in your browser. The operator supplies credentials and allowed tool names there; never paste secrets into chat."}}),
                 )
             }
             "connector_status" => {
@@ -272,7 +303,7 @@ impl State {
 fn required(k: &str) -> Result<String, Error> {
     std::env::var(k).map_err(|_| fail(&format!("{k} is required")))
 }
-fn equal(a: &str, b: &str) -> bool {
+pub(crate) fn equal(a: &str, b: &str) -> bool {
     let a = Sha256::digest(a.as_bytes());
     let b = Sha256::digest(b.as_bytes());
     bool::from(a.ct_eq(&b))
@@ -310,8 +341,13 @@ pub fn router(state: State) -> Router {
     Router::new()
         .route(
             "/health",
-            get(|| async { Json(json!({"status":"ok","version":"0.1.0"})) }),
+            get(|| async { Json(json!({"status":"ok","version":"0.2.0"})) }),
         )
+        .route("/local", get(crate::portal::home))
+        .route("/local/session", post(crate::portal::session))
+        .route("/local/open", post(crate::portal::open))
+        .route("/local/proof", post(crate::portal::proof_handler))
+        .route("/local/connections", get(crate::portal::connections))
         .route("/schemas", get(schemas))
         .route("/approve/{id}", get(approval_page).post(approve))
         .route("/oauth/callback", get(callback))
@@ -424,16 +460,24 @@ async fn approval_page(
     else {
         return error(StatusCode::NOT_FOUND, "approval expired or absent");
     };
-    page(format!(
+    let mut html = format!(
         "<!doctype html><meta charset=utf-8><title>Connect through Hirara</title><h1>Connect through Hirara</h1><p>Account: {}</p><p>Server: {}</p><p>Endpoint: {}</p><p>Hirara has not audited or endorsed this server. Tool access can disclose data or perform writes.</p><form method=post><label>Operator approval token <input required type=password name=admin autocomplete=off></label><p><label>Authentication <select name=mode><option value=none>No authentication</option><option value=bearer>Bearer token</option><option value=api_key>API key header</option><option value=oauth>OAuth</option></select></label></p><p><label>Bearer token or API key (if needed) <input type=password name=bearer autocomplete=off></label></p><p><label>API key header name (if needed) <input name=header_name placeholder=x-api-key></label></p><p><label>OAuth client ID (optional) <input name=client_id></label></p><p><label>Allowed tool names, comma separated. Explicit * permits all present and future tools. <input required name=tools></label></p><button>Approve connection</button></form>",
         escape(&p.connection.owner),
         escape(&p.connection.title),
         escape(&p.connection.endpoint)
-    ))
+    );
+    if state.browser.is_some() {
+        html=html.replace("<label>Operator approval token <input required type=password name=admin autocomplete=off></label>","").replace("<label>Allowed tool names, comma separated. Explicit * permits all present and future tools. <input required name=tools></label>","<label><input type=checkbox name=all_tools value=yes> Allow all current and future tools from this server</label><details><summary>Limit access to specific tools</summary><label>Tool names, comma separated <input name=tools placeholder=\"read, search\"></label></details>").replace("<button>Approve connection</button>","<button>Connect</button>").replace("<option value=none>No authentication</option>","<option value=none>Public server (no login)</option>").replace("<option value=oauth>OAuth</option>","<option value=oauth>Sign in with provider (OAuth)</option>");
+        crate::portal::page(&html)
+    } else {
+        page(html)
+    }
 }
 #[derive(Deserialize)]
 struct ApprovalForm {
+    #[serde(default)]
     admin: String,
+    all_tools: Option<String>,
     mode: String,
     bearer: Option<String>,
     header_name: Option<String>,
@@ -443,13 +487,29 @@ struct ApprovalForm {
 async fn approve(
     AxumState(state): AxumState<State>,
     AxumPath(id): AxumPath<String>,
-    Form(form): Form<ApprovalForm>,
+    headers: HeaderMap,
+    Form(mut form): Form<ApprovalForm>,
 ) -> Response {
-    if !equal(&state.admin, &form.admin) {
-        return error(StatusCode::UNAUTHORIZED, "invalid operator approval token");
+    let authorized = if let Some(browser) = &state.browser {
+        browser.authorized(&headers, &state.public_url, true)
+    } else {
+        equal(&state.admin, &form.admin)
+    };
+    if !authorized {
+        return error(
+            StatusCode::UNAUTHORIZED,
+            if state.browser.is_some() {
+                "Browser session expired or missing. Run hirara-connectors open, then try again."
+            } else {
+                "invalid operator approval token"
+            },
+        );
     }
     if !matches!(form.mode.as_str(), "none" | "bearer" | "api_key" | "oauth") {
         return error(StatusCode::BAD_REQUEST, "unsupported authentication mode");
+    }
+    if form.all_tools.as_deref() == Some("yes") {
+        form.tools = "*".into();
     }
     let tools: Vec<String> = form
         .tools
@@ -498,6 +558,7 @@ async fn approve(
         None
     };
     c.client_id = form.client_id.filter(|s| !s.is_empty());
+    let connection = c.clone();
     if state.runtime.store.put(c).is_err() {
         return error(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -505,6 +566,13 @@ async fn approve(
         );
     }
     approvals.remove(&id);
+    drop(approvals);
+    if state.browser.is_some() && connection.mode == "oauth" {
+        match state.runtime.authorize(&connection).await {
+            Ok(result)=>if let Some(url)=result["authorization_url"].as_str() {return page(format!("<h1>Continue connecting</h1><p>Hirara will keep this connection for future chats.</p><a href=\"{}\">Sign in with the provider</a>",escape(url)));},
+            Err(_)=>return page("<h1>Connection saved</h1><p>OAuth setup needs attention. Ask your agent to reconnect for the provider setup requirements.</p>".into())
+        }
+    }
     page("<!doctype html><title>Hirara connection approved</title><h1>Connection approved</h1><p>Return to your agent and call connector_connect with the connection ID again. OAuth connections will provide a login link.</p>".into())
 }
 #[derive(Deserialize)]
@@ -638,6 +706,7 @@ mod tests {
                 ("bob-key".into(), "bob".into()),
             ])),
             admin: "operator-secret".into(),
+            browser: None,
             allowed: None,
             runtime: Runtime::new(net.clone(), store, "unused".into()),
             catalog: Catalog::new(net),
