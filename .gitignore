@@ -18,3 +18,7 @@ info.md
 *.pem
 *.key
 id_rsa*
+
+# MCP connector vault and local deployment secrets
+.hirara-connectors/
+.connector-secrets/

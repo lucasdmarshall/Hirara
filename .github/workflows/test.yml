@@ -143,3 +143,23 @@ jobs:
         env:
           HIRARA_NATIVE_INTEGRATION: '1'
         run: python -m pytest -q integration/test_native_mcp.py -o asyncio_mode=auto
+
+  connectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path hirara-connectors/Cargo.toml --check
+      - run: cargo clippy --manifest-path hirara-connectors/Cargo.toml --locked --all-targets -- -D warnings
+      - run: cargo test --manifest-path hirara-connectors/Cargo.toml --locked
+      - run: cargo build --manifest-path hirara-connectors/Cargo.toml --locked
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -c constraints-release.txt -e './hirara-core[dev]' -e './hirara-hub[mcp]'
+      - name: Rust connectors over the MCP hub
+        env:
+          HIRARA_CONNECTOR_INTEGRATION: '1'
+        run: python -m pytest -q integration/test_connectors_mcp.py -o asyncio_mode=auto

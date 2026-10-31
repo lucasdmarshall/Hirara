@@ -981,6 +981,29 @@ class Client:
     def audio_watch(self, action: str, **extra) -> dict:
         return self.call("audio_watch", {"action": action, **extra})
 
+    # --- external MCP connectors (Rust service; hub required) ---
+
+    def connector_search(self, query: str = "", *, source: str = "official", category: str | None = None, cursor: str | None = None, limit: int = 20) -> dict:
+        return self.call("connector_search", {k: v for k, v in dict(query=query, source=source, category=category, cursor=cursor, limit=limit).items() if v is not None})
+
+    def connector_details(self, source: str, server_id: str) -> dict:
+        return self.call("connector_details", dict(source=source, server_id=server_id))
+
+    def connector_connect(self, connection_id: str | None = None, *, source: str | None = None, server_id: str | None = None, endpoint: str | None = None, reauthorize: bool = False) -> dict:
+        return self.call("connector_connect", {k: v for k, v in dict(connection_id=connection_id, source=source, server_id=server_id, endpoint=endpoint, reauthorize=reauthorize).items() if v is not None})
+
+    def connector_status(self, connection_id: str | None = None) -> dict:
+        return self.call("connector_status", {} if connection_id is None else {"connection_id": connection_id})
+
+    def connector_tools(self, connection_id: str) -> dict:
+        return self.call("connector_tools", {"connection_id": connection_id})
+
+    def connector_call(self, connection_id: str, tool_name: str, arguments: dict | None = None) -> dict:
+        return self.call("connector_call", dict(connection_id=connection_id, tool_name=tool_name, arguments=arguments or {}))
+
+    def connector_disconnect(self, connection_id: str) -> dict:
+        return self.call("connector_disconnect", {"connection_id": connection_id})
+
     # --- files (hirarafs): paths are on the backend's filesystem ---
 
     def document_index(self, path: str | None = None, *, collection: str = "default", text: str | None = None, doc_id: str | None = None, source: str | None = None, metadata: dict | None = None, **extra) -> dict:
@@ -1184,6 +1207,14 @@ def _delegate(name):
     return method
 
 
+connector_search = _delegate("connector_search")
+connector_details = _delegate("connector_details")
+connector_connect = _delegate("connector_connect")
+connector_status = _delegate("connector_status")
+connector_tools = _delegate("connector_tools")
+connector_call = _delegate("connector_call")
+connector_disconnect = _delegate("connector_disconnect")
+
 document_index = _delegate("document_index")
 document_search = _delegate("document_search")
 document_remove = _delegate("document_remove")
@@ -1285,6 +1316,14 @@ health = _delegate("health")
 
 
 __all__ = [
+    "connector_search",
+    "connector_details",
+    "connector_connect",
+    "connector_status",
+    "connector_tools",
+    "connector_call",
+    "connector_disconnect",
+
     "document_index",
     "document_search",
     "document_remove",

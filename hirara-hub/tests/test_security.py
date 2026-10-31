@@ -71,3 +71,30 @@ async def test_standalone_mcp_preserves_error_envelope():
     result = await failed()
     assert result.is_error
     assert result.structured_content['error'] == 'synthetic refusal'
+
+
+@pytest.mark.asyncio
+async def test_connector_requires_dedicated_owner_credential(monkeypatch, tmp_path):
+    monkeypatch.setenv('HIRARA_BACKEND_TOKEN', 'backend-secret')
+    monkeypatch.delenv('HIRARA_CONNECTOR_TOKEN', raising=False)
+    monkeypatch.delenv('HIRARA_CONNECTOR_TOKEN_FILE', raising=False)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda req: pytest.fail('unconfigured connector reached backend'))) as client:
+        result = await Gateway(HubConfig(), client).call('connector_status', {})
+    assert 'not configured' in result['error']
+    token_file = tmp_path / 'connector-token'
+    token_file.write_text('owner-secret\n')
+    monkeypatch.setenv('HIRARA_CONNECTOR_TOKEN_FILE', str(token_file))
+    def handler(req):
+        assert req.headers['authorization'] == 'Bearer owner-secret'
+        return httpx.Response(200, json={'connections': [], '_hirara': {'provider': 'Hirara'}})
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await Gateway(HubConfig(), client).call('connector_status', {})
+    assert result['_hirara']['provider'] == 'Hirara'
+
+
+def test_connector_mcp_attribution_is_instruction_not_endorsement():
+    from hirara_hub.mcp_server import server, CONNECTOR_INSTRUCTIONS
+    assert server.instructions == CONNECTOR_INSTRUCTIONS
+    assert 'provided through Hirara' in server.instructions
+    assert 'not an audit or endorsement' in server.instructions

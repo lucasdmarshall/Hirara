@@ -1,4 +1,4 @@
-"""Hirara — the Python SDK for the Hirara agent tools. No API keys.
+"""Hirara — the Python SDK for built-in tools and external MCP connectors.
 
 Two ways to run a tool, same call surface:
 
@@ -19,6 +19,14 @@ keep working via the hub.
 """
 
 from .client import (
+    connector_search,
+    connector_details,
+    connector_connect,
+    connector_status,
+    connector_tools,
+    connector_call,
+    connector_disconnect,
+
     document_index,
     document_search,
     document_remove,
@@ -124,6 +132,14 @@ from .client import (
 )
 
 __all__ = [
+    "connector_search",
+    "connector_details",
+    "connector_connect",
+    "connector_status",
+    "connector_tools",
+    "connector_call",
+    "connector_disconnect",
+
     "document_index",
     "document_search",
     "document_remove",
@@ -228,7 +244,7 @@ __all__ = [
     "wait_until",
 ]
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __banner__ = (
     "    __  __________  ___    ____  ___ \n"

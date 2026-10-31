@@ -4,7 +4,7 @@
 
 # Hirara
 
-**A self-hosted toolkit for AI agents and LLMs — web search, PDF, OCR, Office, and sandboxed code execution, via a Python SDK or MCP. No third-party API keys.**
+**A self-hosted toolkit for AI agents and LLMs — web search, PDF, OCR, Office, and sandboxed code execution, via a Python SDK or MCP. Built-in tools require no third-party API keys.**
 
 Hirara is a growing collection of agent tools you run on your own machine.
 `web_search` and `web_fetch` replace hosted agent web tools — search against
@@ -133,8 +133,9 @@ for tool permissions, private-network opt-ins, authentication, and executor isol
 ## Usage
 
 Hirara is **self-hosted**: you run the backend once — on a machine *you* control —
-then call it. Nothing to sign up for, no API keys, and your data never leaves
-your machine.
+then call it. Built-in file processing runs locally. External MCP connectors
+use your selected providers and may require their accounts or credentials; tool
+calls send the permitted arguments and data to those providers.
 
 ```
    run the backend   ─────►   call it (pick one)
@@ -626,3 +627,8 @@ conflicts, egress and outbound IP, and changes nothing.
 Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 Copyright 2026 Lucas D Marshall (Kaung Myat San).
+
+
+## External MCP connectors
+
+Hirara can discover MCP servers, connect with human approval, retain encrypted credentials, and call permitted upstream tools through a Rust service. See [connector setup, attribution and security boundaries](docs/connectors.md).

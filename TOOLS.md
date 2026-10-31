@@ -173,3 +173,8 @@ Implemented in this checkout; see [native tools setup and examples](docs/native-
 | `symbolic_math` | `hirarautil` + Rust CAS |
 
 See [setup, examples and limits](docs/search-and-math.md).
+
+
+## External MCP connectors
+
+Hirara can discover MCP servers, connect with human approval, retain encrypted credentials, and call permitted upstream tools through a Rust service. See [connector setup, attribution and security boundaries](docs/connectors.md).

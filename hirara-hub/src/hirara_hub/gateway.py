@@ -34,18 +34,30 @@ class Gateway:
         base = self.config.service_urls.get(service, f"http://{service}")
         return f"{base}{path}"
 
-    def _headers(self):
+    def _headers(self, service: str | None = None):
         import os
-        token = os.getenv("HIRARA_BACKEND_TOKEN", "").strip()
+        token = os.getenv("HIRARA_CONNECTOR_TOKEN" if service == "hiraraconnectors" else "HIRARA_BACKEND_TOKEN", "").strip()
+        if service == "hiraraconnectors" and not token:
+            path = os.getenv("HIRARA_CONNECTOR_TOKEN_FILE", "").strip()
+            if path:
+                try:
+                    from pathlib import Path
+                    token = Path(path).read_text().strip()
+                except (OSError, UnicodeError):
+                    return {}
+        if service == "hiraraconnectors" and (not token.isascii() or any(c.isspace() for c in token)):
+            return {}
         return {"Authorization": f"Bearer {token}"} if token else {}
 
     async def _probe(self, path):
         client, close = self._aclient(self.config.probe_timeout)
         slots = asyncio.Semaphore(4)
         async def one(service):
+            if service == "hiraraconnectors" and not self._headers(service):
+                return service, None
             async def request():
                 async with slots:
-                    resp = await client.get(self._url(service, path), headers=self._headers(),
+                    resp = await client.get(self._url(service, path), headers=self._headers(service),
                                             timeout=self.config.probe_timeout)
                     resp.raise_for_status()
                     return resp.json() if resp.content else {}
@@ -54,7 +66,8 @@ class Gateway:
             except Exception:
                 return service, None
         try:
-            return await asyncio.gather(*(one(service) for service in services()))
+            return await asyncio.gather(*(one(service) for service in services()
+                                         if service != "hiraraconnectors" or self._headers(service)))
         finally:
             if close:
                 await client.aclose()
@@ -85,7 +98,7 @@ class Gateway:
                 status[service] = "degraded"
         up = sum(value == "up" for value in status.values())
         return {"status": "ok" if up == len(status) else "degraded",
-                "version": "0.4.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
+                "version": "0.5.0", "auth": "enabled" if self.config.auth_enabled else "disabled",
                 "services": status, "services_up": up, "services_total": len(status),
                 "ready": up > 0}
 
@@ -101,10 +114,12 @@ class Gateway:
         route = TOOLS.get(name)
         if route is None:
             return {"error": f"unknown tool: {name}", "tool": name}
+        if route.service == "hiraraconnectors" and not self._headers(route.service):
+            return {"error": "connectors are not configured: set HIRARA_CONNECTOR_TOKEN", "tool": name}
         url = self._url(route.service, route.path)
         client, close = self._aclient(self.config.timeout)
         try:
-            resp = await client.post(url, json=arguments or {}, headers=self._headers(), timeout=self.config.timeout)
+            resp = await client.post(url, json=arguments or {}, headers=self._headers(route.service), timeout=self.config.timeout)
             if resp.status_code >= 500:
                 return {
                     "error": f"backend {route.service} error (HTTP {resp.status_code})",

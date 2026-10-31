@@ -5,7 +5,9 @@
 **The Python client for the [Hirara](https://github.com/lucasdmarshall/Hirara) self-hosted agent tool hub.**
 
 Call web search, PDF, OCR, code execution, and Office-document tools like
-functions — against a hub you run. No API keys.
+functions — against a hub you run. Built-in tools require no third-party API
+keys. External MCP connectors use provider authentication when required.
+See [connector setup and examples](../docs/connectors.md).
 
 [![PyPI](https://img.shields.io/pypi/v/hirara.svg)](https://pypi.org/project/hirara/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)

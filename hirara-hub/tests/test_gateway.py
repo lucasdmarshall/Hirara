@@ -108,7 +108,7 @@ async def test_health_reports_per_backend():
     assert h["services"]["hirarareader"] == "up"
     assert h["services"]["hiraraocr"] != "up"  # 503 in the mock → "http 503"
     assert h["services_up"] == 2  # only hirarareader + hirarapdf are healthy
-    assert h["services_total"] == len(set(r.service for r in TOOLS.values()))
+    assert h["services_total"] == len(set(r.service for r in TOOLS.values()) - {"hiraraconnectors"})
     assert h["auth"] == "disabled"
 
 

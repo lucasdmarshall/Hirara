@@ -22,3 +22,7 @@ tests/
 id_rsa*
 *.pem
 *.key
+
+# Encrypted connector state is private even though it is not plaintext.
+.hirara-connectors/
+.connector-secrets/

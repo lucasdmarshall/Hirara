@@ -135,3 +135,8 @@ are disabled; use stdio or authenticated HTTP. Set `HIRARA_BACKEND_TOKEN` on
 the hub and backends to protect service-to-service calls. `HIRARA_ALLOWED_TOOLS`
 restricts both discovery and execution. Probes share an overall deadline,
 and `/ready` reports whether at least one backend is healthy.
+
+
+## External MCP connectors
+
+Hirara can discover MCP servers, connect with human approval, retain encrypted credentials, and call permitted upstream tools through a Rust service. See [connector setup, attribution and security boundaries](../docs/connectors.md).

@@ -164,3 +164,8 @@ untrusted, including accepted answers and document chunks.
 Symbolic math parses a bounded expression grammar in Rust; it does not evaluate
 Python, scripts, commands or filesystem/network operations. Its floating-point
 CAS is not a proof system. See [operational limits](docs/search-and-math.md).
+
+
+## External MCP connectors
+
+Hirara can discover MCP servers, connect with human approval, retain encrypted credentials, and call permitted upstream tools through a Rust service. See [connector setup, attribution and security boundaries](docs/connectors.md).

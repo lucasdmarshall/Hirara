@@ -29,6 +29,7 @@ DEFAULT_PORTS: dict[str, int] = {
     "hiraradata": 9400,
     "hiraramedia": 9500,
     "hiraraagent": 9600,
+    "hiraraconnectors": 9700,
 }
 
 
@@ -45,6 +46,14 @@ class ToolRoute:
 # tool name -> route. Multiple tools can share one service (it exposes them all
 # via its own /schemas), which is why schema aggregation is per *service*.
 TOOLS: dict[str, ToolRoute] = {
+    "connector_search": ToolRoute("connector_search", "hiraraconnectors", "/connector_search"),
+    "connector_details": ToolRoute("connector_details", "hiraraconnectors", "/connector_details"),
+    "connector_connect": ToolRoute("connector_connect", "hiraraconnectors", "/connector_connect"),
+    "connector_status": ToolRoute("connector_status", "hiraraconnectors", "/connector_status"),
+    "connector_tools": ToolRoute("connector_tools", "hiraraconnectors", "/connector_tools"),
+    "connector_call": ToolRoute("connector_call", "hiraraconnectors", "/connector_call"),
+    "connector_disconnect": ToolRoute("connector_disconnect", "hiraraconnectors", "/connector_disconnect"),
+
     "document_index": ToolRoute("document_index", "hirarafs", "/document_index"),
     "document_search": ToolRoute("document_search", "hirarafs", "/document_search"),
     "document_remove": ToolRoute("document_remove", "hirarafs", "/document_remove"),
