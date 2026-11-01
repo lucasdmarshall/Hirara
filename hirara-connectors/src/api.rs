@@ -341,7 +341,7 @@ pub fn router(state: State) -> Router {
     Router::new()
         .route(
             "/health",
-            get(|| async { Json(json!({"status":"ok","version":"0.2.1"})) }),
+            get(|| async { Json(json!({"status":"ok","version":"0.3.0"})) }),
         )
         .route("/local", get(crate::portal::home))
         .route("/local/assets/{name}", get(crate::portal::asset))

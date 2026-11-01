@@ -162,4 +162,4 @@ jobs:
       - name: Rust connectors over the MCP hub
         env:
           HIRARA_CONNECTOR_INTEGRATION: '1'
-        run: python -m pytest -q integration/test_connectors_mcp.py integration/test_connectors_local.py -o asyncio_mode=auto
+        run: python -m pytest -q integration/test_connectors_mcp.py integration/test_connectors_local.py integration/test_forge_mcp.py -o asyncio_mode=auto

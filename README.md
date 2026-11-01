@@ -629,6 +629,10 @@ Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 Copyright 2026 Lucas D Marshall (Kaung Myat San).
 
 
+## Rust Tool Forge (prototype)
+
+Turn supported OpenAPI JSON into reviewed, digest-pinned GET tools for CLI or MCP stdio. No generated code or LLM required. See the [offline demo and security boundaries](docs/tool-forge.md).
+
 ## External MCP connectors
 
 Hirara can discover MCP servers, connect with human approval, retain encrypted credentials, and call permitted upstream tools through a Rust service. See [connector setup, attribution and security boundaries](docs/connectors.md).

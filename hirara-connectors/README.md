@@ -20,3 +20,9 @@ Use `hirara-connectors open` to authorize another browser session.
 Connection credentials persist in an authenticated encrypted vault. Operator-managed deployments retain explicit secret configuration; local mode
 creates it automatically. Never put
 secrets in chat or pass them as connector tool arguments.
+
+## Rust Tool Forge (prototype)
+
+Import a supported OpenAPI JSON document into reviewed, digest-pinned GET tools
+and expose them directly over MCP stdio or the CLI. See the
+[offline demo, supported subset and security boundaries](../docs/tool-forge.md).

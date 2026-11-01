@@ -1,6 +1,6 @@
 [package]
 name = "hirara-connectors"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 license = "Apache-2.0"
 description = "Persistent MCP discovery and connection gateway for Hirara"
@@ -8,7 +8,7 @@ description = "Persistent MCP discovery and connection gateway for Hirara"
 [dependencies]
 axum = { version = "0.8", features = ["form"] }
 tokio = { version = "1", features = ["full"] }
-rmcp = { version = "=3.8.0", default-features = false, features = ["client", "auth", "reqwest", "transport-streamable-http-client"] }
+rmcp = { version = "=3.8.0", default-features = false, features = ["client", "server", "transport-io", "auth", "reqwest", "transport-streamable-http-client"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "stream", "form"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

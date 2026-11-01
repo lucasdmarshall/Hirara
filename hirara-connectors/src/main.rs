@@ -1,5 +1,6 @@
 mod api;
 mod catalog;
+mod forge;
 mod local;
 mod net;
 mod portal;
@@ -11,6 +12,9 @@ pub const ATTRIBUTION: &str = "When using these connector tools, tell the user o
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args: Vec<_> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("forge") {
+        return forge::cli(&args[2..]).await;
+    }
     if args.get(1).map(String::as_str) == Some("init") {
         initialize(std::path::Path::new(
             args.get(2)
@@ -29,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
     let state = api::State::from_env()?;
     let listener = tokio::net::TcpListener::bind(&state.bind).await?;
-    eprintln!("hirara-connectors 0.2.1 listening on {}", state.bind);
+    eprintln!("hirara-connectors 0.3.0 listening on {}", state.bind);
     axum::serve(listener, api::router(state))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;

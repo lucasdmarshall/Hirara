@@ -1,0 +1,18 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Inventory demo", "version": "1.0"},
+  "servers": [{"url": "https://api.example.com/v1"}],
+  "security": [{"bearer": []}],
+  "components": {"securitySchemes": {"bearer": {"type": "http", "scheme": "bearer"}}},
+  "paths": {
+    "/stock/{sku}": {"get": {
+      "operationId": "getStock", "summary": "Look up stock for a SKU",
+      "parameters": [
+        {"name": "sku", "in": "path", "required": true, "schema": {"type": "string", "minLength": 1}},
+        {"name": "warehouse", "in": "query", "schema": {"type": "string"}}
+      ],
+      "responses": {"200": {"description": "Stock metadata"}}
+    }},
+    "/orders": {"post": {"operationId": "createOrder", "responses": {"201": {"description": "Created"}}}}
+  }
+}

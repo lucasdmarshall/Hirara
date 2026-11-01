@@ -1,0 +1,6 @@
+[
+  {"tool":"inventory__getstock","arguments":{"path":{"sku":"A B"},"query":{"warehouse":"east"}},"expected_url":"https://api.example.com/v1/stock/A%20B?warehouse=east"},
+  {"tool":"inventory__getstock","arguments":{"path":{"sku":"../secret"}},"reject":true},
+  {"tool":"inventory__getstock","arguments":{"path":{"sku":12}},"reject":true},
+  {"tool":"inventory__getstock","arguments":{"path":{"sku":"ABC"},"token":"wrong"},"reject":true}
+]
